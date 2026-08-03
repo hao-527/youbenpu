@@ -1,0 +1,31 @@
+# Dependencies and build output
+node_modules/
+dist/
+apps/*/dist/
+coverage/
+
+# Generated caches and host-specific build helpers
+**/.swc/
+**/__pycache__/
+*.py[cod]
+services/api/api
+
+# Environment and local configuration
+.env
+.env.*
+!.env.example
+**/project.private.config.json
+
+# Local uploads (Tencent COS adapter will replace this in production)
+services/api/data/uploads/*
+!services/api/data/uploads/.gitkeep
+
+# Editor and operating-system files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Logs
+*.log
+npm-debug.log*

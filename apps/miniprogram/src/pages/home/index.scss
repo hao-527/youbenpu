@@ -1,0 +1,228 @@
+/* Period selector — inside summary box top-right */
+.home-summary__period {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+}
+
+.period-trigger {
+  display: flex;
+  min-height: 52rpx;
+  align-items: center;
+  gap: 6rpx;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-full);
+  background: var(--color-muted);
+  color: var(--color-foreground);
+  font-size: 23rpx;
+  font-weight: 600;
+}
+
+.period-menu {
+  position: absolute;
+  top: 60rpx;
+  right: 0;
+  z-index: 10;
+  min-width: 220rpx;
+  overflow: hidden;
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.1);
+}
+
+.period-option {
+  display: flex;
+  width: 100%;
+  min-height: 76rpx;
+  align-items: center;
+  padding: 0 var(--space-3);
+  color: var(--color-foreground);
+  font-size: 26rpx;
+}
+
+.period-option + .period-option {
+  border-top: var(--hairline) solid var(--color-border);
+}
+
+.period-option--active {
+  color: var(--color-primary);
+  font-weight: 700;
+}
+
+/* Monthly summary */
+.home-summary {
+  position: relative;
+  margin-bottom: var(--space-4);
+  padding: var(--space-4);
+  padding-top: 96rpx;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.home-summary__row {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.home-summary__item {
+  min-width: 0;
+  flex: 1;
+  text-align: center;
+}
+
+.home-summary__label {
+  display: block;
+  color: var(--color-subtle-foreground);
+  font-size: 22rpx;
+}
+
+.home-summary__value {
+  display: block;
+  margin-top: 8rpx;
+  color: var(--color-foreground);
+  font-size: 30rpx;
+  font-weight: 700;
+}
+
+.home-summary__value--income {
+  color: var(--color-success);
+}
+
+.home-summary__value--balance {
+  color: var(--color-primary);
+}
+
+/* Quick-action bar */
+.quick-actions {
+  display: flex;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+}
+
+.quick-actions__item {
+  display: flex;
+  min-width: 0;
+  min-height: 120rpx;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10rpx;
+  color: var(--color-foreground);
+  font-size: 25rpx;
+  font-weight: 600;
+}
+
+.quick-actions__item + .quick-actions__item {
+  border-left: var(--hairline) solid var(--color-border);
+}
+
+.quick-actions__icon {
+  display: flex;
+  width: 64rpx;
+  height: 64rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-tint-primary);
+}
+
+/* Pending grid — two columns */
+.pending-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+}
+
+.pending-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-4) var(--space-2);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface);
+  text-align: center;
+}
+
+.pending-item__icon {
+  display: flex;
+  width: 80rpx;
+  height: 80rpx;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-2);
+  border-radius: var(--radius-full);
+}
+
+.pending-item__icon--primary {
+  background: var(--color-tint-primary);
+}
+
+.pending-item__icon--amber {
+  background: var(--color-tint-amber);
+}
+
+.pending-item__icon--red {
+  background: var(--color-tint-red);
+}
+
+.pending-item__title {
+  display: block;
+  color: var(--color-foreground);
+  font-size: 28rpx;
+  font-weight: 600;
+}
+
+.pending-item__meta {
+  display: block;
+  margin-top: 6rpx;
+  color: var(--color-subtle-foreground);
+  font-size: 23rpx;
+}
+
+
+/* Custom date picker sheet */
+.form-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, 0.4);
+}
+
+.form-sheet {
+  width: 100%;
+  padding: var(--space-5) var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-5));
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  background: var(--color-background);
+}
+
+.form-sheet__title {
+  display: block;
+  margin-bottom: var(--space-4);
+  color: var(--color-foreground);
+  font-size: 34rpx;
+  font-weight: 700;
+}
+
+.form-input {
+  display: flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  margin-bottom: var(--space-3);
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--color-muted);
+  color: var(--color-foreground);
+  font-size: 28rpx;
+}
+
+.form-input--picker {
+  color: var(--color-foreground);
+}
+
+.form-submit {
+  margin-top: var(--space-2);
+}

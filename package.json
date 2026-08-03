@@ -1,0 +1,25 @@
+{
+  "name": "youbenpu",
+  "version": "0.1.0",
+  "private": true,
+  "description": "生活有本谱 - 家庭生活协作小程序",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:weapp": "npm run dev:weapp --workspace @youbenpu/miniprogram",
+    "build:weapp": "npm run build:weapp --workspace @youbenpu/miniprogram",
+    "typecheck": "npm run typecheck --workspace @youbenpu/miniprogram"
+  },
+  "engines": {
+    "node": ">=18.20.0",
+    "npm": ">=10.0.0"
+  },
+  "packageManager": "npm@10.8.2",
+  "overrides": {
+    "sass": "1.93.3"
+  },
+  "devDependencies": {
+    "sass": "1.93.3"
+  }
+}
