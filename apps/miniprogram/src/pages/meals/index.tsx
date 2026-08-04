@@ -1,311 +1,146 @@
-import { Button, Image, Input, Picker, Text, View } from '@tarojs/components'
+import { Button, Image, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { Minus, Plus, Trash2, Utensils } from 'lucide'
-import { useCallback, useMemo, useState } from 'react'
+import { ChevronRight, History, Settings2, Utensils } from 'lucide'
+import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
+import { PageShell } from '../../components/page-shell'
 import { StateText } from '../../components/state-text'
-import { useDispatch, useStore } from '../../store'
-import { uid } from '../../store/uid'
+import { useStore } from '../../store'
 import { palette } from '../../theme/palette'
-import type { Dish, DishCategory, MealOrder } from '../../types/domain'
+import type { DishCategory } from '../../types/domain'
+import { dishCategories } from '../../types/domain'
 
 import './index.scss'
 
-const categoryOptions: DishCategory[] = ['炒菜', '汤', '凉菜', '主食', '甜品', '其他']
-const categoryFilters: Array<'全部' | DishCategory> = ['全部', ...categoryOptions]
-
 export default function MealsPage() {
-  const { dishes, mealOrder, familyId } = useStore()
-  const dispatch = useDispatch()
+  const { dishes, orders, customDishCategories } = useStore()
+  const categories: Array<'全部' | DishCategory> = ['全部', ...dishCategories, ...customDishCategories]
+  const [activeCategory, setActiveCategory] = useState<(typeof categories)[number]>('全部')
 
-  const [activeCategory, setActiveCategory] = useState<(typeof categoryFilters)[number]>('全部')
-  const [showDishForm, setShowDishForm] = useState(false)
-  const [showOrderForm, setShowOrderForm] = useState(false)
-  const [editingDish, setEditingDish] = useState<Dish | null>(null)
+  const pendingOrder = useMemo(() => orders.find((order) => order.status === 'pending') ?? null, [orders])
+  const availableDishes = useMemo(() => dishes.filter((dish) => dish.available), [dishes])
+  const visibleDishes = useMemo(
+    () => activeCategory === '全部' ? availableDishes : availableDishes.filter((dish) => dish.category === activeCategory),
+    [activeCategory, availableDishes]
+  )
 
-  // Dish form
-  const [dishName, setDishName] = useState('')
-  const [dishCategory, setDishCategory] = useState<DishCategory>('炒菜')
-  const [dishMethod, setDishMethod] = useState('')
-  const [dishIngredients, setDishIngredients] = useState('')
-  const [dishPhoto, setDishPhoto] = useState('')
-
-  // Order form
-  const [orderItems, setOrderItems] = useState<Record<string, number>>({})
-
-  const visibleDishes = activeCategory === '全部'
-    ? dishes
-    : dishes.filter((d) => d.category === activeCategory)
-
-  const hasPendingOrder = mealOrder && mealOrder.status === 'pending'
-
-  const openAddDish = () => {
-    setEditingDish(null)
-    setDishName('')
-    setDishCategory('炒菜')
-    setDishMethod('')
-    setDishIngredients('')
-    setDishPhoto('')
-    setShowDishForm(true)
-  }
-
-  const openEditDish = (dish: Dish) => {
-    setEditingDish(dish)
-    setDishName(dish.name)
-    setDishCategory(dish.category)
-    setDishMethod(dish.method)
-    setDishIngredients(dish.ingredients.join('、'))
-    setDishPhoto(dish.photo)
-    setShowDishForm(true)
-  }
-
-  const chooseDishPhoto = () => {
-    Taro.chooseImage({ count: 1, sizeType: ['compressed'] }).then((res) => {
-      if (res.tempFilePaths.length > 0) setDishPhoto(res.tempFilePaths[0])
-    }).catch(() => {})
-  }
-
-  const submitDish = useCallback(() => {
-    if (!dishName.trim()) {
-      Taro.showToast({ title: '请填写菜品名称', icon: 'none' })
+  const openCreateOrder = () => {
+    if (pendingOrder) {
+      Taro.navigateTo({ url: '/pages/meal-orders/index' })
       return
     }
-    const ingredientsList = dishIngredients.split(/[、,，]/).map((s) => s.trim()).filter(Boolean)
-    const dish: Dish = {
-      id: editingDish?.id ?? uid('d-'),
-      familyId,
-      name: dishName.trim(),
-      category: dishCategory,
-      method: dishMethod.trim(),
-      ingredients: ingredientsList,
-      photo: dishPhoto,
-      available: editingDish?.available ?? true
-    }
-    dispatch(editingDish ? { type: 'dish/update', dish } : { type: 'dish/add', dish })
-    setShowDishForm(false)
-    Taro.showToast({ title: editingDish ? '已更新' : '已添加', icon: 'success' })
-  }, [dishName, dishCategory, dishMethod, dishIngredients, dishPhoto, editingDish, familyId, dispatch])
-
-  const deleteDish = (id: string) => {
-    Taro.showModal({ title: '删除这道菜？', confirmText: '删除', confirmColor: palette.destructive }).then((res) => {
-      if (res.confirm) dispatch({ type: 'dish/delete', id })
-    })
-  }
-
-  const toggleAvailable = (id: string) => dispatch({ type: 'dish/toggleAvailable', id })
-
-  // Order
-  const openOrderForm = () => {
-    setOrderItems({})
-    setShowOrderForm(true)
-  }
-
-  const setOrderQuantity = (dishId: string, delta: number) => {
-    setOrderItems((prev) => {
-      const current = prev[dishId] ?? 0
-      const next = Math.max(0, current + delta)
-      if (next === 0) {
-        const copy = { ...prev }
-        delete copy[dishId]
-        return copy
-      }
-      return { ...prev, [dishId]: next }
-    })
-  }
-
-  const submitOrder = useCallback(() => {
-    const items = Object.entries(orderItems)
-      .filter(([, q]) => q > 0)
-      .map(([dishId, quantity]) => {
-        const dish = dishes.find((d) => d.id === dishId)
-        return { id: uid('oi-'), name: dish?.name ?? '', quantity }
-      })
-    if (items.length === 0) {
-      Taro.showToast({ title: '至少选一道菜', icon: 'none' })
-      return
-    }
-    const order: MealOrder = {
-      id: uid('mo-'),
-      familyId,
-      status: 'pending',
-      requesterName: '我',
-      submittedAt: '刚刚',
-      items
-    }
-    dispatch({ type: 'order/create', order })
-    setShowOrderForm(false)
-    Taro.showToast({ title: '点餐单已提交', icon: 'success' })
-  }, [orderItems, dishes, familyId, dispatch])
-
-  const cancelOrder = () => {
-    Taro.showModal({ title: '取消这张点餐单？', confirmText: '取消', confirmColor: palette.destructive }).then((res) => {
-      if (res.confirm) dispatch({ type: 'order/cancel' })
-    })
-  }
-
-  const completeOrder = () => {
-    Taro.showModal({ title: '完成这张点餐单？', confirmText: '完成', confirmColor: palette.primary }).then((res) => {
-      if (res.confirm) dispatch({ type: 'order/complete' })
-    })
+    Taro.navigateTo({ url: '/pages/meal-create/index' })
   }
 
   return (
-    <View className='page-shell'>
+    <PageShell>
       <View className='page-title'>
-        <Text className='page-title__text'>吃饭</Text>
+        <View>
+          <Text className='page-title__text'>吃饭</Text>
+          <Text className='meals-page-subtitle'>选好今天吃什么，家里人都能看到</Text>
+        </View>
       </View>
 
-      {/* Pending order */}
-      {hasPendingOrder && mealOrder && (
-        <View className='section'>
-          <View className='section__head'>
-            <Text className='section__title'>当前点餐单</Text>
+      <View className='content-toolbar content-toolbar--spread'>
+        <Button className='content-action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
+          <AppIcon icon={History} size={16} color={palette.foreground} />
+          <Text>点餐记录</Text>
+        </Button>
+        <Button className='content-action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}>
+          <AppIcon icon={Settings2} size={16} color={palette.foreground} />
+          <Text>菜品管理</Text>
+        </Button>
+      </View>
+
+      {pendingOrder ? (
+        <Button className='meal-focus-card meal-focus-card--pending tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
+          <View className='meal-focus-card__head'>
+            <View className='meal-focus-card__copy'>
+              <Text className='meal-focus-card__eyebrow'>当前点餐单</Text>
+              <Text className='meal-focus-card__title'>{pendingOrder.items.length} 道菜，共 {pendingOrder.items.reduce((sum, item) => sum + item.quantity, 0)} 份</Text>
+              <Text className='meal-focus-card__meta'>{pendingOrder.requesterName} · {pendingOrder.submittedAt}</Text>
+            </View>
             <StateText label='待完成' tone='warn' />
           </View>
-          <View className='list'>
-            {mealOrder.items.map((item) => (
-              <View key={item.id} className='list__row'>
-                <View className='icon-bubble icon-bubble--primary'>
-                  <AppIcon icon={Utensils} size={16} color={palette.primary} />
-                </View>
-                <View className='list__body'>
-                  <Text className='list__title'>{item.name}</Text>
-                </View>
-                <Text className='list__value'>× {item.quantity}</Text>
+          <View className='meal-focus-card__dishes'>
+            {pendingOrder.items.slice(0, 4).map((item) => (
+              <View key={item.id} className='meal-focus-dish'>
+                {item.photo ? (
+                  <Image className='meal-focus-dish__photo' src={item.photo} mode='aspectFill' lazyLoad />
+                ) : (
+                  <View className='meal-focus-dish__photo meal-focus-dish__placeholder'>
+                    <AppIcon icon={Utensils} size={18} color={palette.subtleForeground} />
+                  </View>
+                )}
+                <Text className='meal-focus-dish__name'>{item.name}</Text>
               </View>
             ))}
           </View>
-          <View className='order-actions'>
-            <Button className='button button--outline tap' hoverClass='tap--pressed' onClick={completeOrder}>完成</Button>
-            <Button className='button button--danger tap' hoverClass='tap--pressed' onClick={cancelOrder}>取消</Button>
+          <View className='meal-focus-card__link'>
+            <Text>查看并处理点餐单</Text>
+            <AppIcon icon={ChevronRight} size={17} color={palette.primary} />
           </View>
-          <Text className='hint'>由 {mealOrder.requesterName} 提交 · {mealOrder.submittedAt}</Text>
+        </Button>
+      ) : (
+        <View className='meal-focus-card meal-focus-card--empty'>
+          <View className='meal-focus-card__icon'>
+            <AppIcon icon={Utensils} size={28} color={palette.primary} />
+          </View>
+          <Text className='meal-focus-card__title'>今天想吃什么？</Text>
+          <Text className='meal-focus-card__meta'>从家里的菜谱里挑几道，一次提交给全家</Text>
+          <Button className='button button--primary tap meal-focus-card__button' hoverClass='tap--pressed' onClick={openCreateOrder}>
+            开始点餐
+          </Button>
         </View>
       )}
 
-      {/* Dish grid */}
       <View className='section'>
         <View className='section__head'>
-          <Text className='section__title'>家里的菜</Text>
-          <Text className='section__meta'>{visibleDishes.length} 道</Text>
+          <Text className='section__title'>可点菜品</Text>
+          <Text className='section__meta'>{availableDishes.length} 道</Text>
         </View>
 
         <View className='tabs meals-tabs'>
-          {categoryFilters.map((cat) => (
+          {categories.map((category) => (
             <Button
-              key={cat}
-              className={`tabs__item tap ${activeCategory === cat ? 'tabs__item--active' : ''}`}
+              key={category}
+              className={`tabs__item tap ${activeCategory === category ? 'tabs__item--active' : ''}`}
               hoverClass='tap--pressed'
-              onClick={() => setActiveCategory(cat)}
+              onClick={() => setActiveCategory(category)}
             >
-              {cat}
+              {category}
             </Button>
           ))}
         </View>
 
-        <View className='dish-grid'>
-          {visibleDishes.map((dish) => (
-            <View key={dish.id} className={`dish ${dish.available ? '' : 'dish--disabled'}`}>
-              <View className='dish__photo-wrap' onClick={() => openEditDish(dish)}>
+        {visibleDishes.length === 0 ? (
+          <View className='empty-state surface-card'>
+            <Text className='empty-state__title'>这个分类还没有可点的菜</Text>
+            <Text className='empty-state__copy'>可以到菜品管理中新增菜品，或将暂停菜品重新上架。</Text>
+            <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}>
+              去管理菜品
+            </Button>
+          </View>
+        ) : (
+          <View className='meal-preview-grid'>
+            {visibleDishes.map((dish) => (
+              <Button key={dish.id} className='meal-preview-card tap' hoverClass='tap--pressed' onClick={openCreateOrder}>
                 {dish.photo ? (
-                  <Image className='dish__photo' src={dish.photo} mode='aspectFill' lazyLoad />
+                  <Image className='meal-preview-card__photo' src={dish.photo} mode='aspectFill' lazyLoad />
                 ) : (
-                  <View className='dish__photo dish__photo--placeholder'>
-                    <AppIcon icon={Utensils} size={28} color={palette.subtleForeground} />
+                  <View className='meal-preview-card__photo meal-preview-card__placeholder'>
+                    <AppIcon icon={Utensils} size={26} color={palette.subtleForeground} />
                   </View>
                 )}
-                <View className='dish__category'>{dish.category}</View>
-              </View>
-              <Text className='dish__name'>{dish.name}</Text>
-              <Text className='dish__meta'>{dish.ingredients.slice(0, 3).join(' · ')}</Text>
-              <View className='dish__actions'>
-                <Button className='tap' hoverClass='tap--pressed' onClick={() => toggleAvailable(dish.id)}>
-                  <StateText label={dish.available ? '可点' : '暂停'} tone={dish.available ? 'ok' : 'muted'} />
-                </Button>
-                <Button className='tap' hoverClass='tap--pressed' onClick={() => deleteDish(dish.id)}>
-                  <AppIcon icon={Trash2} size={15} color={palette.subtleForeground} />
-                </Button>
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {visibleDishes.length === 0 && <View className='list__empty'>该分类暂无菜品</View>}
-      </View>
-
-      {/* Dish form sheet */}
-      {showDishForm && (
-        <View className='form-overlay' onClick={() => setShowDishForm(false)}>
-          <View className='form-sheet' onClick={(e) => e.stopPropagation()}>
-            <Text className='form-sheet__title'>{editingDish ? '编辑菜品' : '上传新菜品'}</Text>
-
-            <Button className='form-photo-btn tap' hoverClass='tap--pressed' onClick={chooseDishPhoto}>
-              {dishPhoto ? <Image className='form-photo-preview' src={dishPhoto} mode='aspectFill' /> : <Text>选择图片</Text>}
-            </Button>
-
-            <Input className='form-input' type='text' placeholder='菜品名称' value={dishName} onInput={(e) => setDishName(e.detail.value)} />
-
-            <Picker mode='selector' range={categoryOptions} value={categoryOptions.indexOf(dishCategory)} onChange={(e) => setDishCategory(categoryOptions[Number(e.detail.value)])}>
-              <View className='form-input form-input--picker'><Text>类别：{dishCategory}</Text></View>
-            </Picker>
-
-            <Input className='form-input' type='text' placeholder='做法简述' value={dishMethod} onInput={(e) => setDishMethod(e.detail.value)} />
-            <Input className='form-input' type='text' placeholder='食材（用顿号分隔）' value={dishIngredients} onInput={(e) => setDishIngredients(e.detail.value)} />
-
-            <Button className='button button--primary tap form-submit' hoverClass='tap--pressed' onClick={submitDish}>
-              确认
-            </Button>
-          </View>
-        </View>
-      )}
-
-      {/* Order form sheet */}
-      {showOrderForm && (
-        <View className='form-overlay' onClick={() => setShowOrderForm(false)}>
-          <View className='form-sheet' onClick={(e) => e.stopPropagation()}>
-            <Text className='form-sheet__title'>提交点餐单</Text>
-            <View className='order-picker'>
-              {dishes.filter((d) => d.available).map((dish) => {
-                const qty = orderItems[dish.id] ?? 0
-                return (
-                  <View key={dish.id} className='order-picker__row'>
-                    <Text className='order-picker__name'>{dish.name}</Text>
-                    <View className='order-picker__controls'>
-                      <Button className='tap' hoverClass='tap--pressed' onClick={() => setOrderQuantity(dish.id, -1)}>
-                        <AppIcon icon={Minus} size={18} color={palette.subtleForeground} />
-                      </Button>
-                      <Text className='order-picker__qty'>{qty}</Text>
-                      <Button className='tap' hoverClass='tap--pressed' onClick={() => setOrderQuantity(dish.id, 1)}>
-                        <AppIcon icon={Plus} size={18} color={palette.primary} />
-                      </Button>
-                    </View>
-                  </View>
-                )
-              })}
-            </View>
-            <Button className='button button--primary tap form-submit' hoverClass='tap--pressed' onClick={submitOrder}>
-              提交
-            </Button>
-          </View>
-        </View>
-      )}
-
-      <View className='button-bar'>
-        {hasPendingOrder ? (
-          <Button className='button tap' hoverClass='tap--pressed' disabled>已有待完成点餐单</Button>
-        ) : (
-          <View className='button-bar__row'>
-            <Button className='button button--primary tap' hoverClass='tap--pressed' onClick={openOrderForm}>
-              提交点餐单
-            </Button>
-            <Button className='button button--outline tap' hoverClass='tap--pressed' onClick={openAddDish}>
-              <AppIcon icon={Plus} size={18} color={palette.foreground} />
-              添加菜品
-            </Button>
+                <Text className='meal-preview-card__category'>{dish.category}</Text>
+                <Text className='meal-preview-card__name'>{dish.name}</Text>
+                <Text className='meal-preview-card__meta'>{dish.ingredients.slice(0, 3).join(' · ') || '暂未填写食材'}</Text>
+              </Button>
+            ))}
           </View>
         )}
       </View>
-    </View>
+    </PageShell>
   )
 }

@@ -16,6 +16,8 @@ export interface LedgerEntry {
   timeLabel: string
   note?: string
   noteVisibility: 'private' | 'shared'
+  /** 关联点餐单 ID（可选），用于追溯这餐的实际支出 */
+  orderId?: string
 }
 
 export interface MonthSummary {
@@ -27,7 +29,8 @@ export interface MonthSummary {
 
 /* ========== 点餐 ========== */
 
-export type DishCategory = '炒菜' | '汤' | '凉菜' | '主食' | '甜品' | '其他'
+export const dishCategories = ['炒菜', '汤', '凉菜', '主食', '甜品', '其他'] as const
+export type DishCategory = typeof dishCategories[number] | (string & {})
 
 export interface Dish {
   id: string
@@ -47,8 +50,12 @@ export type MealOrderStatus = 'pending' | 'completed' | 'cancelled'
 
 export interface MealOrderItem {
   id: string
+  /** 关联菜品，用于回查图片和做法 */
+  dishId: string
   name: string
   quantity: number
+  /** 下单时的菜品图片快照 */
+  photo: string
 }
 
 export interface MealOrder {
@@ -64,13 +71,20 @@ export interface MealOrder {
 
 export type InventoryStatus = 'normal' | 'expiring' | 'expired' | 'finished' | 'discarded'
 
+export const inventoryCategories = ['食品', '药品', '日用品', '化妆品', '证件'] as const
+export type InventoryCategory = typeof inventoryCategories[number] | (string & {})
+
 export interface InventoryItem {
   id: string
   familyId: string
   name: string
+  category: InventoryCategory
   /** 自定义存放位置：床头柜、行李箱、衣柜等 */
   location: string
   quantityLabel: string
+  /** ISO date string YYYY-MM-DD；空字符串表示无需提醒 */
+  expiryDate: string
+  /** 根据 expiryDate 计算的展示文案 */
   expiryLabel: string
   status: InventoryStatus
   photo: string
@@ -78,11 +92,13 @@ export interface InventoryItem {
 
 /* ========== 家庭 ========== */
 
+export type FamilyRole = '家庭管理员' | '家庭成员'
+
 export interface FamilyMember {
   id: string
   familyId: string
   displayName: string
-  roleLabel: string
+  roleLabel: FamilyRole
   avatarText: string
 }
 

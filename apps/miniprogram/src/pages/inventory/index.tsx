@@ -1,22 +1,21 @@
 import { Button, Image, Input, Picker, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { ChevronDown, MapPin, Plus, Search, Settings2, Timer, Trash2 } from 'lucide'
-import { useCallback, useMemo, useState } from 'react'
+import { ChevronDown, ChevronRight, MapPin, Package, Plus, Search, Timer } from 'lucide'
+import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
+import { PageShell } from '../../components/page-shell'
 import { StateText, type StateTone } from '../../components/state-text'
-import { useDispatch, useStore } from '../../store'
-import { uid } from '../../store/uid'
+import { useStore } from '../../store'
 import { palette } from '../../theme/palette'
-import type { InventoryItem, InventoryStatus } from '../../types/domain'
+import { inventoryCategories, type InventoryCategory, type InventoryItem, type InventoryStatus } from '../../types/domain'
+import { getInventoryExpiry } from '../../utils/date'
 
 import './index.scss'
 
-const statusTone: Record<InventoryStatus, StateTone> = {
-  normal: 'ok', expiring: 'warn', expired: 'danger', finished: 'muted', discarded: 'muted'
-}
-
+type InventoryScope = 'active' | 'archived'
 type TimeFilter = 'all' | '3days' | '7days' | '1month' | '3months' | 'expired'
+
 const timeOptions: Array<{ key: TimeFilter; label: string }> = [
   { key: 'all', label: '全部时间' },
   { key: '3days', label: '临近 3 天' },
@@ -26,253 +25,157 @@ const timeOptions: Array<{ key: TimeFilter; label: string }> = [
   { key: 'expired', label: '已过期' }
 ]
 
-export default function InventoryPage() {
-  const { inventory, locations, settings, familyId } = useStore()
-  const dispatch = useDispatch()
+const filterDays: Partial<Record<TimeFilter, number>> = {
+  '3days': 3,
+  '7days': 7,
+  '1month': 30,
+  '3months': 90
+}
 
+const statusTone: Record<InventoryStatus, StateTone> = {
+  normal: 'ok',
+  expiring: 'warn',
+  expired: 'danger',
+  finished: 'muted',
+  discarded: 'muted'
+}
+
+function getStatusLabel(item: InventoryItem) {
+  if (item.status === 'finished') return '已用完'
+  if (item.status === 'discarded') return '已丢弃'
+  return item.expiryLabel
+}
+
+export default function InventoryPage() {
+  const { inventory, locations, customInventoryCategories } = useStore()
+  const [scope, setScope] = useState<InventoryScope>('active')
   const [keyword, setKeyword] = useState('')
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
   const [locationFilter, setLocationFilter] = useState('全部地点')
-  const [showTimeDropdown, setShowTimeDropdown] = useState(false)
-  const [showLocationDropdown, setShowLocationDropdown] = useState(false)
-  const [showForm, setShowForm] = useState(false)
-  const [showLocationManager, setShowLocationManager] = useState(false)
-  const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
+  const [categoryFilter, setCategoryFilter] = useState<'全部' | InventoryCategory>('全部')
 
-  // Form state
-  const [formName, setFormName] = useState('')
-  const [formLocation, setFormLocation] = useState('')
-  const [formQuantity, setFormQuantity] = useState('')
-  const [formExpiry, setFormExpiry] = useState('')
-  const [formPhoto, setFormPhoto] = useState('')
-  const [newLocationName, setNewLocationName] = useState('')
+  const displayInventory = useMemo(() => inventory.map((item) => {
+    if (item.status === 'finished' || item.status === 'discarded') return item
+    const expiry = getInventoryExpiry(item.expiryDate)
+    return { ...item, expiryLabel: expiry.label, status: expiry.status }
+  }), [inventory])
 
-  const availableLocations = useMemo(() => {
-    const locs = new Set(inventory.map((i) => i.location))
-    return ['全部地点', ...Array.from(locs).sort()]
-  }, [inventory])
+  const locationOptions = useMemo(() => ['全部地点', ...locations], [locations])
+  const categoryOptions = useMemo(() => ['全部', ...inventoryCategories, ...customInventoryCategories] as string[], [customInventoryCategories])
+  const activeCount = displayInventory.filter((item) => item.status !== 'finished' && item.status !== 'discarded').length
+  const archivedCount = displayInventory.length - activeCount
 
-  const visibleItems = useMemo(() => inventory.filter((item) => {
-    if (item.status === 'finished' || item.status === 'discarded') return false
-    const matchesKeyword = keyword === '' || item.name.includes(keyword) || item.location.includes(keyword) || item.expiryLabel.includes(keyword)
-    let matchesTime = true
-    if (timeFilter === 'expired') matchesTime = item.status === 'expired'
-    else if (timeFilter === '3days' || timeFilter === '7days') matchesTime = item.status === 'expiring' || item.status === 'expired'
-    // 1month and 3months: show all active items (already filtered out finished/discarded above)
+  const visibleItems = useMemo(() => displayInventory.filter((item) => {
+    const isArchived = item.status === 'finished' || item.status === 'discarded'
+    if (scope === 'active' ? isArchived : !isArchived) return false
+
+    const normalizedKeyword = keyword.trim().toLowerCase()
+    const matchesKeyword = !normalizedKeyword
+      || item.name.toLowerCase().includes(normalizedKeyword)
+      || item.location.toLowerCase().includes(normalizedKeyword)
+      || getStatusLabel(item).toLowerCase().includes(normalizedKeyword)
     const matchesLocation = locationFilter === '全部地点' || item.location === locationFilter
-    return matchesKeyword && matchesTime && matchesLocation
-  }), [inventory, keyword, timeFilter, locationFilter])
+    const matchesCategory = categoryFilter === '全部' || item.category === categoryFilter
+    if (!matchesKeyword || !matchesLocation || !matchesCategory) return false
+    if (scope === 'archived') return true
 
-  const openAdd = () => {
-    setEditingItem(null)
-    setFormName(''); setFormLocation(locations[0] ?? ''); setFormQuantity(''); setFormExpiry(''); setFormPhoto('')
-    setShowForm(true)
-  }
-
-  const openEdit = (item: InventoryItem) => {
-    setEditingItem(item)
-    setFormName(item.name); setFormLocation(item.location); setFormQuantity(item.quantityLabel); setFormExpiry(''); setFormPhoto(item.photo)
-    setShowForm(true)
-  }
-
-  const choosePhoto = () => {
-    Taro.chooseImage({ count: 1, sizeType: ['compressed'] }).then((res) => {
-      if (res.tempFilePaths.length > 0) setFormPhoto(res.tempFilePaths[0])
-    }).catch(() => {})
-  }
-
-  const submitItem = useCallback(() => {
-    if (!formName.trim() || !formLocation.trim()) {
-      Taro.showToast({ title: '请填写名称和位置', icon: 'none' }); return
-    }
-    const item: InventoryItem = {
-      id: editingItem?.id ?? uid('i-'),
-      familyId,
-      name: formName.trim(),
-      location: formLocation.trim(),
-      quantityLabel: formQuantity.trim() || '1',
-      expiryLabel: formExpiry ? `${formExpiry} 到期` : '无需提醒',
-      status: editingItem?.status ?? 'normal',
-      photo: formPhoto
-    }
-    dispatch(editingItem ? { type: 'inventory/update', item } : { type: 'inventory/add', item })
-    setShowForm(false)
-    Taro.showToast({ title: editingItem ? '已更新' : '已添加', icon: 'success' })
-  }, [formName, formLocation, formQuantity, formExpiry, formPhoto, editingItem, familyId, dispatch])
-
-  const deleteItem = (id: string) => {
-    Taro.showModal({ title: '删除这个物品？', confirmText: '删除', confirmColor: palette.destructive }).then((res) => {
-      if (res.confirm) dispatch({ type: 'inventory/delete', id })
-    })
-  }
-
-  const markStatus = (id: string, status: InventoryStatus) => {
-    const labels: Record<string, string> = { finished: '已用完', discarded: '已丢弃' }
-    dispatch({ type: 'inventory/markStatus', id, status })
-    Taro.showToast({ title: `已标记为${labels[status] ?? status}`, icon: 'success' })
-  }
-
-  const addLocation = () => {
-    if (!newLocationName.trim()) return
-    dispatch({ type: 'location/add', name: newLocationName.trim() })
-    setNewLocationName('')
-  }
-
-  const deleteLocation = (name: string) => {
-    dispatch({ type: 'location/delete', name })
-  }
-
-  const toggleReminder = () => dispatch({ type: 'settings/toggleExpiryReminder' })
-  const currentTimeLabel = timeOptions.find((o) => o.key === timeFilter)?.label ?? '全部时间'
+    const expiry = getInventoryExpiry(item.expiryDate)
+    if (timeFilter === 'expired') return expiry.days !== null && expiry.days < 0
+    if (timeFilter === 'all') return true
+    const limit = filterDays[timeFilter]
+    return expiry.days !== null && expiry.days >= 0 && limit !== undefined && expiry.days <= limit
+  }), [categoryFilter, displayInventory, keyword, locationFilter, scope, timeFilter])
 
   return (
-    <View className='page-shell'>
-      <View className='page-title'>
-        <Text className='page-title__text'>物品</Text>
-        <Button className='page-title__link tap' hoverClass='tap--pressed' onClick={() => setShowLocationManager(true)}>
-          <AppIcon icon={Settings2} size={16} color={palette.primary} />
+    <PageShell>
+      <View className='page-title inventory-title'>
+        <View>
+          <Text className='page-title__text'>找物品</Text>
+          <Text className='inventory-title__meta'>{activeCount} 件正在使用</Text>
+        </View>
+        <Button className='content-action content-action--primary tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/inventory-form/index' })}>
+          <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
+          <Text>新增</Text>
         </Button>
       </View>
 
-      <View className='search'>
+      <View className='segmented-control inventory-scope'>
+        <Button className={`segmented-control__item tap ${scope === 'active' ? 'segmented-control__item--active' : ''}`} hoverClass='tap--pressed' onClick={() => setScope('active')}>当前物品 {activeCount}</Button>
+        <Button className={`segmented-control__item tap ${scope === 'archived' ? 'segmented-control__item--active' : ''}`} hoverClass='tap--pressed' onClick={() => setScope('archived')}>已归档 {archivedCount}</Button>
+      </View>
+
+      <View className='search inventory-search'>
         <AppIcon icon={Search} size={19} color={palette.subtleForeground} />
-        <Input className='search__input' value={keyword} type='text' confirmType='search' placeholder='搜索名称或位置' onInput={(e) => setKeyword(e.detail.value)} />
+        <Input className='search__input' value={keyword} type='text' confirmType='search' maxlength={40} placeholder='搜索名称、位置或状态' onInput={(event) => setKeyword(event.detail.value)} />
       </View>
 
-      {/* Filters */}
-      <View className='filter-bar'>
-        <View className='filter-drop'>
-          <Button className='filter-drop__trigger tap' hoverClass='tap--pressed' onClick={() => { setShowTimeDropdown(!showTimeDropdown); setShowLocationDropdown(false) }}>
-            <AppIcon icon={Timer} size={15} color={timeFilter !== 'all' ? palette.primary : palette.subtleForeground} />
-            <Text className={timeFilter !== 'all' ? 'filter-drop__text--active' : ''}>{currentTimeLabel}</Text>
-            <AppIcon icon={ChevronDown} size={14} color={palette.subtleForeground} />
-          </Button>
-          {showTimeDropdown && (
-            <View className='filter-drop__menu'>
-              {timeOptions.map((opt) => (
-                <Button key={opt.key} className={`filter-drop__option tap ${timeFilter === opt.key ? 'filter-drop__option--active' : ''}`} hoverClass='tap--pressed' onClick={() => { setTimeFilter(opt.key); setShowTimeDropdown(false) }}>
-                  {opt.label}
-                </Button>
-              ))}
+      <View className={`inventory-filters ${scope === 'archived' ? 'inventory-filters--single' : ''}`}>
+        {scope === 'active' && (
+          <Picker mode='selector' range={timeOptions.map((option) => option.label)} value={Math.max(0, timeOptions.findIndex((option) => option.key === timeFilter))} onChange={(event) => setTimeFilter(timeOptions[Number(event.detail.value)]?.key ?? 'all')}>
+            <View className={`inventory-filter ${timeFilter !== 'all' ? 'inventory-filter--active' : ''}`}>
+              <AppIcon icon={Timer} size={15} color={timeFilter !== 'all' ? palette.primary : palette.subtleForeground} />
+              <Text className='inventory-filter__label'>{timeOptions.find((option) => option.key === timeFilter)?.label ?? '全部时间'}</Text>
+              <AppIcon icon={ChevronDown} size={14} color={palette.subtleForeground} />
             </View>
-          )}
-        </View>
-        <View className='filter-drop'>
-          <Button className='filter-drop__trigger tap' hoverClass='tap--pressed' onClick={() => { setShowLocationDropdown(!showLocationDropdown); setShowTimeDropdown(false) }}>
+          </Picker>
+        )}
+        <Picker mode='selector' range={locationOptions} value={Math.max(0, locationOptions.indexOf(locationFilter))} onChange={(event) => setLocationFilter(locationOptions[Number(event.detail.value)] ?? '全部地点')}>
+          <View className={`inventory-filter ${locationFilter !== '全部地点' ? 'inventory-filter--active' : ''}`}>
             <AppIcon icon={MapPin} size={15} color={locationFilter !== '全部地点' ? palette.primary : palette.subtleForeground} />
-            <Text className={locationFilter !== '全部地点' ? 'filter-drop__text--active' : ''}>{locationFilter}</Text>
+            <Text className='inventory-filter__label'>{locationFilter}</Text>
             <AppIcon icon={ChevronDown} size={14} color={palette.subtleForeground} />
-          </Button>
-          {showLocationDropdown && (
-            <View className='filter-drop__menu'>
-              {availableLocations.map((loc) => (
-                <Button key={loc} className={`filter-drop__option tap ${locationFilter === loc ? 'filter-drop__option--active' : ''}`} hoverClass='tap--pressed' onClick={() => { setLocationFilter(loc); setShowLocationDropdown(false) }}>
-                  {loc}
-                </Button>
-              ))}
-            </View>
-          )}
-        </View>
+          </View>
+        </Picker>
       </View>
 
-      {/* Grid */}
+      <View className='category-chips'>
+        {categoryOptions.map((option) => (
+          <Button
+            key={option}
+            className={`category-chip tap ${categoryFilter === option ? 'category-chip--active' : ''}`}
+            hoverClass='tap--pressed'
+            onClick={() => setCategoryFilter(option)}
+          >
+            {option}
+          </Button>
+        ))}
+      </View>
+
       {visibleItems.length === 0 ? (
-        <View className='inventory-empty'>没有找到相关物品</View>
+        <View className='empty-state surface-card inventory-empty'>
+          <AppIcon icon={Package} size={32} color={palette.subtleForeground} />
+          <Text className='empty-state__title'>{scope === 'active' ? '没有找到相关物品' : '暂无归档物品'}</Text>
+          <Text className='empty-state__copy'>{scope === 'active' ? '调整搜索或筛选条件，也可以新增一个物品。' : '标记为用完或丢弃的物品会保留在这里。'}</Text>
+          {scope === 'active' && (
+            <Button className='button button--primary empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/inventory-form/index' })}>新增物品</Button>
+          )}
+        </View>
       ) : (
-        <View className='goods-grid'>
+        <View className='inventory-list surface-card'>
           {visibleItems.map((item) => (
-            <View key={item.id} className='goods'>
-              <View className='goods__photo-wrap' onClick={() => openEdit(item)}>
-                {item.photo ? (
-                  <Image className='goods__photo' src={item.photo} mode='aspectFill' lazyLoad />
-                ) : (
-                  <View className='goods__photo goods__photo--placeholder'>
-                    <AppIcon icon={MapPin} size={28} color={palette.subtleForeground} />
-                  </View>
-                )}
-                <View className='goods__location'>
-                  <AppIcon icon={MapPin} size={12} color={palette.foreground} />
-                  <Text>{item.location}</Text>
+            <Button key={item.id} className='inventory-row tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: `/pages/inventory-detail/index?id=${item.id}` })}>
+              {item.photo ? (
+                <Image className='inventory-row__photo' src={item.photo} mode='aspectFill' lazyLoad />
+              ) : (
+                <View className='inventory-row__photo inventory-row__placeholder'>
+                  <AppIcon icon={Package} size={24} color={palette.subtleForeground} />
                 </View>
-              </View>
-              <Text className='goods__name'>{item.name}</Text>
-              <Text className='goods__meta'>{item.quantityLabel}</Text>
-              <View className='goods__footer'>
-                <StateText label={item.expiryLabel} tone={statusTone[item.status]} />
-                <View className='goods__item-actions'>
-                  <Button className='tap' hoverClass='tap--pressed' onClick={() => markStatus(item.id, 'finished')}>
-                    <Text className='goods__action-text'>用完</Text>
-                  </Button>
-                  <Button className='tap' hoverClass='tap--pressed' onClick={() => deleteItem(item.id)}>
-                    <AppIcon icon={Trash2} size={14} color={palette.subtleForeground} />
-                  </Button>
+              )}
+              <View className='inventory-row__body'>
+                <Text className='inventory-row__name'>{item.name}</Text>
+                <View className='inventory-row__location'>
+                  <AppIcon icon={MapPin} size={12} color={palette.subtleForeground} />
+                  <Text>{item.location} · {item.quantityLabel}</Text>
                 </View>
+                <Text className='inventory-row__category'>{item.category}</Text>
               </View>
-            </View>
+              <StateText label={getStatusLabel(item)} tone={statusTone[item.status]} />
+              <AppIcon icon={ChevronRight} size={16} color={palette.border} />
+            </Button>
           ))}
         </View>
       )}
 
-      {/* Item form */}
-      {showForm && (
-        <View className='form-overlay' onClick={() => setShowForm(false)}>
-          <View className='form-sheet' onClick={(e) => e.stopPropagation()}>
-            <Text className='form-sheet__title'>{editingItem ? '编辑物品' : '新增物品'}</Text>
-            <Button className='form-photo-btn tap' hoverClass='tap--pressed' onClick={choosePhoto}>
-              {formPhoto ? <Image className='form-photo-preview' src={formPhoto} mode='aspectFill' /> : <Text>选择图片</Text>}
-            </Button>
-            <Input className='form-input' type='text' placeholder='物品名称' value={formName} onInput={(e) => setFormName(e.detail.value)} />
-            <Picker mode='selector' range={locations} value={Math.max(0, locations.indexOf(formLocation))} onChange={(e) => setFormLocation(locations[Number(e.detail.value)])}>
-              <View className='form-input form-input--picker'><Text>位置：{formLocation || '请选择'}</Text></View>
-            </Picker>
-            <Input className='form-input' type='text' placeholder='数量（如"2 盒"）' value={formQuantity} onInput={(e) => setFormQuantity(e.detail.value)} />
-            <Picker mode='date' value={formExpiry} onChange={(e) => setFormExpiry(e.detail.value)}>
-              <View className='form-input form-input--picker'><Text>{formExpiry ? `到期日：${formExpiry}` : '选择到期日期（可选）'}</Text></View>
-            </Picker>
-            <Button className='button button--primary tap form-submit' hoverClass='tap--pressed' onClick={submitItem}>确认</Button>
-          </View>
-        </View>
-      )}
-
-      {/* Location manager */}
-      {showLocationManager && (
-        <View className='form-overlay' onClick={() => setShowLocationManager(false)}>
-          <View className='form-sheet' onClick={(e) => e.stopPropagation()}>
-            <Text className='form-sheet__title'>管理存放位置</Text>
-            <View className='loc-list'>
-              {locations.map((loc) => (
-                <View key={loc} className='loc-row'>
-                  <Text className='loc-row__name'>{loc}</Text>
-                  <Button className='tap' hoverClass='tap--pressed' onClick={() => deleteLocation(loc)}>
-                    <AppIcon icon={Trash2} size={15} color={palette.destructive} />
-                  </Button>
-                </View>
-              ))}
-            </View>
-            <View className='loc-add'>
-              <Input className='form-input loc-add__input' type='text' placeholder='新位置名称' value={newLocationName} onInput={(e) => setNewLocationName(e.detail.value)} />
-              <Button className='button button--primary tap loc-add__btn' hoverClass='tap--pressed' onClick={addLocation}>
-                <AppIcon icon={Plus} size={18} color='#FFFFFF' />
-              </Button>
-            </View>
-            <View className='loc-reminder'>
-              <Text>到期提醒</Text>
-              <Button className='tap' hoverClass='tap--pressed' onClick={toggleReminder}>
-                <Text className={settings.expiryReminder ? 'loc-reminder--on' : 'loc-reminder--off'}>
-                  {settings.expiryReminder ? '已开启' : '已关闭'}
-                </Text>
-              </Button>
-            </View>
-          </View>
-        </View>
-      )}
-
-      <View className='button-bar'>
-        <Button className='button button--primary tap' hoverClass='tap--pressed' onClick={openAdd}>
-          <AppIcon icon={Plus} size={20} color='#FFFFFF' />
-          加入物品
-        </Button>
-      </View>
-    </View>
+    </PageShell>
   )
 }

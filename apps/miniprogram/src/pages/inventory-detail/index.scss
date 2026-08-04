@@ -1,0 +1,106 @@
+.inventory-detail-hero {
+  overflow: hidden;
+}
+
+.inventory-detail-hero__photo {
+  display: block;
+  width: 100%;
+  height: 440rpx;
+  background: var(--color-muted);
+}
+
+.inventory-detail-hero__placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.inventory-detail-hero__copy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-4);
+}
+
+.inventory-detail-hero__name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--color-foreground);
+  font-size: 34rpx;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-detail-info {
+  overflow: hidden;
+  margin-top: var(--space-4);
+}
+
+.inventory-detail-info__row {
+  display: flex;
+  min-height: 112rpx;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+}
+
+.inventory-detail-info__row + .inventory-detail-info__row {
+  border-top: var(--hairline) solid var(--color-border);
+}
+
+.inventory-detail-info__icon {
+  display: flex;
+  width: 64rpx;
+  min-width: 64rpx;
+  height: 64rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+  background: var(--color-tint-primary);
+}
+
+.inventory-detail-info__label {
+  color: var(--color-subtle-foreground);
+  font-size: 25rpx;
+}
+
+.inventory-detail-info__value {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  color: var(--color-foreground);
+  font-size: 27rpx;
+  font-weight: 700;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.inventory-detail-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.inventory-detail-actions__secondary {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-2);
+}
+
+.inventory-detail-delete {
+  display: flex;
+  width: 100%;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+  color: var(--color-destructive);
+  font-size: 25rpx;
+  font-weight: 700;
+}

@@ -1,0 +1,161 @@
+import { Button, Image, Input, Picker, Text, Textarea, View } from '@tarojs/components'
+import Taro from '@tarojs/taro'
+import { Camera, ChevronRight, Utensils } from 'lucide'
+import { useState } from 'react'
+
+import { AppIcon } from '../../components/app-icon'
+import { PageHeader } from '../../components/page-header'
+import { PageShell } from '../../components/page-shell'
+import { useDispatch, useStore } from '../../store'
+import { uid } from '../../store/uid'
+import { palette } from '../../theme/palette'
+import { dishCategories } from '../../types/domain'
+import type { Dish, DishCategory } from '../../types/domain'
+import { choosePersistentImage } from '../../utils/media'
+
+import './index.scss'
+
+const CUSTOM_PLACEHOLDER = '+ 自定义'
+
+export default function DishFormPage() {
+  const { dishes, familyId, customDishCategories } = useStore()
+  const dispatch = useDispatch()
+  const dishId = Taro.getCurrentInstance().router?.params?.id
+  const editingDish = dishId ? dishes.find((dish) => dish.id === dishId) : undefined
+
+  const categoryOptions: string[] = [...dishCategories, ...customDishCategories, CUSTOM_PLACEHOLDER]
+
+  const [name, setName] = useState(editingDish?.name ?? '')
+  const [category, setCategory] = useState<DishCategory>(editingDish?.category ?? '炒菜')
+  const [method, setMethod] = useState(editingDish?.method ?? '')
+  const [ingredientsText, setIngredientsText] = useState(editingDish?.ingredients.join('、') ?? '')
+  const [photo, setPhoto] = useState(editingDish?.photo ?? '')
+
+  const choosePhoto = async () => {
+    const selected = await choosePersistentImage()
+    if (selected) setPhoto(selected)
+  }
+
+  const submit = () => {
+    const normalizedName = name.trim()
+    if (!normalizedName) {
+      Taro.showToast({ title: '请填写菜品名称', icon: 'none' })
+      return
+    }
+    if (normalizedName.length > 20) {
+      Taro.showToast({ title: '菜品名称最多 20 个字', icon: 'none' })
+      return
+    }
+    if (dishes.some((dish) => dish.id !== editingDish?.id && dish.name.trim().toLowerCase() === normalizedName.toLowerCase())) {
+      Taro.showToast({ title: '已有同名菜品', icon: 'none' })
+      return
+    }
+    const ingredients = ingredientsText.split(/[、,，\n]/).map((value) => value.trim()).filter(Boolean)
+    if (ingredients.length > 20) {
+      Taro.showToast({ title: '食材最多填写 20 项', icon: 'none' })
+      return
+    }
+    if (method.trim().length > 200 || ingredientsText.trim().length > 200) {
+      Taro.showToast({ title: '做法和食材各最多 200 个字', icon: 'none' })
+      return
+    }
+
+    const dish: Dish = {
+      id: editingDish?.id ?? uid('d-'),
+      familyId,
+      name: normalizedName,
+      category,
+      method: method.trim(),
+      ingredients,
+      photo,
+      available: editingDish?.available ?? true
+    }
+    dispatch(editingDish ? { type: 'dish/update', dish } : { type: 'dish/add', dish })
+    Taro.showToast({ title: editingDish ? '菜品已更新' : '菜品已添加', icon: 'success' })
+    setTimeout(() => Taro.navigateBack(), 350)
+  }
+
+  if (dishId && !editingDish) {
+    return (
+      <PageShell tabPage={false}>
+        <PageHeader title='菜品信息' />
+        <View className='empty-state surface-card'>
+          <AppIcon icon={Utensils} size={32} color={palette.subtleForeground} />
+          <Text className='empty-state__title'>菜品不存在</Text>
+          <Text className='empty-state__copy'>这道菜可能已经被删除。</Text>
+        </View>
+      </PageShell>
+    )
+  }
+
+  return (
+    <PageShell tabPage={false} withFixedBar>
+      <PageHeader title={editingDish ? '编辑菜品' : '添加菜品'} subtitle='菜名和分类为必填项' />
+
+      <View className='dish-form-photo surface-card'>
+        <Button className='dish-form-photo__button tap' hoverClass='tap--pressed' onClick={choosePhoto}>
+          {photo ? (
+            <Image className='dish-form-photo__image' src={photo} mode='aspectFill' />
+          ) : (
+            <View className='dish-form-photo__placeholder'>
+              <AppIcon icon={Camera} size={28} color={palette.primary} />
+              <Text>添加菜品图片</Text>
+            </View>
+          )}
+        </Button>
+        {photo && <Button className='dish-form-photo__change tap' hoverClass='tap--pressed' onClick={choosePhoto}>更换图片</Button>}
+      </View>
+
+      <View className='form-page dish-form-fields'>
+        <View className='field'>
+          <Text className='field__label'>菜品名称</Text>
+          <Input className='field__control' type='text' maxlength={20} placeholder='例如：番茄炒蛋' value={name} onInput={(event) => setName(event.detail.value)} />
+        </View>
+
+        <View className='field'>
+          <Text className='field__label'>分类</Text>
+          <Picker mode='selector' range={categoryOptions} value={Math.max(0, categoryOptions.indexOf(category))} onChange={(event) => {
+            const selected = categoryOptions[Number(event.detail.value)]
+            if (selected === CUSTOM_PLACEHOLDER) {
+              ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
+                title: '新增菜品分类',
+                editable: true,
+                placeholderText: '输入分类名称（10字内）'
+              }).then((result) => {
+                if (!result.confirm || !result.content) return
+                const newName = result.content.trim().slice(0, 10)
+                if (!newName) return
+                dispatch({ type: 'category/addDish', name: newName })
+                setCategory(newName)
+              })
+            } else if (selected) {
+              setCategory(selected)
+            }
+          }}>
+            <View className='field__control field__control--picker'>
+              <Text>{category}</Text>
+              <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
+            </View>
+          </Picker>
+        </View>
+
+        <View className='field'>
+          <Text className='field__label'>主要食材 <Text className='field__optional'>选填</Text></Text>
+          <Textarea className='field__control field__control--textarea' maxlength={200} placeholder='用顿号或逗号分隔，最多 20 项' value={ingredientsText} onInput={(event) => setIngredientsText(event.detail.value)} />
+          <Text className='field__hint'>示例：番茄、鸡蛋、葱</Text>
+        </View>
+
+        <View className='field'>
+          <Text className='field__label'>做法简述 <Text className='field__optional'>选填</Text></Text>
+          <Textarea className='field__control field__control--textarea' maxlength={200} placeholder='写下家里常用的做法' value={method} onInput={(event) => setMethod(event.detail.value)} />
+        </View>
+      </View>
+
+      <View className='fixed-action-bar'>
+        <Button className='button button--primary tap dish-form-submit' hoverClass='tap--pressed' onClick={submit}>
+          {editingDish ? '保存修改' : '添加到菜品库'}
+        </Button>
+      </View>
+    </PageShell>
+  )
+}

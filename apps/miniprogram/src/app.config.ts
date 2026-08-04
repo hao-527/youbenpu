@@ -4,7 +4,15 @@ export default defineAppConfig({
     'pages/ledger/index',
     'pages/meals/index',
     'pages/inventory/index',
-    'pages/profile/index'
+    'pages/profile/index',
+    'pages/meal-orders/index',
+    'pages/meal-create/index',
+    'pages/dish-manage/index',
+    'pages/dish-form/index',
+    'pages/ledger-entry/index',
+    'pages/inventory-form/index',
+    'pages/inventory-detail/index',
+    'pages/family-manage/index'
   ],
   window: {
     navigationStyle: 'custom',

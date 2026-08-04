@@ -1,14 +1,21 @@
-import type { Dish, FamilyMember, InventoryItem, LedgerEntry, MealOrder } from '../types/domain'
+import type { Dish, FamilyMember, FamilyRole, InventoryItem, LedgerEntry, MealOrder } from '../types/domain'
 
 export interface AppState {
+  schemaVersion: number
   familyId: string
+  currentMemberId: string
   familyName: string
   members: FamilyMember[]
   ledger: LedgerEntry[]
   dishes: Dish[]
-  mealOrder: MealOrder | null
+  /** 全部点餐单，最新在前。同一时间最多一张 pending */
+  orders: MealOrder[]
   inventory: InventoryItem[]
   locations: string[]
+  /** 用户自定义的菜品分类 */
+  customDishCategories: string[]
+  /** 用户自定义的物品分类 */
+  customInventoryCategories: string[]
   settings: {
     expiryReminder: boolean
     mealReminder: boolean
@@ -16,95 +23,138 @@ export interface AppState {
 }
 
 export type AppAction =
-  // Ledger
   | { type: 'ledger/add'; entry: LedgerEntry }
   | { type: 'ledger/update'; entry: LedgerEntry }
   | { type: 'ledger/delete'; id: string }
-  // Dishes
   | { type: 'dish/add'; dish: Dish }
   | { type: 'dish/update'; dish: Dish }
   | { type: 'dish/delete'; id: string }
   | { type: 'dish/toggleAvailable'; id: string }
-  // Meal order
   | { type: 'order/create'; order: MealOrder }
-  | { type: 'order/complete' }
-  | { type: 'order/cancel' }
-  // Inventory
+  | { type: 'order/complete'; id: string }
+  | { type: 'order/cancel'; id: string }
+  | { type: 'order/delete'; id: string }
   | { type: 'inventory/add'; item: InventoryItem }
   | { type: 'inventory/update'; item: InventoryItem }
   | { type: 'inventory/delete'; id: string }
   | { type: 'inventory/markStatus'; id: string; status: InventoryItem['status'] }
-  // Locations
   | { type: 'location/add'; name: string }
   | { type: 'location/delete'; name: string }
-  // Family
   | { type: 'family/rename'; name: string }
   | { type: 'member/add'; member: FamilyMember }
   | { type: 'member/remove'; id: string }
-  | { type: 'member/updateRole'; id: string; roleLabel: string }
-  // Settings
+  | { type: 'member/updateRole'; id: string; roleLabel: FamilyRole }
+  | { type: 'category/addDish'; name: string }
+  | { type: 'category/addInventory'; name: string }
   | { type: 'settings/toggleExpiryReminder' }
   | { type: 'settings/toggleMealReminder' }
 
+function currentMemberIsAdmin(state: AppState): boolean {
+  return state.members.some((member) => member.id === state.currentMemberId && member.roleLabel === '家庭管理员')
+}
+
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
-    // Ledger
     case 'ledger/add':
       return { ...state, ledger: [action.entry, ...state.ledger] }
     case 'ledger/update':
-      return { ...state, ledger: state.ledger.map((e) => e.id === action.entry.id ? action.entry : e) }
+      return { ...state, ledger: state.ledger.map((entry) => entry.id === action.entry.id ? action.entry : entry) }
     case 'ledger/delete':
-      return { ...state, ledger: state.ledger.filter((e) => e.id !== action.id) }
+      return { ...state, ledger: state.ledger.filter((entry) => entry.id !== action.id) }
 
-    // Dishes
-    case 'dish/add':
-      return { ...state, dishes: [...state.dishes, action.dish] }
-    case 'dish/update':
-      return { ...state, dishes: state.dishes.map((d) => d.id === action.dish.id ? action.dish : d) }
+    case 'dish/add': {
+      const name = action.dish.name.trim()
+      if (!name || state.dishes.some((dish) => dish.name.trim().toLowerCase() === name.toLowerCase())) return state
+      return { ...state, dishes: [...state.dishes, { ...action.dish, name }] }
+    }
+    case 'dish/update': {
+      const name = action.dish.name.trim()
+      if (!name || state.dishes.some((dish) => dish.id !== action.dish.id && dish.name.trim().toLowerCase() === name.toLowerCase())) return state
+      return { ...state, dishes: state.dishes.map((dish) => dish.id === action.dish.id ? { ...action.dish, name } : dish) }
+    }
     case 'dish/delete':
-      return { ...state, dishes: state.dishes.filter((d) => d.id !== action.id) }
+      if (state.orders.some((order) => order.status === 'pending' && order.items.some((item) => item.dishId === action.id))) return state
+      return { ...state, dishes: state.dishes.filter((dish) => dish.id !== action.id) }
     case 'dish/toggleAvailable':
-      return { ...state, dishes: state.dishes.map((d) => d.id === action.id ? { ...d, available: !d.available } : d) }
+      return { ...state, dishes: state.dishes.map((dish) => dish.id === action.id ? { ...dish, available: !dish.available } : dish) }
 
-    // Meal order
     case 'order/create':
-      return { ...state, mealOrder: action.order }
+      if (state.orders.some((order) => order.status === 'pending')) return state
+      return { ...state, orders: [action.order, ...state.orders] }
     case 'order/complete':
-      return { ...state, mealOrder: state.mealOrder ? { ...state.mealOrder, status: 'completed' } : null }
+      return { ...state, orders: state.orders.map((order) => order.id === action.id && order.status === 'pending' ? { ...order, status: 'completed' } : order) }
     case 'order/cancel':
-      return { ...state, mealOrder: state.mealOrder ? { ...state.mealOrder, status: 'cancelled' } : null }
+      return { ...state, orders: state.orders.map((order) => order.id === action.id && order.status === 'pending' ? { ...order, status: 'cancelled' } : order) }
+    case 'order/delete':
+      return { ...state, orders: state.orders.filter((order) => order.id !== action.id || order.status === 'pending') }
 
-    // Inventory
     case 'inventory/add':
       return { ...state, inventory: [...state.inventory, action.item] }
     case 'inventory/update':
-      return { ...state, inventory: state.inventory.map((i) => i.id === action.item.id ? action.item : i) }
+      return { ...state, inventory: state.inventory.map((item) => item.id === action.item.id ? action.item : item) }
     case 'inventory/delete':
-      return { ...state, inventory: state.inventory.filter((i) => i.id !== action.id) }
+      return { ...state, inventory: state.inventory.filter((item) => item.id !== action.id) }
     case 'inventory/markStatus':
-      return { ...state, inventory: state.inventory.map((i) => i.id === action.id ? { ...i, status: action.status } : i) }
+      return { ...state, inventory: state.inventory.map((item) => item.id === action.id ? { ...item, status: action.status } : item) }
 
-    // Locations
-    case 'location/add':
-      return { ...state, locations: state.locations.includes(action.name) ? state.locations : [...state.locations, action.name] }
+    case 'location/add': {
+      const name = action.name.trim()
+      if (!name || state.locations.some((location) => location.toLowerCase() === name.toLowerCase())) return state
+      return { ...state, locations: [...state.locations, name] }
+    }
     case 'location/delete':
-      return { ...state, locations: state.locations.filter((l) => l !== action.name) }
+      if (state.inventory.some((item) => item.location === action.name)) return state
+      return { ...state, locations: state.locations.filter((location) => location !== action.name) }
 
-    // Family
-    case 'family/rename':
-      return { ...state, familyName: action.name }
-    case 'member/add':
-      return { ...state, members: [...state.members, action.member] }
-    case 'member/remove':
-      return { ...state, members: state.members.filter((m) => m.id !== action.id) }
-    case 'member/updateRole':
-      return { ...state, members: state.members.map((m) => m.id === action.id ? { ...m, roleLabel: action.roleLabel } : m) }
+    case 'family/rename': {
+      if (!currentMemberIsAdmin(state)) return state
+      const name = action.name.trim()
+      return name ? { ...state, familyName: name } : state
+    }
+    case 'member/add': {
+      if (!currentMemberIsAdmin(state)) return state
+      const name = action.member.displayName.trim()
+      if (!name || state.members.some((member) => member.displayName.trim().toLowerCase() === name.toLowerCase())) return state
+      return { ...state, members: [...state.members, { ...action.member, displayName: name }] }
+    }
+    case 'member/remove': {
+      if (!currentMemberIsAdmin(state)) return state
+      const target = state.members.find((member) => member.id === action.id)
+      if (!target || action.id === state.currentMemberId || state.members.length <= 1) return state
+      const adminCount = state.members.filter((member) => member.roleLabel === '家庭管理员').length
+      if (target.roleLabel === '家庭管理员' && adminCount <= 1) return state
+      return { ...state, members: state.members.filter((member) => member.id !== action.id) }
+    }
+    case 'member/updateRole': {
+      if (!currentMemberIsAdmin(state)) return state
+      const target = state.members.find((member) => member.id === action.id)
+      if (!target) return state
+      const isDemotingLastAdmin = target.roleLabel === '家庭管理员'
+        && action.roleLabel !== '家庭管理员'
+        && state.members.filter((member) => member.roleLabel === '家庭管理员').length <= 1
+      if (isDemotingLastAdmin) return state
+      return { ...state, members: state.members.map((member) => member.id === action.id ? { ...member, roleLabel: action.roleLabel } : member) }
+    }
 
-    // Settings
     case 'settings/toggleExpiryReminder':
       return { ...state, settings: { ...state.settings, expiryReminder: !state.settings.expiryReminder } }
     case 'settings/toggleMealReminder':
       return { ...state, settings: { ...state.settings, mealReminder: !state.settings.mealReminder } }
+
+    case 'category/addDish': {
+      const name = action.name.trim()
+      if (!name || name.length > 10) return state
+      const allDish = [...state.customDishCategories]
+      if (allDish.some((item) => item.toLowerCase() === name.toLowerCase())) return state
+      return { ...state, customDishCategories: [...allDish, name] }
+    }
+    case 'category/addInventory': {
+      const name = action.name.trim()
+      if (!name || name.length > 10) return state
+      const allInv = [...state.customInventoryCategories]
+      if (allInv.some((item) => item.toLowerCase() === name.toLowerCase())) return state
+      return { ...state, customInventoryCategories: [...allInv, name] }
+    }
 
     default:
       return state
