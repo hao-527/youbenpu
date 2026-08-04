@@ -34,6 +34,8 @@
   white-space: nowrap;
 }
 
+/* ---------- Attribute rows ---------- */
+
 .inventory-detail-info {
   overflow: hidden;
   margin-top: var(--space-4);
@@ -41,7 +43,7 @@
 
 .inventory-detail-info__row {
   display: flex;
-  min-height: 112rpx;
+  min-height: var(--row-height-sm);
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -51,18 +53,8 @@
   border-top: var(--hairline) solid var(--color-border);
 }
 
-.inventory-detail-info__icon {
-  display: flex;
-  width: 64rpx;
-  min-width: 64rpx;
-  height: 64rpx;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-  background: var(--color-tint-primary);
-}
-
 .inventory-detail-info__label {
+  flex: 0 0 auto;
   color: var(--color-subtle-foreground);
   font-size: 25rpx;
 }
@@ -79,6 +71,13 @@
   white-space: nowrap;
 }
 
+.inventory-detail-info__value--empty {
+  color: var(--color-subtle-foreground);
+  font-weight: 400;
+}
+
+/* ---------- Actions ---------- */
+
 .inventory-detail-actions {
   display: flex;
   flex-direction: column;
@@ -93,14 +92,5 @@
 }
 
 .inventory-detail-delete {
-  display: flex;
-  width: 100%;
-  min-height: var(--touch-target);
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
   margin-top: var(--space-5);
-  color: var(--color-destructive);
-  font-size: 25rpx;
-  font-weight: 700;
 }

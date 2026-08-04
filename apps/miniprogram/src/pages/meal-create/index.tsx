@@ -1,4 +1,4 @@
-import { Button, Image, Text, View } from '@tarojs/components'
+import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Minus, Plus, Utensils } from 'lucide'
 import { useMemo, useRef, useState } from 'react'
@@ -80,7 +80,7 @@ export default function MealCreatePage() {
       <PageShell tabPage={false}>
         <PageHeader title='开始点餐' />
         <View className='empty-state surface-card meal-create-conflict'>
-          <View className='meal-create-conflict__icon'>
+          <View className='empty-state__icon empty-state__icon--primary'>
             <AppIcon icon={Utensils} size={28} color={palette.primary} />
           </View>
           <Text className='empty-state__title'>已有一张待完成点餐单</Text>
@@ -102,21 +102,26 @@ export default function MealCreatePage() {
         <Text className='meal-create-summary__copy'>可以选择多道菜，同一道最多 99 份</Text>
       </View>
 
-      <View className='tabs meal-create-tabs'>
-        {categories.map((category) => (
-          <Button
-            key={category}
-            className={`tabs__item tap ${activeCategory === category ? 'tabs__item--active' : ''}`}
-            hoverClass='tap--pressed'
-            onClick={() => setActiveCategory(category)}
-          >
-            {category}
-          </Button>
-        ))}
-      </View>
+      <ScrollView className='tabs' scrollX enableFlex>
+        <View className='tabs__track'>
+          {categories.map((category) => (
+            <Button
+              key={category}
+              className={`tabs__item tap ${activeCategory === category ? 'tabs__item--active' : ''}`}
+              hoverClass='tap--pressed'
+              onClick={() => setActiveCategory(category)}
+            >
+              {category}
+            </Button>
+          ))}
+        </View>
+      </ScrollView>
 
       {availableDishes.length === 0 ? (
         <View className='empty-state surface-card'>
+          <View className='empty-state__icon'>
+            <AppIcon icon={Utensils} size={30} color={palette.subtleForeground} />
+          </View>
           <Text className='empty-state__title'>还没有可点的菜</Text>
           <Text className='empty-state__copy'>先添加菜品或将暂停菜品重新上架。</Text>
           <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.redirectTo({ url: '/pages/dish-manage/index' })}>
@@ -125,6 +130,9 @@ export default function MealCreatePage() {
         </View>
       ) : visibleDishes.length === 0 ? (
         <View className='empty-state surface-card'>
+          <View className='empty-state__icon'>
+            <AppIcon icon={Utensils} size={30} color={palette.subtleForeground} />
+          </View>
           <Text className='empty-state__title'>这个分类暂无菜品</Text>
           <Text className='empty-state__copy'>切换其他分类继续选择。</Text>
         </View>
@@ -153,9 +161,9 @@ export default function MealCreatePage() {
                     aria-label={`减少${dish.name}数量`}
                     onClick={() => updateQuantity(dish.id, -1)}
                   >
-                    <AppIcon icon={Minus} size={18} color={quantity === 0 ? palette.border : palette.foreground} />
+                    <AppIcon icon={Minus} size={18} color={quantity === 0 ? palette.disabledForeground : palette.foreground} />
                   </Button>
-                  <Text className='quantity-stepper__value'>{quantity}</Text>
+                  <Text className='quantity-stepper__value num'>{quantity}</Text>
                   <Button
                     className='quantity-stepper__button quantity-stepper__button--add tap'
                     hoverClass='tap--pressed'

@@ -1,6 +1,6 @@
 import { Button, Image, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { Check, MapPin, Package, Pencil, RotateCcw, Tags, Trash2 } from 'lucide'
+import { CalendarClock, MapPin, Package, Pencil, RotateCcw, Tags, Trash2 } from 'lucide'
 
 import { AppIcon } from '../../components/app-icon'
 import { PageHeader } from '../../components/page-header'
@@ -28,7 +28,9 @@ export default function InventoryDetailPage() {
       <PageShell tabPage={false}>
         <PageHeader title='物品详情' />
         <View className='empty-state surface-card'>
-          <AppIcon icon={Package} size={32} color={palette.subtleForeground} />
+          <View className='empty-state__icon'>
+            <AppIcon icon={Package} size={32} color={palette.subtleForeground} />
+          </View>
           <Text className='empty-state__title'>物品不存在</Text>
           <Text className='empty-state__copy'>这个物品可能已经被删除。</Text>
         </View>
@@ -96,24 +98,32 @@ export default function InventoryDetailPage() {
 
       <View className='inventory-detail-info surface-card'>
         <View className='inventory-detail-info__row'>
-          <View className='inventory-detail-info__icon'><AppIcon icon={Tags} size={18} color={palette.primary} /></View>
+          <View className='icon-bubble icon-bubble--sm icon-bubble--primary'>
+            <AppIcon icon={Tags} size={18} color={palette.primary} />
+          </View>
           <Text className='inventory-detail-info__label'>分类</Text>
           <Text className='inventory-detail-info__value'>{item.category}</Text>
         </View>
         <View className='inventory-detail-info__row'>
-          <View className='inventory-detail-info__icon'><AppIcon icon={MapPin} size={18} color={palette.primary} /></View>
+          <View className='icon-bubble icon-bubble--sm icon-bubble--primary'>
+            <AppIcon icon={MapPin} size={18} color={palette.primary} />
+          </View>
           <Text className='inventory-detail-info__label'>存放位置</Text>
           <Text className='inventory-detail-info__value'>{item.location}</Text>
         </View>
         <View className='inventory-detail-info__row'>
-          <View className='inventory-detail-info__icon'><AppIcon icon={Package} size={18} color={palette.primary} /></View>
+          <View className='icon-bubble icon-bubble--sm icon-bubble--primary'>
+            <AppIcon icon={Package} size={18} color={palette.primary} />
+          </View>
           <Text className='inventory-detail-info__label'>当前数量</Text>
           <Text className='inventory-detail-info__value'>{item.quantityLabel}</Text>
         </View>
         <View className='inventory-detail-info__row'>
-          <View className='inventory-detail-info__icon'><AppIcon icon={Check} size={18} color={palette.primary} /></View>
+          <View className='icon-bubble icon-bubble--sm icon-bubble--primary'>
+            <AppIcon icon={CalendarClock} size={18} color={palette.primary} />
+          </View>
           <Text className='inventory-detail-info__label'>到期日期</Text>
-          <Text className='inventory-detail-info__value'>{item.expiryDate || '无需提醒'}</Text>
+          <Text className={`inventory-detail-info__value ${item.expiryDate ? 'num' : 'inventory-detail-info__value--empty'}`}>{item.expiryDate || '无需提醒'}</Text>
         </View>
       </View>
 
@@ -137,7 +147,7 @@ export default function InventoryDetailPage() {
         )}
       </View>
 
-      <Button className='inventory-detail-delete tap' hoverClass='tap--pressed' onClick={deleteItem}>
+      <Button className='danger-action inventory-detail-delete tap' hoverClass='tap--pressed' onClick={deleteItem}>
         <AppIcon icon={Trash2} size={17} color={palette.destructive} />
         <Text>永久删除物品</Text>
       </Button>

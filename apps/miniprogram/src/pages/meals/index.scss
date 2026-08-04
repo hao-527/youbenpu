@@ -1,16 +1,7 @@
-.meals-page-subtitle {
-  display: block;
-  margin-top: 4rpx;
-  color: var(--color-subtle-foreground);
-  font-size: 24rpx;
-}
-
 .meal-focus-card {
   display: block;
   width: 100%;
   padding: var(--space-4);
-  border-radius: 28rpx;
-  background: var(--color-surface);
 }
 
 .meal-focus-card--pending {
@@ -62,14 +53,7 @@
 }
 
 .meal-focus-card__icon {
-  display: flex;
-  width: 88rpx;
-  height: 88rpx;
-  align-items: center;
-  justify-content: center;
   margin-bottom: var(--space-2);
-  border-radius: var(--radius-full);
-  background: var(--color-tint-primary);
 }
 
 .meal-focus-card__button {
@@ -127,9 +111,7 @@
   font-weight: 700;
 }
 
-.meals-tabs {
-  margin-bottom: var(--space-3);
-}
+/* ---------- Dish preview grid ---------- */
 
 .meal-preview-grid {
   display: grid;
@@ -161,12 +143,17 @@
   position: absolute;
   top: 12rpx;
   left: 12rpx;
+  max-width: calc(100% - 24rpx);
+  overflow: hidden;
   padding: 6rpx 14rpx;
   border-radius: var(--radius-full);
-  background: rgba(255, 255, 255, 0.94);
+  /* Token-backed so the pill stays legible if dark mode is enabled. */
+  background: var(--color-overlay-surface);
   color: var(--color-foreground);
   font-size: 24rpx;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .meal-preview-card__name {

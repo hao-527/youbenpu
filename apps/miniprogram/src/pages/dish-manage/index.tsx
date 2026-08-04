@@ -1,4 +1,4 @@
-import { Button, Image, Text, View } from '@tarojs/components'
+import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Pencil, Plus, Trash2, Utensils } from 'lucide'
 import { useMemo, useState } from 'react'
@@ -55,21 +55,26 @@ export default function DishManagePage() {
         </Button>
       </View>
 
-      <View className='tabs dish-manage-tabs'>
-        {categories.map((category) => (
-          <Button
-            key={category}
-            className={`tabs__item tap ${activeCategory === category ? 'tabs__item--active' : ''}`}
-            hoverClass='tap--pressed'
-            onClick={() => setActiveCategory(category)}
-          >
-            {category}
-          </Button>
-        ))}
-      </View>
+      <ScrollView className='tabs' scrollX enableFlex>
+        <View className='tabs__track'>
+          {categories.map((category) => (
+            <Button
+              key={category}
+              className={`tabs__item tap ${activeCategory === category ? 'tabs__item--active' : ''}`}
+              hoverClass='tap--pressed'
+              onClick={() => setActiveCategory(category)}
+            >
+              {category}
+            </Button>
+          ))}
+        </View>
+      </ScrollView>
 
       {visibleDishes.length === 0 ? (
         <View className='empty-state surface-card'>
+          <View className='empty-state__icon'>
+            <AppIcon icon={Utensils} size={30} color={palette.subtleForeground} />
+          </View>
           <Text className='empty-state__title'>这个分类还没有菜品</Text>
           <Text className='empty-state__copy'>添加一道家常菜，点餐时就能直接选择。</Text>
           <Button className='button button--primary empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-form/index' })}>
@@ -78,40 +83,59 @@ export default function DishManagePage() {
         </View>
       ) : (
         <View className='dish-manage-list surface-card'>
-          {visibleDishes.map((dish) => (
-            <View key={dish.id} className='dish-manage-row'>
-              {dish.photo ? (
-                <Image className='dish-manage-row__photo' src={dish.photo} mode='aspectFill' lazyLoad />
-              ) : (
-                <View className='dish-manage-row__photo dish-manage-row__placeholder'>
-                  <AppIcon icon={Utensils} size={22} color={palette.subtleForeground} />
-                </View>
-              )}
-              <Button className='dish-manage-row__body tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: `/pages/dish-form/index?id=${dish.id}` })}>
-                <Text className='dish-manage-row__name'>{dish.name}</Text>
-                <Text className='dish-manage-row__meta'>{dish.category} · {dish.ingredients.slice(0, 3).join('、') || '未填写食材'}</Text>
-                <StateText label={dish.available ? '点餐可见' : '已暂停'} tone={dish.available ? 'ok' : 'muted'} />
-              </Button>
-              <View className='dish-manage-row__actions'>
+          {visibleDishes.map((dish) => {
+            const inUse = pendingDishIds.has(dish.id)
+            return (
+              <View key={dish.id} className='dish-manage-row'>
                 <Button
-                  className='icon-action tap'
+                  className='dish-manage-row__main tap'
                   hoverClass='tap--pressed'
-                  aria-label={dish.available ? `暂停${dish.name}` : `上架${dish.name}`}
-                  onClick={() => dispatch({ type: 'dish/toggleAvailable', id: dish.id })}
+                  aria-label={`编辑${dish.name}`}
+                  onClick={() => Taro.navigateTo({ url: `/pages/dish-form/index?id=${dish.id}` })}
                 >
-                  <Text className={dish.available ? 'dish-manage-row__toggle' : 'dish-manage-row__toggle dish-manage-row__toggle--resume'}>
+                  {dish.photo ? (
+                    <Image className='dish-manage-row__photo' src={dish.photo} mode='aspectFill' lazyLoad />
+                  ) : (
+                    <View className='dish-manage-row__photo dish-manage-row__placeholder'>
+                      <AppIcon icon={Utensils} size={22} color={palette.subtleForeground} />
+                    </View>
+                  )}
+                  <View className='dish-manage-row__body'>
+                    <Text className='dish-manage-row__name'>{dish.name}</Text>
+                    <Text className='dish-manage-row__meta'>{dish.category} · {dish.ingredients.slice(0, 3).join('、') || '未填写食材'}</Text>
+                    <StateText label={dish.available ? '点餐可见' : '已暂停'} tone={dish.available ? 'ok' : 'muted'} />
+                  </View>
+                </Button>
+                <View className='dish-manage-row__actions'>
+                  <Button
+                    className={`dish-manage-row__toggle tap ${dish.available ? '' : 'dish-manage-row__toggle--resume'}`}
+                    hoverClass='tap--pressed'
+                    aria-label={dish.available ? `暂停${dish.name}` : `上架${dish.name}`}
+                    onClick={() => dispatch({ type: 'dish/toggleAvailable', id: dish.id })}
+                  >
                     {dish.available ? '暂停' : '上架'}
-                  </Text>
-                </Button>
-                <Button className='icon-action tap' hoverClass='tap--pressed' aria-label={`编辑${dish.name}`} onClick={() => Taro.navigateTo({ url: `/pages/dish-form/index?id=${dish.id}` })}>
-                  <AppIcon icon={Pencil} size={17} color={palette.subtleForeground} />
-                </Button>
-                <Button className='icon-action tap' hoverClass='tap--pressed' aria-label={`删除${dish.name}`} onClick={() => deleteDish(dish.id, dish.name)}>
-                  <AppIcon icon={Trash2} size={17} color={pendingDishIds.has(dish.id) ? palette.border : palette.destructive} />
-                </Button>
+                  </Button>
+                  <Button
+                    className='icon-action tap'
+                    hoverClass='tap--pressed'
+                    aria-label={`编辑${dish.name}`}
+                    onClick={() => Taro.navigateTo({ url: `/pages/dish-form/index?id=${dish.id}` })}
+                  >
+                    <AppIcon icon={Pencil} size={17} color={palette.subtleForeground} />
+                  </Button>
+                  <Button
+                    className='icon-action tap'
+                    hoverClass='tap--pressed'
+                    aria-label={`删除${dish.name}`}
+                    aria-disabled={inUse ? 'true' : 'false'}
+                    onClick={() => deleteDish(dish.id, dish.name)}
+                  >
+                    <AppIcon icon={Trash2} size={17} color={inUse ? palette.disabledForeground : palette.destructive} />
+                  </Button>
+                </View>
               </View>
-            </View>
-          ))}
+            )
+          })}
         </View>
       )}
     </PageShell>

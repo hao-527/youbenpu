@@ -120,23 +120,22 @@ export default function LedgerEntryPage() {
 
         <View className='field'>
           <Text className='field__label'>金额</Text>
-          <View className='ledger-entry-amount'>
+          <View className={`ledger-entry-amount ${type === 'income' ? 'ledger-entry-amount--income' : ''}`}>
             <Text className='ledger-entry-amount__symbol'>¥</Text>
-            <Input className='ledger-entry-amount__input' type='digit' maxlength={11} placeholder='0.00' value={amount} onInput={(event) => setAmount(event.detail.value)} />
+            <Input className='ledger-entry-amount__input num' type='digit' maxlength={11} placeholder='0.00' placeholderClass='input-placeholder' value={amount} onInput={(event) => setAmount(event.detail.value)} />
           </View>
         </View>
 
         <View className='field'>
           <Text className='field__label'>用途</Text>
-          <Input className='field__control' type='text' maxlength={40} placeholder='例如：菜市场采购' value={purpose} onInput={(event) => setPurpose(event.detail.value)} />
+          <Input className='field__control' type='text' maxlength={40} placeholder='例如：菜市场采购' placeholderClass='input-placeholder' value={purpose} onInput={(event) => setPurpose(event.detail.value)} />
         </View>
-
 
         <View className='ledger-entry-grid'>
           <View className='field'>
             <Text className='field__label'>成员</Text>
             <Picker mode='selector' range={memberNames} value={Math.max(0, memberNames.indexOf(memberName))} onChange={(event) => setMemberName(memberNames[Number(event.detail.value)] ?? currentMemberName)}>
-              <View className='field__control field__control--picker'>
+              <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
                 <Text>{memberName || '请选择'}</Text>
                 <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
               </View>
@@ -145,8 +144,8 @@ export default function LedgerEntryPage() {
           <View className='field'>
             <Text className='field__label'>日期</Text>
             <Picker mode='date' value={date} end={today} onChange={(event) => setDate(event.detail.value)}>
-              <View className='field__control field__control--picker'>
-                <Text>{date}</Text>
+              <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
+                <Text className='num'>{date}</Text>
                 <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
               </View>
             </Picker>
@@ -155,7 +154,7 @@ export default function LedgerEntryPage() {
 
         <View className='field'>
           <Text className='field__label'>备注 <Text className='field__optional'>选填</Text></Text>
-          <Textarea className='field__control field__control--textarea' maxlength={120} placeholder='补充这笔收支的说明' value={note} onInput={(event) => setNote(event.detail.value)} />
+          <Textarea className='field__control field__control--textarea' maxlength={120} placeholder='补充这笔收支的说明' placeholderClass='input-placeholder' value={note} onInput={(event) => setNote(event.detail.value)} />
         </View>
 
         <View className='field'>
@@ -168,14 +167,14 @@ export default function LedgerEntryPage() {
       </View>
 
       {editingEntry && (
-        <Button className='ledger-entry-delete tap' hoverClass='tap--pressed' onClick={deleteEntry}>
+        <Button className='danger-action ledger-entry-delete tap' hoverClass='tap--pressed' onClick={deleteEntry}>
           <AppIcon icon={Trash2} size={17} color={palette.destructive} />
           <Text>删除这笔记录</Text>
         </Button>
       )}
 
       <View className='fixed-action-bar'>
-        <Button className='button button--primary tap ledger-entry-submit' hoverClass='tap--pressed' onClick={submit}>
+        <Button className='button button--primary button--block tap' hoverClass='tap--pressed' onClick={submit}>
           {editingEntry ? '保存修改' : '确认记录'}
         </Button>
       </View>

@@ -1,35 +1,9 @@
-.home-heading {
-  display: flex;
-  min-height: 72rpx;
-  align-items: center;
-  margin-bottom: var(--space-1);
-}
-
-.home-heading__copy {
-  min-width: 0;
-}
-
-.home-heading__date {
-  display: block;
-  margin-top: 4rpx;
-  color: var(--color-subtle-foreground);
-  font-size: 24rpx;
-  line-height: 1.4;
-}
-
 .home-overview {
-  overflow: visible;
   padding: var(--space-4);
 }
 
-.home-overview__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-}
-
 .home-overview__label {
+  display: block;
   color: var(--color-subtle-foreground);
   font-size: 24rpx;
   font-weight: 600;
@@ -103,6 +77,8 @@
   margin-bottom: var(--space-2);
 }
 
+/* ---------- Quick actions ---------- */
+
 .home-quick-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -117,20 +93,11 @@
   align-items: center;
   justify-content: center;
   padding: var(--space-2) var(--space-1);
-  border-radius: 28rpx;
-  background: var(--color-surface);
   text-align: center;
 }
 
 .home-quick-card__icon {
-  display: flex;
-  width: 56rpx;
-  height: 56rpx;
-  align-items: center;
-  justify-content: center;
   margin-bottom: 12rpx;
-  border-radius: var(--radius-full);
-  background: var(--color-tint-primary);
 }
 
 .home-quick-card__title {
@@ -144,9 +111,7 @@
   white-space: nowrap;
 }
 
-.home-quick-card__copy {
-  display: none;
-}
+/* ---------- Today's tasks ---------- */
 
 .home-task-list {
   display: flex;
@@ -167,20 +132,9 @@
   gap: var(--space-2);
 }
 
-.home-task-card__icon,
-.home-all-clear__icon {
-  display: flex;
-  width: 56rpx;
-  min-width: 56rpx;
-  height: 56rpx;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-  background: var(--color-tint-primary);
-}
-
 .home-task-card__body,
-.home-item-row__body {
+.home-item-row__body,
+.home-all-clear__body {
   min-width: 0;
   flex: 1;
 }
@@ -261,7 +215,7 @@
 .home-item-row {
   display: flex;
   width: 100%;
-  min-height: 112rpx;
+  min-height: var(--row-height-sm);
   align-items: center;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
@@ -281,6 +235,7 @@
   min-height: var(--touch-target);
   align-items: center;
   justify-content: center;
+  gap: 4rpx;
   color: var(--color-primary);
   font-size: 24rpx;
   font-weight: 700;
@@ -288,14 +243,10 @@
 
 .home-all-clear {
   display: flex;
-  min-height: 112rpx;
+  min-height: var(--row-height-sm);
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
-}
-
-.home-all-clear__icon {
-  background: var(--color-tint-green);
 }
 
 @media screen and (max-width: 350px) {
@@ -319,12 +270,6 @@
     min-height: 128rpx;
     padding-right: 4rpx;
     padding-left: 4rpx;
-  }
-
-  .home-quick-card__icon {
-    width: 52rpx;
-    height: 52rpx;
-    margin-bottom: var(--space-1);
   }
 
   .home-quick-card__title {

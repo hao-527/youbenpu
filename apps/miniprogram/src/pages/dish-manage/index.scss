@@ -3,10 +3,7 @@
   flex: 1;
   color: var(--color-subtle-foreground);
   font-size: 24rpx;
-}
-
-.dish-manage-tabs {
-  margin-bottom: var(--space-3);
+  line-height: 1.45;
 }
 
 .dish-manage-list {
@@ -15,14 +12,25 @@
 
 .dish-manage-row {
   display: flex;
-  min-height: 156rpx;
+  min-height: var(--row-height-xl);
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-3);
 }
 
 .dish-manage-row + .dish-manage-row {
   border-top: var(--hairline) solid var(--color-border);
+}
+
+/* Photo and copy share one tap target that opens the editor. */
+.dish-manage-row__main {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  align-items: center;
+  gap: var(--space-3);
+  border-radius: var(--radius-md);
+  text-align: left;
 }
 
 .dish-manage-row__photo {
@@ -40,10 +48,8 @@
 }
 
 .dish-manage-row__body {
-  display: block;
   min-width: 0;
   flex: 1;
-  text-align: left;
 }
 
 .dish-manage-row__name {
@@ -72,24 +78,51 @@
   align-items: center;
 }
 
+/* Pill reads as a control; a bare word inside a circle did not. */
 .dish-manage-row__toggle {
-  color: var(--color-subtle-foreground);
+  display: inline-flex;
+  min-width: 96rpx;
+  min-height: 60rpx;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-2);
+  border: var(--hairline) solid var(--color-border-strong);
+  border-radius: var(--radius-full);
+  color: var(--color-muted-foreground);
   font-size: 24rpx;
   font-weight: 700;
+  text-align: center;
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 .dish-manage-row__toggle--resume {
+  border-color: var(--color-primary);
+  background: var(--color-tint-primary);
   color: var(--color-primary);
 }
 
 @media screen and (max-width: 350px) {
+  .dish-manage-row {
+    padding-right: var(--space-2);
+    padding-left: var(--space-2);
+  }
+
+  .dish-manage-row__main {
+    gap: var(--space-2);
+  }
+
   .dish-manage-row__photo {
     width: 92rpx;
     min-width: 92rpx;
     height: 92rpx;
   }
 
+  /* Copy row already opens the editor, so drop the duplicate pencil. */
   .dish-manage-row__actions .icon-action:nth-child(2) {
     display: none;
+  }
+
+  .dish-manage-row__toggle {
+    min-width: 84rpx;
   }
 }

@@ -47,29 +47,28 @@ export default function HomePage() {
   ] as const
 
   const pendingCount = pendingOrder ? pendingOrder.items.length : 0
+  const taskCount = (pendingOrder ? 1 : 0) + attentionItems.length
 
   return (
     <PageShell>
-      <View className='home-heading'>
-        <View className='home-heading__copy'>
+      <View className='page-title'>
+        <View>
           <Text className='page-title__text'>{familyName}</Text>
-          <Text className='home-heading__date'>{dateLabel} · 家庭生活概览</Text>
+          <Text className='page-title__subtitle'>{dateLabel} · 家庭生活概览</Text>
         </View>
       </View>
 
       <View className='home-overview surface-card'>
-        <View className='home-overview__head'>
-          <Text className='home-overview__label'>本月家庭结余</Text>
-        </View>
-        <Text className={`home-overview__balance ${summary.balanceCents < 0 ? 'home-overview__balance--negative' : ''}`}>{formatYuan(summary.balanceCents)}</Text>
+        <Text className='home-overview__label'>本月家庭结余</Text>
+        <Text className={`home-overview__balance num ${summary.balanceCents < 0 ? 'home-overview__balance--negative' : ''}`}>{formatYuan(summary.balanceCents)}</Text>
         <View className='home-overview__metrics'>
           <View className='home-overview__metric'>
             <Text className='home-overview__metric-label'>收入</Text>
-            <Text className='home-overview__metric-value home-overview__metric-value--income'>{formatYuan(summary.incomeCents)}</Text>
+            <Text className='home-overview__metric-value num home-overview__metric-value--income'>{formatYuan(summary.incomeCents)}</Text>
           </View>
           <View className='home-overview__metric'>
             <Text className='home-overview__metric-label'>支出</Text>
-            <Text className='home-overview__metric-value'>{formatYuan(summary.expenseCents)}</Text>
+            <Text className='home-overview__metric-value num'>{formatYuan(summary.expenseCents)}</Text>
           </View>
         </View>
       </View>
@@ -80,12 +79,17 @@ export default function HomePage() {
         </View>
         <View className='home-quick-grid'>
           {quickActions.map((action) => (
-            <Button key={action.key} className='home-quick-card tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: action.url })}>
-              <View className='home-quick-card__icon'>
+            <Button
+              key={action.key}
+              className='home-quick-card surface-card tap'
+              hoverClass='tap--pressed'
+              aria-label={`${action.label}，${action.copy}`}
+              onClick={() => Taro.navigateTo({ url: action.url })}
+            >
+              <View className='icon-bubble icon-bubble--xs icon-bubble--primary home-quick-card__icon'>
                 <AppIcon icon={action.icon} size={20} color={palette.primary} />
               </View>
               <Text className='home-quick-card__title'>{action.label}</Text>
-              <Text className='home-quick-card__copy'>{action.copy}</Text>
             </Button>
           ))}
         </View>
@@ -94,15 +98,15 @@ export default function HomePage() {
       <View className='section'>
         <View className='section__head'>
           <Text className='section__title'>今日待办</Text>
-          <Text className='section__meta'>{(pendingOrder ? 1 : 0) + attentionItems.length} 项</Text>
+          <Text className='section__meta'>{taskCount} 项</Text>
         </View>
 
-        {!pendingOrder && attentionItems.length === 0 ? (
+        {taskCount === 0 ? (
           <View className='home-all-clear surface-card'>
-            <View className='home-all-clear__icon'>
+            <View className='icon-bubble icon-bubble--xs icon-bubble--green'>
               <AppIcon icon={Package} size={23} color={palette.success} />
             </View>
-            <View>
+            <View className='home-all-clear__body'>
               <Text className='home-all-clear__title'>今天没有待处理事项</Text>
               <Text className='home-all-clear__copy'>点餐和物品到期提醒会显示在这里</Text>
             </View>
@@ -110,9 +114,9 @@ export default function HomePage() {
         ) : (
           <View className='home-task-list'>
             {pendingOrder && (
-              <Button className='home-task-card surface-card tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
+              <Button className='home-task-card surface-card tap tap-row' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
                 <View className='home-task-card__head'>
-                  <View className='home-task-card__icon'>
+                  <View className='icon-bubble icon-bubble--xs icon-bubble--primary'>
                     <AppIcon icon={Utensils} size={20} color={palette.primary} />
                   </View>
                   <View className='home-task-card__body'>
@@ -123,7 +127,7 @@ export default function HomePage() {
                     <Text className='home-task-card__meta'>{pendingOrder.requesterName} 发起 · 查看点餐详情</Text>
                   </View>
                   <View className='home-row-chevron'>
-                    <AppIcon icon={ChevronRight} size={16} color={palette.border} />
+                    <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
                   </View>
                 </View>
                 <View className='home-task-card__photos'>
@@ -139,7 +143,7 @@ export default function HomePage() {
             )}
 
             {attentionItems.slice(0, 3).map((item) => (
-              <Button key={item.id} className='home-item-row surface-card tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: `/pages/inventory-detail/index?id=${item.id}` })}>
+              <Button key={item.id} className='home-item-row surface-card tap tap-row' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: `/pages/inventory-detail/index?id=${item.id}` })}>
                 {item.photo ? (
                   <Image className='home-item-row__photo' src={item.photo} mode='aspectFill' lazyLoad />
                 ) : (
@@ -155,14 +159,15 @@ export default function HomePage() {
                   <Text className='home-item-row__meta'>{item.location} · {item.quantityLabel}</Text>
                 </View>
                 <View className='home-row-chevron'>
-                  <AppIcon icon={ChevronRight} size={16} color={palette.border} />
+                  <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
                 </View>
               </Button>
             ))}
 
             {attentionItems.length > 3 && (
               <Button className='home-more-link tap' hoverClass='tap--pressed' onClick={() => Taro.switchTab({ url: '/pages/inventory/index' })}>
-                查看其余 {attentionItems.length - 3} 个待处理物品
+                <Text>查看其余 {attentionItems.length - 3} 个待处理物品</Text>
+                <AppIcon icon={ChevronRight} size={15} color={palette.primary} />
               </Button>
             )}
           </View>

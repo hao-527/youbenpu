@@ -80,7 +80,9 @@ export default function DishFormPage() {
       <PageShell tabPage={false}>
         <PageHeader title='菜品信息' />
         <View className='empty-state surface-card'>
-          <AppIcon icon={Utensils} size={32} color={palette.subtleForeground} />
+          <View className='empty-state__icon'>
+            <AppIcon icon={Utensils} size={32} color={palette.subtleForeground} />
+          </View>
           <Text className='empty-state__title'>菜品不存在</Text>
           <Text className='empty-state__copy'>这道菜可能已经被删除。</Text>
         </View>
@@ -92,24 +94,24 @@ export default function DishFormPage() {
     <PageShell tabPage={false} withFixedBar>
       <PageHeader title={editingDish ? '编辑菜品' : '添加菜品'} subtitle='菜名和分类为必填项' />
 
-      <View className='dish-form-photo surface-card'>
-        <Button className='dish-form-photo__button tap' hoverClass='tap--pressed' onClick={choosePhoto}>
+      <View className='photo-picker dish-form-photo'>
+        <Button className='photo-picker__button tap' hoverClass='tap--pressed' aria-label={photo ? '更换菜品图片' : '添加菜品图片'} onClick={choosePhoto}>
           {photo ? (
-            <Image className='dish-form-photo__image' src={photo} mode='aspectFill' />
+            <Image className='photo-picker__image' src={photo} mode='aspectFill' />
           ) : (
-            <View className='dish-form-photo__placeholder'>
+            <View className='photo-picker__placeholder'>
               <AppIcon icon={Camera} size={28} color={palette.primary} />
               <Text>添加菜品图片</Text>
             </View>
           )}
         </Button>
-        {photo && <Button className='dish-form-photo__change tap' hoverClass='tap--pressed' onClick={choosePhoto}>更换图片</Button>}
+        {photo && <Button className='photo-picker__change tap' hoverClass='tap--pressed' onClick={choosePhoto}>更换图片</Button>}
       </View>
 
-      <View className='form-page dish-form-fields'>
+      <View className='form-page dish-form-fields surface-card'>
         <View className='field'>
           <Text className='field__label'>菜品名称</Text>
-          <Input className='field__control' type='text' maxlength={20} placeholder='例如：番茄炒蛋' value={name} onInput={(event) => setName(event.detail.value)} />
+          <Input className='field__control' type='text' maxlength={20} placeholder='例如：番茄炒蛋' placeholderClass='input-placeholder' value={name} onInput={(event) => setName(event.detail.value)} />
         </View>
 
         <View className='field'>
@@ -132,7 +134,7 @@ export default function DishFormPage() {
               setCategory(selected)
             }
           }}>
-            <View className='field__control field__control--picker'>
+            <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
               <Text>{category}</Text>
               <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
             </View>
@@ -141,18 +143,18 @@ export default function DishFormPage() {
 
         <View className='field'>
           <Text className='field__label'>主要食材 <Text className='field__optional'>选填</Text></Text>
-          <Textarea className='field__control field__control--textarea' maxlength={200} placeholder='用顿号或逗号分隔，最多 20 项' value={ingredientsText} onInput={(event) => setIngredientsText(event.detail.value)} />
+          <Textarea className='field__control field__control--textarea' maxlength={200} placeholder='用顿号或逗号分隔，最多 20 项' placeholderClass='input-placeholder' value={ingredientsText} onInput={(event) => setIngredientsText(event.detail.value)} />
           <Text className='field__hint'>示例：番茄、鸡蛋、葱</Text>
         </View>
 
         <View className='field'>
           <Text className='field__label'>做法简述 <Text className='field__optional'>选填</Text></Text>
-          <Textarea className='field__control field__control--textarea' maxlength={200} placeholder='写下家里常用的做法' value={method} onInput={(event) => setMethod(event.detail.value)} />
+          <Textarea className='field__control field__control--textarea' maxlength={200} placeholder='写下家里常用的做法' placeholderClass='input-placeholder' value={method} onInput={(event) => setMethod(event.detail.value)} />
         </View>
       </View>
 
       <View className='fixed-action-bar'>
-        <Button className='button button--primary tap dish-form-submit' hoverClass='tap--pressed' onClick={submit}>
+        <Button className='button button--primary button--block tap' hoverClass='tap--pressed' onClick={submit}>
           {editingDish ? '保存修改' : '添加到菜品库'}
         </Button>
       </View>

@@ -1,4 +1,4 @@
-import { Button, Image, Text, View } from '@tarojs/components'
+import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { ChevronRight, History, Settings2, Utensils } from 'lucide'
 import { useMemo, useState } from 'react'
@@ -38,7 +38,7 @@ export default function MealsPage() {
       <View className='page-title'>
         <View>
           <Text className='page-title__text'>吃饭</Text>
-          <Text className='meals-page-subtitle'>选好今天吃什么，家里人都能看到</Text>
+          <Text className='page-title__subtitle'>选好今天吃什么，家里人都能看到</Text>
         </View>
       </View>
 
@@ -54,7 +54,7 @@ export default function MealsPage() {
       </View>
 
       {pendingOrder ? (
-        <Button className='meal-focus-card meal-focus-card--pending tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
+        <Button className='meal-focus-card meal-focus-card--pending surface-card tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
           <View className='meal-focus-card__head'>
             <View className='meal-focus-card__copy'>
               <Text className='meal-focus-card__eyebrow'>当前点餐单</Text>
@@ -83,8 +83,8 @@ export default function MealsPage() {
           </View>
         </Button>
       ) : (
-        <View className='meal-focus-card meal-focus-card--empty'>
-          <View className='meal-focus-card__icon'>
+        <View className='meal-focus-card meal-focus-card--empty surface-card'>
+          <View className='icon-bubble icon-bubble--lg icon-bubble--primary meal-focus-card__icon'>
             <AppIcon icon={Utensils} size={28} color={palette.primary} />
           </View>
           <Text className='meal-focus-card__title'>今天想吃什么？</Text>
@@ -101,21 +101,26 @@ export default function MealsPage() {
           <Text className='section__meta'>{availableDishes.length} 道</Text>
         </View>
 
-        <View className='tabs meals-tabs'>
-          {categories.map((category) => (
-            <Button
-              key={category}
-              className={`tabs__item tap ${activeCategory === category ? 'tabs__item--active' : ''}`}
-              hoverClass='tap--pressed'
-              onClick={() => setActiveCategory(category)}
-            >
-              {category}
-            </Button>
-          ))}
-        </View>
+        <ScrollView className='tabs' scrollX enableFlex>
+          <View className='tabs__track'>
+            {categories.map((category) => (
+              <Button
+                key={category}
+                className={`tabs__item tap ${activeCategory === category ? 'tabs__item--active' : ''}`}
+                hoverClass='tap--pressed'
+                onClick={() => setActiveCategory(category)}
+              >
+                {category}
+              </Button>
+            ))}
+          </View>
+        </ScrollView>
 
         {visibleDishes.length === 0 ? (
           <View className='empty-state surface-card'>
+            <View className='empty-state__icon'>
+              <AppIcon icon={Utensils} size={30} color={palette.subtleForeground} />
+            </View>
             <Text className='empty-state__title'>这个分类还没有可点的菜</Text>
             <Text className='empty-state__copy'>可以到菜品管理中新增菜品，或将暂停菜品重新上架。</Text>
             <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}>

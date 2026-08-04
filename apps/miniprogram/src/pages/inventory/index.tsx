@@ -1,4 +1,4 @@
-import { Button, Image, Input, Picker, Text, View } from '@tarojs/components'
+import { Button, Image, Input, Picker, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { ChevronDown, ChevronRight, MapPin, Package, Plus, Search, Timer } from 'lucide'
 import { useMemo, useState } from 'react'
@@ -91,7 +91,7 @@ export default function InventoryPage() {
       <View className='page-title inventory-title'>
         <View>
           <Text className='page-title__text'>找物品</Text>
-          <Text className='inventory-title__meta'>{activeCount} 件正在使用</Text>
+          <Text className='page-title__subtitle'>{activeCount} 件正在使用</Text>
         </View>
         <Button className='content-action content-action--primary tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/inventory-form/index' })}>
           <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
@@ -106,13 +106,22 @@ export default function InventoryPage() {
 
       <View className='search inventory-search'>
         <AppIcon icon={Search} size={19} color={palette.subtleForeground} />
-        <Input className='search__input' value={keyword} type='text' confirmType='search' maxlength={40} placeholder='搜索名称、位置或状态' onInput={(event) => setKeyword(event.detail.value)} />
+        <Input
+          className='search__input'
+          value={keyword}
+          type='text'
+          confirmType='search'
+          maxlength={40}
+          placeholder='搜索名称、位置或状态'
+          placeholderClass='input-placeholder'
+          onInput={(event) => setKeyword(event.detail.value)}
+        />
       </View>
 
       <View className={`inventory-filters ${scope === 'archived' ? 'inventory-filters--single' : ''}`}>
         {scope === 'active' && (
           <Picker mode='selector' range={timeOptions.map((option) => option.label)} value={Math.max(0, timeOptions.findIndex((option) => option.key === timeFilter))} onChange={(event) => setTimeFilter(timeOptions[Number(event.detail.value)]?.key ?? 'all')}>
-            <View className={`inventory-filter ${timeFilter !== 'all' ? 'inventory-filter--active' : ''}`}>
+            <View className={`inventory-filter tap ${timeFilter !== 'all' ? 'inventory-filter--active' : ''}`} hoverClass='tap--pressed' hoverStayTime={100}>
               <AppIcon icon={Timer} size={15} color={timeFilter !== 'all' ? palette.primary : palette.subtleForeground} />
               <Text className='inventory-filter__label'>{timeOptions.find((option) => option.key === timeFilter)?.label ?? '全部时间'}</Text>
               <AppIcon icon={ChevronDown} size={14} color={palette.subtleForeground} />
@@ -120,7 +129,7 @@ export default function InventoryPage() {
           </Picker>
         )}
         <Picker mode='selector' range={locationOptions} value={Math.max(0, locationOptions.indexOf(locationFilter))} onChange={(event) => setLocationFilter(locationOptions[Number(event.detail.value)] ?? '全部地点')}>
-          <View className={`inventory-filter ${locationFilter !== '全部地点' ? 'inventory-filter--active' : ''}`}>
+          <View className={`inventory-filter tap ${locationFilter !== '全部地点' ? 'inventory-filter--active' : ''}`} hoverClass='tap--pressed' hoverStayTime={100}>
             <AppIcon icon={MapPin} size={15} color={locationFilter !== '全部地点' ? palette.primary : palette.subtleForeground} />
             <Text className='inventory-filter__label'>{locationFilter}</Text>
             <AppIcon icon={ChevronDown} size={14} color={palette.subtleForeground} />
@@ -128,22 +137,26 @@ export default function InventoryPage() {
         </Picker>
       </View>
 
-      <View className='category-chips'>
-        {categoryOptions.map((option) => (
-          <Button
-            key={option}
-            className={`category-chip tap ${categoryFilter === option ? 'category-chip--active' : ''}`}
-            hoverClass='tap--pressed'
-            onClick={() => setCategoryFilter(option)}
-          >
-            {option}
-          </Button>
-        ))}
-      </View>
+      <ScrollView className='category-chips' scrollX enableFlex>
+        <View className='category-chips__track'>
+          {categoryOptions.map((option) => (
+            <Button
+              key={option}
+              className={`category-chip tap ${categoryFilter === option ? 'category-chip--active' : ''}`}
+              hoverClass='tap--pressed'
+              onClick={() => setCategoryFilter(option)}
+            >
+              {option}
+            </Button>
+          ))}
+        </View>
+      </ScrollView>
 
       {visibleItems.length === 0 ? (
         <View className='empty-state surface-card inventory-empty'>
-          <AppIcon icon={Package} size={32} color={palette.subtleForeground} />
+          <View className='empty-state__icon'>
+            <AppIcon icon={Package} size={32} color={palette.subtleForeground} />
+          </View>
           <Text className='empty-state__title'>{scope === 'active' ? '没有找到相关物品' : '暂无归档物品'}</Text>
           <Text className='empty-state__copy'>{scope === 'active' ? '调整搜索或筛选条件，也可以新增一个物品。' : '标记为用完或丢弃的物品会保留在这里。'}</Text>
           {scope === 'active' && (
@@ -153,7 +166,7 @@ export default function InventoryPage() {
       ) : (
         <View className='inventory-list surface-card'>
           {visibleItems.map((item) => (
-            <Button key={item.id} className='inventory-row tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: `/pages/inventory-detail/index?id=${item.id}` })}>
+            <Button key={item.id} className='inventory-row tap tap-row' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: `/pages/inventory-detail/index?id=${item.id}` })}>
               {item.photo ? (
                 <Image className='inventory-row__photo' src={item.photo} mode='aspectFill' lazyLoad />
               ) : (
@@ -169,8 +182,10 @@ export default function InventoryPage() {
                 </View>
                 <Text className='inventory-row__category'>{item.category}</Text>
               </View>
-              <StateText label={getStatusLabel(item)} tone={statusTone[item.status]} />
-              <AppIcon icon={ChevronRight} size={16} color={palette.border} />
+              <View className='inventory-row__end'>
+                <StateText label={getStatusLabel(item)} tone={statusTone[item.status]} />
+                <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
+              </View>
             </Button>
           ))}
         </View>

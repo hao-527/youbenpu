@@ -77,7 +77,9 @@ export default function InventoryFormPage() {
       <PageShell tabPage={false}>
         <PageHeader title='物品信息' />
         <View className='empty-state surface-card'>
-          <AppIcon icon={Package} size={32} color={palette.subtleForeground} />
+          <View className='empty-state__icon'>
+            <AppIcon icon={Package} size={32} color={palette.subtleForeground} />
+          </View>
           <Text className='empty-state__title'>物品不存在</Text>
           <Text className='empty-state__copy'>这个物品可能已经被删除。</Text>
         </View>
@@ -90,7 +92,9 @@ export default function InventoryFormPage() {
       <PageShell tabPage={false}>
         <PageHeader title={editingItem ? '编辑物品' : '新增物品'} />
         <View className='empty-state surface-card'>
-          <AppIcon icon={MapPin} size={32} color={palette.primary} />
+          <View className='empty-state__icon empty-state__icon--primary'>
+            <AppIcon icon={MapPin} size={32} color={palette.primary} />
+          </View>
           <Text className='empty-state__title'>请先设置存放位置</Text>
           <Text className='empty-state__copy'>物品必须有明确位置，之后查找才有意义。</Text>
           <Button className='button button--primary empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.redirectTo({ url: '/pages/family-manage/index?section=locations' })}>设置位置</Button>
@@ -103,24 +107,24 @@ export default function InventoryFormPage() {
     <PageShell tabPage={false} withFixedBar>
       <PageHeader title={editingItem ? '编辑物品' : '新增物品'} subtitle='名称和存放位置为必填项' />
 
-      <View className='inventory-form-photo surface-card'>
-        <Button className='inventory-form-photo__button tap' hoverClass='tap--pressed' onClick={choosePhoto}>
+      <View className='photo-picker'>
+        <Button className='photo-picker__button tap' hoverClass='tap--pressed' aria-label={photo ? '更换物品图片' : '添加物品图片'} onClick={choosePhoto}>
           {photo ? (
-            <Image className='inventory-form-photo__image' src={photo} mode='aspectFill' />
+            <Image className='photo-picker__image' src={photo} mode='aspectFill' />
           ) : (
-            <View className='inventory-form-photo__placeholder'>
+            <View className='photo-picker__placeholder'>
               <AppIcon icon={Camera} size={28} color={palette.primary} />
               <Text>添加物品图片</Text>
             </View>
           )}
         </Button>
-        {photo && <Button className='inventory-form-photo__change tap' hoverClass='tap--pressed' onClick={choosePhoto}>更换图片</Button>}
+        {photo && <Button className='photo-picker__change tap' hoverClass='tap--pressed' onClick={choosePhoto}>更换图片</Button>}
       </View>
 
       <View className='inventory-form-card form-page surface-card'>
         <View className='field'>
           <Text className='field__label'>物品名称</Text>
-          <Input className='field__control' type='text' maxlength={40} placeholder='例如：儿童退热贴' value={name} onInput={(event) => setName(event.detail.value)} />
+          <Input className='field__control' type='text' maxlength={40} placeholder='例如：儿童退热贴' placeholderClass='input-placeholder' value={name} onInput={(event) => setName(event.detail.value)} />
         </View>
 
         <View className='field'>
@@ -143,7 +147,7 @@ export default function InventoryFormPage() {
               setCategory(selected)
             }
           }}>
-            <View className='field__control field__control--picker'>
+            <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
               <Text>{category}</Text>
               <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
             </View>
@@ -153,7 +157,7 @@ export default function InventoryFormPage() {
         <View className='field'>
           <Text className='field__label'>存放位置</Text>
           <Picker mode='selector' range={locations} value={Math.max(0, locations.indexOf(location))} onChange={(event) => setLocation(locations[Number(event.detail.value)] ?? locations[0])}>
-            <View className='field__control field__control--picker'>
+            <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
               <Text>{location}</Text>
               <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
             </View>
@@ -163,14 +167,14 @@ export default function InventoryFormPage() {
 
         <View className='field'>
           <Text className='field__label'>数量 <Text className='field__optional'>选填</Text></Text>
-          <Input className='field__control' type='text' maxlength={30} placeholder='例如：2 盒、半袋' value={quantity} onInput={(event) => setQuantity(event.detail.value)} />
+          <Input className='field__control' type='text' maxlength={30} placeholder='例如：2 盒、半袋' placeholderClass='input-placeholder' value={quantity} onInput={(event) => setQuantity(event.detail.value)} />
         </View>
 
         <View className='field'>
           <Text className='field__label'>到期日期 <Text className='field__optional'>选填</Text></Text>
           <Picker mode='date' value={expiryDate || formatLocalDate()} onChange={(event) => setExpiryDate(event.detail.value)}>
-            <View className='field__control field__control--picker'>
-              <Text>{expiryDate || '无需到期提醒'}</Text>
+            <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
+              <Text className={expiryDate ? '' : 'inventory-form-empty-date'}>{expiryDate || '无需到期提醒'}</Text>
               <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
             </View>
           </Picker>
@@ -179,7 +183,7 @@ export default function InventoryFormPage() {
       </View>
 
       <View className='fixed-action-bar'>
-        <Button className='button button--primary tap inventory-form-submit' hoverClass='tap--pressed' onClick={submit}>
+        <Button className='button button--primary button--block tap' hoverClass='tap--pressed' onClick={submit}>
           {editingItem ? '保存修改' : '添加物品'}
         </Button>
       </View>

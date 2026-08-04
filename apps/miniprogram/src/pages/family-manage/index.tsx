@@ -173,7 +173,7 @@ export default function FamilyManagePage() {
       <PageHeader title='家庭管理' subtitle={isAdmin ? '管理成员、角色和常用位置' : '查看家庭信息与维护常用位置'} />
 
       <View className='family-overview surface-card'>
-        <View className='family-overview__icon'>
+        <View className='icon-bubble icon-bubble--lg icon-bubble--primary'>
           <AppIcon icon={Home} size={24} color={palette.primary} />
         </View>
         <View className='family-overview__body'>
@@ -196,7 +196,7 @@ export default function FamilyManagePage() {
 
       <View className='section'>
         <View className='section__head family-section-head'>
-          <View>
+          <View className='family-section-head__copy'>
             <Text className='section__title'>家庭成员</Text>
             <Text className='family-section-head__meta'>{adminCount} 位管理员</Text>
           </View>
@@ -219,7 +219,7 @@ export default function FamilyManagePage() {
                 </View>
                 {isAdmin ? (
                   <Picker mode='selector' range={roleOptions} value={Math.max(0, roleOptions.indexOf(member.roleLabel))} onChange={(event) => updateMemberRole(member, roleOptions[Number(event.detail.value)] ?? member.roleLabel)}>
-                    <View className='family-role-picker'>
+                    <View className='family-role-picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
                       {member.roleLabel === '家庭管理员' && <AppIcon icon={ShieldCheck} size={13} color={palette.primary} />}
                       <Text>{member.roleLabel}</Text>
                       <AppIcon icon={ChevronDown} size={13} color={palette.subtleForeground} />
@@ -245,17 +245,27 @@ export default function FamilyManagePage() {
 
       <View id='family-locations' className='section family-locations'>
         <View className='section__head family-section-head'>
-          <View>
+          <View className='family-section-head__copy'>
             <Text className='section__title'>常用位置</Text>
             <Text className='family-section-head__meta'>全体成员均可维护</Text>
           </View>
         </View>
 
         <View className='family-location-create surface-card'>
-          <View className='family-location-create__icon'>
+          <View className='icon-bubble icon-bubble--sm icon-bubble--primary'>
             <AppIcon icon={MapPin} size={19} color={palette.primary} />
           </View>
-          <Input className='family-location-create__input' type='text' maxlength={20} value={locationDraft} placeholder='例如：玄关柜、行李箱' confirmType='done' onInput={(event) => setLocationDraft(event.detail.value)} onConfirm={addLocation} />
+          <Input
+            className='family-location-create__input'
+            type='text'
+            maxlength={20}
+            value={locationDraft}
+            placeholder='例如：玄关柜、行李箱'
+            placeholderClass='input-placeholder'
+            confirmType='done'
+            onInput={(event) => setLocationDraft(event.detail.value)}
+            onConfirm={addLocation}
+          />
           <Button className='family-location-create__button tap' hoverClass='tap--pressed' aria-label='添加位置' onClick={addLocation}>
             <AppIcon icon={Plus} size={20} color={palette.onPrimary} />
           </Button>
@@ -263,7 +273,9 @@ export default function FamilyManagePage() {
 
         {locations.length === 0 ? (
           <View className='empty-state surface-card family-location-empty'>
-            <AppIcon icon={MapPin} size={30} color={palette.subtleForeground} />
+            <View className='empty-state__icon'>
+              <AppIcon icon={MapPin} size={30} color={palette.subtleForeground} />
+            </View>
             <Text className='empty-state__title'>还没有常用位置</Text>
             <Text className='empty-state__copy'>添加位置后，新增物品时即可直接选择。</Text>
           </View>
@@ -273,13 +285,21 @@ export default function FamilyManagePage() {
               const usageCount = locationUsage.get(location) ?? 0
               return (
                 <View key={location} className='family-location-row'>
-                  <View className='family-location-row__icon'><AppIcon icon={MapPin} size={17} color={palette.primary} /></View>
+                  <View className='icon-bubble icon-bubble--sm icon-bubble--primary'>
+                    <AppIcon icon={MapPin} size={17} color={palette.primary} />
+                  </View>
                   <View className='family-location-row__body'>
                     <Text className='family-location-row__name'>{location}</Text>
                     <Text className='family-location-row__meta'>{usageCount > 0 ? `${usageCount} 件物品正在使用` : '暂无物品使用'}</Text>
                   </View>
-                  <Button className='icon-action tap' hoverClass='tap--pressed' aria-label={`删除位置${location}`} onClick={() => removeLocation(location)}>
-                    <AppIcon icon={Trash2} size={17} color={usageCount > 0 ? palette.subtleForeground : palette.destructive} />
+                  <Button
+                    className='icon-action tap'
+                    hoverClass='tap--pressed'
+                    aria-label={`删除位置${location}`}
+                    aria-disabled={usageCount > 0 ? 'true' : 'false'}
+                    onClick={() => removeLocation(location)}
+                  >
+                    <AppIcon icon={Trash2} size={17} color={usageCount > 0 ? palette.disabledForeground : palette.destructive} />
                   </Button>
                 </View>
               )
@@ -291,13 +311,14 @@ export default function FamilyManagePage() {
       {showRename && (
         <View className='form-overlay' catchMove onClick={() => setShowRename(false)}>
           <View className='form-sheet family-sheet' onClick={(event) => event.stopPropagation()}>
+            <View className='family-sheet__handle' />
             <View className='family-sheet__head'>
               <Text className='form-sheet__title'>修改家庭名称</Text>
               <Button className='family-sheet__cancel tap' hoverClass='tap--pressed' onClick={() => setShowRename(false)}>取消</Button>
             </View>
             <View className='field'>
               <Text className='field__label'>家庭名称</Text>
-              <Input className='field__control' type='text' maxlength={20} value={familyNameDraft} placeholder='输入家庭名称' focus onInput={(event) => setFamilyNameDraft(event.detail.value)} onConfirm={renameFamily} />
+              <Input className='field__control' type='text' maxlength={20} value={familyNameDraft} placeholder='输入家庭名称' placeholderClass='input-placeholder' focus onInput={(event) => setFamilyNameDraft(event.detail.value)} onConfirm={renameFamily} />
             </View>
             <Button className='button button--primary tap family-sheet__submit' hoverClass='tap--pressed' onClick={renameFamily}>保存名称</Button>
           </View>
@@ -307,6 +328,7 @@ export default function FamilyManagePage() {
       {showAddMember && (
         <View className='form-overlay' catchMove onClick={() => setShowAddMember(false)}>
           <View className='form-sheet family-sheet' onClick={(event) => event.stopPropagation()}>
+            <View className='family-sheet__handle' />
             <View className='family-sheet__head'>
               <Text className='form-sheet__title'>添加家庭成员</Text>
               <Button className='family-sheet__cancel tap' hoverClass='tap--pressed' onClick={() => setShowAddMember(false)}>取消</Button>
@@ -317,7 +339,7 @@ export default function FamilyManagePage() {
             </View>
             <View className='field'>
               <Text className='field__label'>成员名称</Text>
-              <Input className='field__control' type='text' maxlength={20} value={memberNameDraft} placeholder='例如：妈妈' focus onInput={(event) => setMemberNameDraft(event.detail.value)} onConfirm={addMember} />
+              <Input className='field__control' type='text' maxlength={20} value={memberNameDraft} placeholder='例如：妈妈' placeholderClass='input-placeholder' focus onInput={(event) => setMemberNameDraft(event.detail.value)} onConfirm={addMember} />
             </View>
             <Button className='button button--primary tap family-sheet__submit' hoverClass='tap--pressed' onClick={addMember}>添加成员</Button>
           </View>

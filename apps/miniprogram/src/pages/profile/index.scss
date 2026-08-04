@@ -1,10 +1,3 @@
-.profile-page-subtitle {
-  display: block;
-  margin-top: 4rpx;
-  color: var(--color-subtle-foreground);
-  font-size: 24rpx;
-}
-
 .profile-identity {
   display: flex;
   min-height: 160rpx;
@@ -35,9 +28,12 @@
 
 .profile-identity__name {
   display: block;
+  overflow: hidden;
   color: var(--color-foreground);
   font-size: 32rpx;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .profile-identity__role {
@@ -49,26 +45,16 @@
   font-size: 24rpx;
 }
 
+/* ---------- Family entry ---------- */
+
 .profile-family-card {
   display: flex;
   width: 100%;
-  min-height: 144rpx;
+  min-height: var(--row-height-lg);
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4);
   text-align: left;
-}
-
-.profile-family-card__icon,
-.profile-setting-row__icon {
-  display: flex;
-  width: 72rpx;
-  min-width: 72rpx;
-  height: 72rpx;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-  background: var(--color-tint-primary);
 }
 
 .profile-family-card__body,
@@ -99,13 +85,15 @@
   white-space: nowrap;
 }
 
+/* ---------- Reminder toggles ---------- */
+
 .profile-settings {
   overflow: hidden;
 }
 
 .profile-setting-row {
   display: flex;
-  min-height: 136rpx;
+  min-height: var(--row-height-md);
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
@@ -115,16 +103,10 @@
   border-top: var(--hairline) solid var(--color-border);
 }
 
-.profile-setting-row__icon {
-  width: 64rpx;
-  min-width: 64rpx;
-  height: 64rpx;
-}
+/* ---------- Account ---------- */
 
 .profile-account {
-  margin-top: var(--space-6);
-  padding-top: var(--space-4);
-  border-top: var(--hairline) solid var(--color-border);
+  margin-top: var(--section-gap);
 }
 
 .profile-account__title {
@@ -136,26 +118,38 @@
   letter-spacing: 0.06em;
 }
 
+.profile-account__list {
+  overflow: hidden;
+}
+
 .profile-account__item {
   display: flex;
   width: 100%;
   min-height: var(--touch-target);
   align-items: center;
-  color: var(--color-subtle-foreground);
+  padding: 0 var(--space-4);
+  color: var(--color-disabled-foreground);
   font-size: 26rpx;
+}
+
+.profile-account__item + .profile-account__item {
+  border-top: var(--hairline) solid var(--color-border);
 }
 
 .profile-account__item[disabled] {
   background: transparent;
-  opacity: 0.55;
+  opacity: 1;
 }
 
 .profile-account__item--danger {
   color: var(--color-destructive);
+  opacity: 0.55;
 }
 
 .profile-account__hint {
   display: block;
+  margin-top: var(--space-2);
   color: var(--color-subtle-foreground);
   font-size: 24rpx;
+  line-height: 1.5;
 }

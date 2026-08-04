@@ -87,7 +87,7 @@ export default function LedgerPage() {
       <View className='page-title'>
         <View>
           <Text className='page-title__text'>账本</Text>
-          <Text className='ledger-page-subtitle'>{memberFilter === '全部' ? '全家收支' : `${memberFilter}的收支`}</Text>
+          <Text className='page-title__subtitle'>{memberFilter === '全部' ? '全家收支' : `${memberFilter}的收支`}</Text>
         </View>
       </View>
 
@@ -95,24 +95,24 @@ export default function LedgerPage() {
         <Button className='month-nav__btn tap' hoverClass='tap--pressed' aria-label='上一个月' onClick={() => moveMonth(-1)}>
           <AppIcon icon={ChevronLeft} size={20} color={palette.foreground} />
         </Button>
-        <Text className='month-nav__label'>{getMonthLabel(viewYear, viewMonth)}</Text>
+        <Text className='month-nav__label num'>{getMonthLabel(viewYear, viewMonth)}</Text>
         <Button className='month-nav__btn tap' hoverClass='tap--pressed' disabled={isCurrentMonth} aria-label='下一个月' onClick={() => moveMonth(1)}>
-          <AppIcon icon={ChevronRight} size={20} color={isCurrentMonth ? palette.border : palette.foreground} />
+          <AppIcon icon={ChevronRight} size={20} color={isCurrentMonth ? palette.disabledForeground : palette.foreground} />
         </Button>
       </View>
 
       <View className='ledger-overview surface-card'>
         <Text className='ledger-overview__label'>本月结余</Text>
-        <Text className={`ledger-overview__balance ${summary.balanceCents < 0 ? 'ledger-overview__balance--negative' : ''}`}>{formatYuan(summary.balanceCents)}</Text>
+        <Text className={`ledger-overview__balance num ${summary.balanceCents < 0 ? 'ledger-overview__balance--negative' : ''}`}>{formatYuan(summary.balanceCents)}</Text>
         <View className='ledger-overview__metrics'>
           <View className='ledger-overview__metric'>
             <Text className='ledger-overview__metric-label'>收入</Text>
-            <Text className='ledger-overview__metric-value ledger-overview__metric-value--income'>{formatYuan(summary.incomeCents)}</Text>
+            <Text className='ledger-overview__metric-value num ledger-overview__metric-value--income'>{formatYuan(summary.incomeCents)}</Text>
           </View>
           <View className='ledger-overview__divider' />
           <View className='ledger-overview__metric'>
             <Text className='ledger-overview__metric-label'>支出</Text>
-            <Text className='ledger-overview__metric-value'>{formatYuan(summary.expenseCents)}</Text>
+            <Text className='ledger-overview__metric-value num'>{formatYuan(summary.expenseCents)}</Text>
           </View>
         </View>
       </View>
@@ -124,7 +124,7 @@ export default function LedgerPage() {
           value={Math.max(0, memberOptions.indexOf(memberFilter))}
           onChange={(event) => setMemberFilter(memberOptions[Number(event.detail.value)] ?? '全部')}
         >
-          <View className='content-action ledger-member-filter'>
+          <View className='content-action ledger-member-filter tap' hoverClass='tap--pressed' hoverStayTime={100}>
             <Text>{memberFilter}</Text>
             <AppIcon icon={ChevronDown} size={14} color={palette.subtleForeground} />
           </View>
@@ -133,7 +133,6 @@ export default function LedgerPage() {
           记一笔
         </Button>
       </View>
-
 
       {memberStats.length > 0 && (
         <View className='ledger-member-stats surface-card'>
@@ -145,7 +144,7 @@ export default function LedgerPage() {
             {memberStats.map((item) => (
               <View key={item.name} className='ledger-member-stat'>
                 <Text className='ledger-member-stat__name'>{item.name}</Text>
-                <Text className='ledger-member-stat__amount'>{formatYuan(item.expenseCents)}</Text>
+                <Text className='ledger-member-stat__amount num'>{formatYuan(item.expenseCents)}</Text>
               </View>
             ))}
           </View>
@@ -170,7 +169,7 @@ export default function LedgerPage() {
             {group.entries.map((entry) => (
               <Button
                 key={entry.id}
-                className='ledger-row tap'
+                className='ledger-row tap tap-row'
                 hoverClass='tap--pressed'
                 aria-label={`${entry.purpose}，${entry.type === 'income' ? '收入' : '支出'}${formatYuan(entry.amountCents)}`}
                 onClick={() => Taro.navigateTo({ url: `/pages/ledger-entry/index?id=${entry.id}` })}
@@ -190,10 +189,10 @@ export default function LedgerPage() {
                   </View>
                 </View>
                 <View className='ledger-row__amount-wrap'>
-                  <Text className={`ledger-row__amount ${entry.type === 'income' ? 'ledger-row__amount--income' : ''}`}>
+                  <Text className={`ledger-row__amount num ${entry.type === 'income' ? 'ledger-row__amount--income' : ''}`}>
                     {entry.type === 'income' ? '+' : '-'}{formatYuan(entry.amountCents).slice(1)}
                   </Text>
-                  <AppIcon icon={ChevronRight} size={15} color={palette.border} />
+                  <AppIcon icon={ChevronRight} size={15} color={palette.subtleForeground} />
                 </View>
               </Button>
             ))}

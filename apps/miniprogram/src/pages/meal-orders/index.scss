@@ -23,9 +23,12 @@
 .current-order-card__title,
 .history-order-card__title {
   display: block;
+  overflow: hidden;
   color: var(--color-foreground);
   font-size: 29rpx;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .current-order-card__meta,
@@ -36,11 +39,13 @@
   font-size: 24rpx;
 }
 
+/* ---------- Dish list ---------- */
+
 .order-dish-list {
   overflow: hidden;
   margin-top: var(--space-3);
   border-radius: var(--radius-md);
-  background: var(--color-muted);
+  background: var(--color-surface-sunken);
 }
 
 .order-dish-row {
@@ -81,10 +86,24 @@
 }
 
 .order-dish-row__quantity {
+  flex: 0 0 auto;
   color: var(--color-foreground);
   font-size: 25rpx;
   font-weight: 700;
+  white-space: nowrap;
 }
+
+.order-dish-list--compact .order-dish-row {
+  min-height: 80rpx;
+}
+
+.order-dish-list--compact .order-dish-row__photo {
+  width: 56rpx;
+  min-width: 56rpx;
+  height: 56rpx;
+}
+
+/* ---------- Actions ---------- */
 
 .current-order-card__actions {
   display: flex;
@@ -106,17 +125,6 @@
   padding: var(--space-4);
 }
 
-.orders-no-current__icon {
-  display: flex;
-  width: 80rpx;
-  min-width: 80rpx;
-  height: 80rpx;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-  background: var(--color-tint-primary);
-}
-
 .orders-no-current__copy {
   min-width: 0;
   flex: 1;
@@ -124,9 +132,12 @@
 
 .orders-no-current__title {
   display: block;
+  overflow: hidden;
   color: var(--color-foreground);
   font-size: 27rpx;
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .orders-no-current__meta {
@@ -136,9 +147,7 @@
   font-size: 24rpx;
 }
 
-.orders-tabs {
-  margin-bottom: var(--space-3);
-}
+/* ---------- History ---------- */
 
 .orders-history-list {
   display: flex;
@@ -150,27 +159,13 @@
   padding: var(--space-4);
 }
 
-.order-dish-list--compact .order-dish-row {
-  min-height: 80rpx;
-}
-
-.order-dish-list--compact .order-dish-row__photo {
-  width: 56rpx;
-  min-width: 56rpx;
-  height: 56rpx;
-}
-
 .history-order-card__delete {
-  display: flex;
-  min-height: var(--touch-target);
-  align-items: center;
+  width: auto;
   justify-content: flex-end;
-  gap: var(--space-1);
-  margin: var(--space-2) calc(-1 * var(--space-2)) calc(-1 * var(--space-2));
+  margin: var(--space-2) calc(-1 * var(--space-2)) calc(-1 * var(--space-2)) auto;
   padding: 0 var(--space-2);
-  color: var(--color-destructive);
+  border-radius: var(--radius-sm);
   font-size: 24rpx;
-  font-weight: 700;
 }
 
 @media screen and (max-width: 350px) {

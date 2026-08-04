@@ -1,4 +1,4 @@
-import { Button, Image, Text, View } from '@tarojs/components'
+import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { ReceiptText, Trash2, Utensils } from 'lucide'
 import { useMemo, useState } from 'react'
@@ -39,7 +39,7 @@ function DishList({ order, compact = false }: { order: MealOrder; compact?: bool
             </View>
           )}
           <Text className='order-dish-row__name'>{item.name}</Text>
-          <Text className='order-dish-row__quantity'>× {item.quantity}</Text>
+          <Text className='order-dish-row__quantity num'>× {item.quantity}</Text>
         </View>
       ))}
     </View>
@@ -121,7 +121,7 @@ export default function MealOrdersPage() {
           </View>
         ) : (
           <View className='orders-no-current surface-card'>
-            <View className='orders-no-current__icon'>
+            <View className='icon-bubble icon-bubble--md icon-bubble--primary'>
               <AppIcon icon={Utensils} size={25} color={palette.primary} />
             </View>
             <View className='orders-no-current__copy'>
@@ -138,22 +138,26 @@ export default function MealOrdersPage() {
           <Text className='section__title'>历史记录</Text>
           <Text className='section__meta'>{orders.filter((order) => order.status !== 'pending').length} 条</Text>
         </View>
-        <View className='tabs orders-tabs'>
-          {historyFilters.map((item) => (
-            <Button
-              key={item.key}
-              className={`tabs__item tap ${historyFilter === item.key ? 'tabs__item--active' : ''}`}
-              hoverClass='tap--pressed'
-              onClick={() => setHistoryFilter(item.key)}
-            >
-              {item.label}
-            </Button>
-          ))}
-        </View>
+        <ScrollView className='tabs' scrollX enableFlex>
+          <View className='tabs__track'>
+            {historyFilters.map((item) => (
+              <Button
+                key={item.key}
+                className={`tabs__item tap ${historyFilter === item.key ? 'tabs__item--active' : ''}`}
+                hoverClass='tap--pressed'
+                onClick={() => setHistoryFilter(item.key)}
+              >
+                {item.label}
+              </Button>
+            ))}
+          </View>
+        </ScrollView>
 
         {historyOrders.length === 0 ? (
           <View className='empty-state surface-card'>
-            <AppIcon icon={ReceiptText} size={30} color={palette.subtleForeground} />
+            <View className='empty-state__icon'>
+              <AppIcon icon={ReceiptText} size={30} color={palette.subtleForeground} />
+            </View>
             <Text className='empty-state__title'>暂无历史记录</Text>
             <Text className='empty-state__copy'>完成或取消的点餐单会保留在这里。</Text>
           </View>
@@ -171,7 +175,7 @@ export default function MealOrdersPage() {
                     <StateText label={meta.label} tone={meta.tone} />
                   </View>
                   <DishList order={order} compact />
-                  <Button className='history-order-card__delete tap' hoverClass='tap--pressed' onClick={() => deleteOrder(order.id)}>
+                  <Button className='danger-action history-order-card__delete tap' hoverClass='tap--pressed' onClick={() => deleteOrder(order.id)}>
                     <AppIcon icon={Trash2} size={15} color={palette.destructive} />
                     <Text>删除记录</Text>
                   </Button>

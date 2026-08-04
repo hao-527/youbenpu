@@ -18,9 +18,7 @@
   font-size: 24rpx;
 }
 
-.meal-create-tabs {
-  margin-bottom: var(--space-3);
-}
+/* ---------- Dish selection ---------- */
 
 .meal-select-list {
   overflow: hidden;
@@ -28,11 +26,11 @@
 
 .meal-select-row {
   display: flex;
-  min-height: 144rpx;
+  min-height: var(--row-height-lg);
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3);
-  transition: background-color var(--duration-fast) ease;
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 .meal-select-row + .meal-select-row {
@@ -82,6 +80,8 @@
   white-space: nowrap;
 }
 
+/* ---------- Quantity stepper ---------- */
+
 .quantity-stepper {
   display: flex;
   flex: 0 0 auto;
@@ -96,9 +96,10 @@
   height: var(--touch-target);
   align-items: center;
   justify-content: center;
-  border: var(--hairline) solid var(--color-border);
+  border: var(--hairline) solid var(--color-border-strong);
   border-radius: var(--radius-full);
   background: var(--color-surface);
+  transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 .quantity-stepper__button--add {
@@ -107,6 +108,7 @@
 }
 
 .quantity-stepper__button[disabled] {
+  border-color: var(--color-border);
   background: var(--color-muted);
 }
 
@@ -122,16 +124,6 @@
   margin-top: var(--space-4);
 }
 
-.meal-create-conflict__icon {
-  display: flex;
-  width: 96rpx;
-  height: 96rpx;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-  background: var(--color-tint-primary);
-}
-
 @media screen and (max-width: 350px) {
   .meal-select-row {
     gap: var(--space-2);
@@ -143,11 +135,5 @@
     width: 80rpx;
     min-width: 80rpx;
     height: 80rpx;
-  }
-
-  .quantity-stepper__button {
-    width: var(--touch-target);
-    min-width: var(--touch-target);
-    height: var(--touch-target);
   }
 }

@@ -10,6 +10,8 @@
   color: var(--color-success);
 }
 
+/* ---------- Amount ---------- */
+
 .ledger-entry-amount {
   display: flex;
   min-height: 132rpx;
@@ -19,6 +21,7 @@
   border: var(--hairline) solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
+  transition: border-color var(--duration-fast) var(--ease-out);
 }
 
 .ledger-entry-amount__symbol {
@@ -31,9 +34,14 @@
   min-width: 0;
   height: 132rpx;
   flex: 1;
-  color: var(--color-foreground);
+  color: var(--color-primary);
   font-size: 56rpx;
   font-weight: 700;
+}
+
+/* Income and expense read differently at a glance. */
+.ledger-entry-amount--income .ledger-entry-amount__input {
+  color: var(--color-success);
 }
 
 .ledger-entry-grid {
@@ -43,20 +51,7 @@
 }
 
 .ledger-entry-delete {
-  display: flex;
-  width: 100%;
-  min-height: var(--touch-target);
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-2);
   margin-top: var(--space-4);
-  color: var(--color-destructive);
-  font-size: 25rpx;
-  font-weight: 700;
-}
-
-.ledger-entry-submit {
-  width: 100% !important;
 }
 
 @media screen and (max-width: 350px) {
