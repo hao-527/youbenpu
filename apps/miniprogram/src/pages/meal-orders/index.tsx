@@ -61,16 +61,7 @@ export default function MealOrdersPage() {
       confirmText: '确认完成',
       confirmColor: palette.primary
     }).then((result) => {
-      if (!result.confirm) return
-      dispatch({ type: 'order/complete', id })
-      Taro.showModal({
-        title: '点餐单已完成',
-        content: '需要顺便记录这餐的实际支出吗？',
-        confirmText: '去记账',
-        cancelText: '稍后'
-      }).then((next) => {
-        if (next.confirm) Taro.navigateTo({ url: `/pages/ledger-entry/index?purpose=${encodeURIComponent('家庭用餐')}&orderId=${id}` })
-      })
+      if (result.confirm) dispatch({ type: 'order/complete', id })
     })
   }
 
