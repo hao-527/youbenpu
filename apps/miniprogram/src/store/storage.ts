@@ -21,6 +21,14 @@ import type { AppState } from './reducer'
 const STORAGE_KEY = 'youbenpu_state'
 const SCHEMA_VERSION = 2
 
+/**
+ * Matches the ledger form's own limit of 99,999,999.99. Without a ceiling,
+ * readInteger would accept up to MAX_SAFE_INTEGER, and summing a few such
+ * entries overflows past it — at which point formatYuan throws inside render
+ * and blanks the page. Capping here keeps that unreachable.
+ */
+const MAX_AMOUNT_CENTS = 9_999_999_999
+
 let storageWritesEnabled = true
 
 type UnknownRecord = Record<string, unknown>
@@ -128,7 +136,7 @@ function normalizeLedger(value: unknown, familyId: string, defaultMemberName: st
     if (!isRecord(candidate)) return
     const id = readLimitedString(candidate.id, 80, `ledger-migrated-${index + 1}`)
     const purpose = readLimitedString(candidate.purpose, 50)
-    const amountCents = readInteger(candidate.amountCents, 0, 0)
+    const amountCents = readInteger(candidate.amountCents, 0, 0, MAX_AMOUNT_CENTS)
     if (!purpose || amountCents <= 0 || usedIds.has(id)) return
 
     const type: TransactionType = candidate.type === 'income' ? 'income' : 'expense'

@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useReducer } from 'react'
+import { createContext, useContext, useEffect, useReducer, useRef } from 'react'
 import type { Dispatch, PropsWithChildren } from 'react'
 
 import { initialState } from './initial-state'
@@ -10,8 +10,15 @@ const DispatchContext = createContext<Dispatch<AppAction>>(() => {})
 
 export function StoreProvider({ children }: PropsWithChildren) {
   const [state, dispatch] = useReducer(appReducer, initialState, (seed) => loadState(seed))
+  const hydrated = useRef(false)
 
   useEffect(() => {
+    // The first run would write back the state we just read, and setStorageSync
+    // blocks the JS thread at the worst possible moment — app launch.
+    if (!hydrated.current) {
+      hydrated.current = true
+      return
+    }
     saveState(state)
   }, [state])
 
