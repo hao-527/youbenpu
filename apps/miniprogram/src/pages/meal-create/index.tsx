@@ -179,7 +179,7 @@ export default function MealCreatePage() {
         </View>
       )}
 
-      <View className='fixed-action-bar'>
+      <View className='fixed-action-bar fixed-action-bar--split'>
         <View className='fixed-action-bar__meta' aria-live='polite'>
           <Text className='fixed-action-bar__title'>已选 {selectedDishCount} 道</Text>
           <Text className='fixed-action-bar__copy'>共 {totalQuantity} 份</Text>

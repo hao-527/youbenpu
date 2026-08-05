@@ -183,7 +183,7 @@ export default function InventoryFormPage() {
       </View>
 
       <View className='fixed-action-bar'>
-        <Button className='button button--primary button--block tap' hoverClass='tap--pressed' onClick={submit}>
+        <Button className='button button--primary tap' hoverClass='tap--pressed' onClick={submit}>
           {editingItem ? '保存修改' : '添加物品'}
         </Button>
       </View>

@@ -174,7 +174,7 @@ export default function LedgerEntryPage() {
       )}
 
       <View className='fixed-action-bar'>
-        <Button className='button button--primary button--block tap' hoverClass='tap--pressed' onClick={submit}>
+        <Button className='button button--primary tap' hoverClass='tap--pressed' onClick={submit}>
           {editingEntry ? '保存修改' : '确认记录'}
         </Button>
       </View>

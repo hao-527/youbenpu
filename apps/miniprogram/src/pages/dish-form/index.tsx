@@ -154,7 +154,7 @@ export default function DishFormPage() {
       </View>
 
       <View className='fixed-action-bar'>
-        <Button className='button button--primary button--block tap' hoverClass='tap--pressed' onClick={submit}>
+        <Button className='button button--primary tap' hoverClass='tap--pressed' onClick={submit}>
           {editingDish ? '保存修改' : '添加到菜品库'}
         </Button>
       </View>
