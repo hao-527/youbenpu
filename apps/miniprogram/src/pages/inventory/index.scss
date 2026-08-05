@@ -2,13 +2,6 @@
   margin-bottom: var(--space-2);
 }
 
-/* Five stacked control rows used to push the first item below the fold, so
- * the gaps between them are tightened (density 7) while touch targets stay
- * at 88rpx. */
-.inventory-scope {
-  margin-bottom: var(--space-2);
-}
-
 .inventory-search {
   margin-bottom: var(--space-2);
 }
@@ -20,10 +13,6 @@
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--space-2);
   margin-bottom: var(--space-3);
-}
-
-.inventory-filters--single {
-  grid-template-columns: minmax(0, 1fr);
 }
 
 .inventory-filter {

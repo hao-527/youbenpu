@@ -12,6 +12,7 @@ export default defineAppConfig({
     'pages/ledger-entry/index',
     'pages/inventory-form/index',
     'pages/inventory-detail/index',
+    'pages/inventory-manage/index',
     'pages/family-manage/index'
   ],
   window: {

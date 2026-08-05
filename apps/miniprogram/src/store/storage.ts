@@ -34,7 +34,7 @@ let storageWritesEnabled = true
 type UnknownRecord = Record<string, unknown>
 
 const orderStatuses: MealOrderStatus[] = ['pending', 'completed', 'cancelled']
-const terminalInventoryStatuses: InventoryStatus[] = ['finished', 'discarded']
+const terminalInventoryStatuses: InventoryStatus[] = ['finished', 'discarded', 'deleted']
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -279,7 +279,7 @@ function normalizeInventory(value: unknown, familyId: string): InventoryItem[] {
     const expiryDate = normalizeExpiryDate(candidate)
     const expiry = getInventoryExpiry(expiryDate)
     const storedStatus = terminalInventoryStatuses.includes(candidate.status as InventoryStatus)
-      ? candidate.status as Extract<InventoryStatus, 'finished' | 'discarded'>
+      ? candidate.status as Extract<InventoryStatus, 'finished' | 'discarded' | 'deleted'>
       : null
     const category = (inventoryCategories as readonly string[]).includes(candidate.category as string)
       ? candidate.category as string

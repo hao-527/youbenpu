@@ -67,7 +67,7 @@ export interface MealOrder {
 
 /* ========== 物品 ========== */
 
-export type InventoryStatus = 'normal' | 'expiring' | 'expired' | 'finished' | 'discarded'
+export type InventoryStatus = 'normal' | 'expiring' | 'expired' | 'finished' | 'discarded' | 'deleted'
 
 export const inventoryCategories = ['食品', '药品', '日用品', '化妆品', '证件'] as const
 export type InventoryCategory = typeof inventoryCategories[number] | (string & {})

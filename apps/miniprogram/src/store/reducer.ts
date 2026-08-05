@@ -39,6 +39,8 @@ export type AppAction =
   | { type: 'inventory/add'; item: InventoryItem }
   | { type: 'inventory/update'; item: InventoryItem }
   | { type: 'inventory/delete'; id: string }
+  | { type: 'inventory/permanentDelete'; id: string }
+  | { type: 'inventory/permanentDeleteAll' }
   | { type: 'inventory/markStatus'; id: string; status: InventoryItem['status'] }
   | { type: 'location/add'; name: string }
   | { type: 'location/delete'; name: string }
@@ -96,7 +98,11 @@ export function appReducer(state: AppState, action: AppAction): AppState {
     case 'inventory/update':
       return { ...state, inventory: state.inventory.map((item) => item.id === action.item.id ? action.item : item) }
     case 'inventory/delete':
+      return { ...state, inventory: state.inventory.map((item) => item.id === action.id ? { ...item, status: 'deleted' as const } : item) }
+    case 'inventory/permanentDelete':
       return { ...state, inventory: state.inventory.filter((item) => item.id !== action.id) }
+    case 'inventory/permanentDeleteAll':
+      return { ...state, inventory: state.inventory.filter((item) => item.status !== 'finished' && item.status !== 'discarded' && item.status !== 'deleted') }
     case 'inventory/markStatus':
       return { ...state, inventory: state.inventory.map((item) => item.id === action.id ? { ...item, status: action.status } : item) }
 
@@ -106,7 +112,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, locations: [...state.locations, name] }
     }
     case 'location/delete':
-      if (state.inventory.some((item) => item.location === action.name)) return state
+      if (state.inventory.some((item) => item.location === action.name && item.status !== 'deleted')) return state
       return { ...state, locations: state.locations.filter((location) => location !== action.name) }
 
     case 'family/rename': {

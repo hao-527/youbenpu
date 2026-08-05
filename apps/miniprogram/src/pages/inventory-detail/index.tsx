@@ -14,14 +14,14 @@ import { getInventoryExpiry } from '../../utils/date'
 import './index.scss'
 
 const statusTone: Record<InventoryStatus, StateTone> = {
-  normal: 'ok', expiring: 'warn', expired: 'danger', finished: 'muted', discarded: 'muted'
+  normal: 'ok', expiring: 'warn', expired: 'danger', finished: 'muted', discarded: 'muted', deleted: 'muted'
 }
 
 export default function InventoryDetailPage() {
   const { inventory } = useStore()
   const dispatch = useDispatch()
   const itemId = Taro.getCurrentInstance().router?.params?.id
-  const storedItem = inventory.find((item) => item.id === itemId)
+  const storedItem = inventory.find((item) => item.id === itemId && item.status !== 'deleted')
 
   if (!storedItem) {
     return (
@@ -72,7 +72,7 @@ export default function InventoryDetailPage() {
       confirmColor: palette.destructive
     }).then((result) => {
       if (!result.confirm) return
-      dispatch({ type: 'inventory/delete', id: item.id })
+      dispatch({ type: 'inventory/permanentDelete', id: item.id })
       Taro.showToast({ title: '物品已删除', icon: 'success' })
       setTimeout(() => Taro.navigateBack(), 350)
     })
