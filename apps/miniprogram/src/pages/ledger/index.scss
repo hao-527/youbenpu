@@ -23,7 +23,7 @@
 .month-nav__label {
   min-width: 220rpx;
   color: var(--color-foreground);
-  font-size: 30rpx;
+  font-size: var(--text-base);
   font-weight: 700;
   text-align: center;
 }
@@ -39,7 +39,7 @@
 .ledger-overview__label {
   display: block;
   color: var(--color-subtle-foreground);
-  font-size: 24rpx;
+  font-size: var(--text-xs);
 }
 
 .ledger-overview__balance {
@@ -48,7 +48,7 @@
   margin-top: var(--space-1);
   overflow: hidden;
   color: var(--color-primary);
-  font-size: 56rpx;
+  font-size: var(--text-display);
   font-weight: 700;
   letter-spacing: -0.035em;
   line-height: 1.2;
@@ -76,7 +76,7 @@
 .ledger-overview__metric-label {
   display: block;
   color: var(--color-subtle-foreground);
-  font-size: 24rpx;
+  font-size: var(--text-xs);
 }
 
 .ledger-overview__metric-value {
@@ -85,7 +85,7 @@
   margin-top: 4rpx;
   overflow: hidden;
   color: var(--color-foreground);
-  font-size: 28rpx;
+  font-size: var(--text-md);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -127,13 +127,13 @@
 
 .ledger-member-stats__title {
   color: var(--color-foreground);
-  font-size: 27rpx;
+  font-size: var(--text-md);
   font-weight: 700;
 }
 
 .ledger-member-stats__meta {
   color: var(--color-subtle-foreground);
-  font-size: 24rpx;
+  font-size: var(--text-xs);
 }
 
 .ledger-member-stats__rows {
@@ -157,14 +157,14 @@
   min-width: 0;
   overflow: hidden;
   color: var(--color-muted-foreground);
-  font-size: 25rpx;
+  font-size: var(--text-sm);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .ledger-member-stat__amount {
   color: var(--color-foreground);
-  font-size: 26rpx;
+  font-size: var(--text-sm);
   font-weight: 700;
   white-space: nowrap;
 }
@@ -206,7 +206,7 @@
   display: block;
   overflow: hidden;
   color: var(--color-foreground);
-  font-size: 28rpx;
+  font-size: var(--text-md);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -225,7 +225,7 @@
   min-width: 0;
   overflow: hidden;
   color: var(--color-subtle-foreground);
-  font-size: 24rpx;
+  font-size: var(--text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -243,13 +243,13 @@
   border-radius: var(--radius-full);
   background: var(--color-muted);
   color: var(--color-muted-foreground);
-  font-size: 24rpx;
+  font-size: var(--text-xs);
   font-weight: 600;
 }
 
 .ledger-row__tag--order {
   background: var(--color-tint-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 .ledger-row__amount-wrap {
@@ -264,7 +264,7 @@
   display: block;
   overflow: hidden;
   color: var(--color-foreground);
-  font-size: 28rpx;
+  font-size: var(--text-md);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -276,7 +276,7 @@
 
 @media screen and (max-width: 350px) {
   .ledger-overview__balance {
-    font-size: 48rpx;
+    font-size: var(--text-2xl);
   }
 
   .ledger-row {

@@ -2,7 +2,7 @@
   min-width: 0;
   flex: 1;
   color: var(--color-subtle-foreground);
-  font-size: 24rpx;
+  font-size: var(--text-xs);
   line-height: 1.45;
 }
 
@@ -56,7 +56,7 @@
   display: block;
   overflow: hidden;
   color: var(--color-foreground);
-  font-size: 28rpx;
+  font-size: var(--text-md);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -67,7 +67,7 @@
   margin: 4rpx 0 8rpx;
   overflow: hidden;
   color: var(--color-subtle-foreground);
-  font-size: 24rpx;
+  font-size: var(--text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -76,6 +76,8 @@
   display: flex;
   flex: 0 0 auto;
   align-items: center;
+  /* 相邻触控目标至少留 8px（16rpx）间隔，避免把「删除」误点成「编辑」。 */
+  gap: var(--space-2);
 }
 
 /* Pill reads as a control; a bare word inside a circle did not. */
@@ -89,7 +91,7 @@
   border: var(--hairline) solid var(--color-border-strong);
   border-radius: var(--radius-full);
   color: var(--color-muted-foreground);
-  font-size: 24rpx;
+  font-size: var(--text-xs);
   font-weight: 700;
   text-align: center;
   transition: background-color var(--duration-fast) var(--ease-out);
@@ -98,7 +100,7 @@
 .dish-manage-row__toggle--resume {
   border-color: var(--color-primary);
   background: var(--color-tint-primary);
-  color: var(--color-primary);
+  color: var(--color-primary-text);
 }
 
 @media screen and (max-width: 350px) {

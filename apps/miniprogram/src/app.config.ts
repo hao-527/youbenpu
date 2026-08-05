@@ -16,12 +16,15 @@ export default defineAppConfig({
   ],
   window: {
     navigationStyle: 'custom',
-    backgroundColor: '#F8FAFC',
+    // Matches --color-background (warm neutral-50); a cool gray flashed
+    // against the warm page background during navigation.
+    backgroundColor: '#FAF7F5',
     backgroundTextStyle: 'dark',
     pageOrientation: 'portrait'
   },
   tabBar: {
-    color: '#64748B',
+    // Warm neutral-500, mirroring --color-subtle-foreground.
+    color: '#776E67',
     selectedColor: '#E8530E',
     backgroundColor: '#FFFFFF',
     borderStyle: 'white',

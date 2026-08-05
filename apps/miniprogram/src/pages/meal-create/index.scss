@@ -7,7 +7,7 @@
 .meal-create-summary__title {
   display: block;
   color: var(--color-foreground);
-  font-size: 32rpx;
+  font-size: var(--text-lg);
   font-weight: 700;
 }
 
@@ -15,7 +15,7 @@
   display: block;
   margin-top: 6rpx;
   color: var(--color-subtle-foreground);
-  font-size: 24rpx;
+  font-size: var(--text-xs);
 }
 
 /* ---------- Dish selection ---------- */
@@ -64,7 +64,7 @@
   display: block;
   overflow: hidden;
   color: var(--color-foreground);
-  font-size: 28rpx;
+  font-size: var(--text-md);
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -75,7 +75,7 @@
   margin-top: 4rpx;
   overflow: hidden;
   color: var(--color-subtle-foreground);
-  font-size: 24rpx;
+  font-size: var(--text-xs);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -115,7 +115,7 @@
 .quantity-stepper__value {
   min-width: 48rpx;
   color: var(--color-foreground);
-  font-size: 28rpx;
+  font-size: var(--text-md);
   font-weight: 700;
   text-align: center;
 }

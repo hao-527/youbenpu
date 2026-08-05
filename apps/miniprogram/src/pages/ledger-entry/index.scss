@@ -26,7 +26,7 @@
 
 .ledger-entry-amount__symbol {
   color: var(--color-subtle-foreground);
-  font-size: 38rpx;
+  font-size: var(--text-xl);
   font-weight: 600;
 }
 
@@ -35,7 +35,7 @@
   height: 132rpx;
   flex: 1;
   color: var(--color-primary);
-  font-size: 56rpx;
+  font-size: var(--text-display);
   font-weight: 700;
 }
 
