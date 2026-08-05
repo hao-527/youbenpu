@@ -100,14 +100,30 @@
   background: var(--color-border);
 }
 
-/* ---------- Toolbar ---------- */
-
-.ledger-toolbar {
-  margin-bottom: var(--space-2);
-}
+/* ---------- Member filter (title row) ---------- */
 
 .ledger-member-filter {
-  min-width: 200rpx;
+  display: inline-flex;
+  max-width: 300rpx;
+  min-height: var(--touch-target);
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6rpx;
+  padding: 0 var(--space-3);
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-muted-foreground);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.ledger-member-filter__label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* ---------- Per-member expense subtotal ---------- */

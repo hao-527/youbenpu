@@ -87,16 +87,12 @@ export default function InventoryPage() {
   }), [categoryFilter, displayInventory, keyword, locationFilter, scope, timeFilter])
 
   return (
-    <PageShell>
+    <PageShell withFab>
       <View className='page-title inventory-title'>
         <View>
           <Text className='page-title__text'>找物品</Text>
           <Text className='page-title__subtitle'>{activeCount} 件正在使用</Text>
         </View>
-        <Button className='content-action content-action--primary tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/inventory-form/index' })}>
-          <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
-          <Text>新增</Text>
-        </Button>
       </View>
 
       <View className='segmented-control inventory-scope'>
@@ -160,7 +156,7 @@ export default function InventoryPage() {
           <Text className='empty-state__title'>{scope === 'active' ? '没有找到相关物品' : '暂无归档物品'}</Text>
           <Text className='empty-state__copy'>{scope === 'active' ? '调整搜索或筛选条件，也可以新增一个物品。' : '标记为用完或丢弃的物品会保留在这里。'}</Text>
           {scope === 'active' && (
-            <Button className='button button--primary empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/inventory-form/index' })}>新增物品</Button>
+            <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/inventory-form/index' })}>新增物品</Button>
           )}
         </View>
       ) : (
@@ -191,6 +187,15 @@ export default function InventoryPage() {
         </View>
       )}
 
+      <Button
+        className='fab tap'
+        hoverClass='tap--pressed'
+        aria-label='新增物品'
+        onClick={() => Taro.navigateTo({ url: '/pages/inventory-form/index' })}
+      >
+        <AppIcon icon={Plus} size={17} color={palette.onPrimary} />
+        <Text>新增</Text>
+      </Button>
     </PageShell>
   )
 }

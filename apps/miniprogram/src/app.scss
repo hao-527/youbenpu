@@ -209,6 +209,44 @@ button::after {
   padding-bottom: calc(env(safe-area-inset-bottom) + 196rpx);
 }
 
+/* Clearance so the last list row is never covered by the FAB. */
+.page-shell--with-fab {
+  padding-bottom: calc(env(safe-area-inset-bottom) + 240rpx);
+}
+
+/* ========== Floating primary action ==========
+ * One persistent "create" entry per list page. Bottom-right puts it in the
+ * thumb zone and clears the top-right, which on a custom-navigation page is
+ * already occupied by WeChat's capsule menu. Extended (labelled) rather than
+ * icon-only so the action stays self-describing.
+ *
+ * Anchored to the viewport edge rather than a centered wrapper on purpose —
+ * a full-width overlay would need pointer-events:none to avoid swallowing
+ * taps on the last row, and that is not dependable across renderers. Above
+ * 540PX the FAB hugs the screen edge instead of the content edge; only
+ * tablets and devtools wide mode are affected.
+ */
+.fab {
+  position: fixed;
+  right: var(--page-gutter);
+  bottom: calc(env(safe-area-inset-bottom) + var(--space-4));
+  z-index: 20;
+  display: inline-flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: center;
+  gap: 6rpx;
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-surface);
+  color: var(--color-on-primary);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  /* Warm-tinted level-3 elevation so it reads as floating, not stuck on. */
+  box-shadow: 0 10rpx 28rpx rgba(190, 64, 9, 0.3);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
 /* ========== Page title ========== */
 
 .page-title {
@@ -421,7 +459,7 @@ button::after {
 
 .category-chips {
   width: auto;
-  margin: 0 calc(-1 * var(--page-gutter)) var(--space-4);
+  margin: 0 calc(-1 * var(--page-gutter)) var(--space-3);
   white-space: nowrap;
 }
 

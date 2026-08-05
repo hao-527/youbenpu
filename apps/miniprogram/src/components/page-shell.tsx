@@ -42,14 +42,23 @@ type PageShellProps = PropsWithChildren<{
   tabPage?: boolean
   /** Adds scroll clearance for a fixed bottom action bar. */
   withFixedBar?: boolean
+  /** Adds scroll clearance for a floating action button. */
+  withFab?: boolean
 }>
 
-export function PageShell({ children, className = '', tabPage = true, withFixedBar = false }: PageShellProps) {
+export function PageShell({
+  children,
+  className = '',
+  tabPage = true,
+  withFixedBar = false,
+  withFab = false
+}: PageShellProps) {
   const [safeTop] = useState(getNavigationSafeTop)
   const classes = [
     'page-shell',
     tabPage ? 'page-shell--tab' : 'page-shell--subpage',
     withFixedBar ? 'page-shell--with-fixed-bar' : '',
+    withFab ? 'page-shell--with-fab' : '',
     className
   ].filter(Boolean).join(' ')
 

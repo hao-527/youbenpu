@@ -1,6 +1,6 @@
 import { Button, Picker, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight } from 'lucide'
+import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Plus, Users } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
@@ -83,12 +83,26 @@ export default function LedgerPage() {
   }
 
   return (
-    <PageShell>
+    <PageShell withFab>
       <View className='page-title'>
         <View>
           <Text className='page-title__text'>账本</Text>
           <Text className='page-title__subtitle'>{memberFilter === '全部' ? '全家收支' : `${memberFilter}的收支`}</Text>
         </View>
+        {/* Secondary filter, so it lives in the title row rather than taking
+            a full toolbar row of its own. */}
+        <Picker
+          mode='selector'
+          range={memberOptions}
+          value={Math.max(0, memberOptions.indexOf(memberFilter))}
+          onChange={(event) => setMemberFilter(memberOptions[Number(event.detail.value)] ?? '全部')}
+        >
+          <View className='ledger-member-filter tap' hoverClass='tap--pressed' hoverStayTime={100}>
+            <AppIcon icon={Users} size={15} color={palette.subtleForeground} />
+            <Text className='ledger-member-filter__label'>{memberFilter}</Text>
+            <AppIcon icon={ChevronDown} size={14} color={palette.subtleForeground} />
+          </View>
+        </Picker>
       </View>
 
       <View className='month-nav'>
@@ -117,23 +131,6 @@ export default function LedgerPage() {
         </View>
       </View>
 
-      <View className='content-toolbar content-toolbar--spread ledger-toolbar'>
-        <Picker
-          mode='selector'
-          range={memberOptions}
-          value={Math.max(0, memberOptions.indexOf(memberFilter))}
-          onChange={(event) => setMemberFilter(memberOptions[Number(event.detail.value)] ?? '全部')}
-        >
-          <View className='content-action ledger-member-filter tap' hoverClass='tap--pressed' hoverStayTime={100}>
-            <Text>{memberFilter}</Text>
-            <AppIcon icon={ChevronDown} size={14} color={palette.subtleForeground} />
-          </View>
-        </Picker>
-        <Button className='content-action content-action--primary tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}>
-          记一笔
-        </Button>
-      </View>
-
       {memberStats.length > 0 && (
         <View className='ledger-member-stats surface-card'>
           <View className='ledger-member-stats__head'>
@@ -155,7 +152,7 @@ export default function LedgerPage() {
         <View className='empty-state surface-card'>
           <Text className='empty-state__title'>这个月还没有记录</Text>
           <Text className='empty-state__copy'>{memberFilter === '全部' ? '记录第一笔家庭收支，月底更清楚钱花在哪里。' : '当前成员在这个月没有收支记录。'}</Text>
-          <Button className='button button--primary empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}>
+          <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}>
             记一笔
           </Button>
         </View>
@@ -199,6 +196,16 @@ export default function LedgerPage() {
           </View>
         </View>
       ))}
+
+      <Button
+        className='fab tap'
+        hoverClass='tap--pressed'
+        aria-label='记一笔'
+        onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}
+      >
+        <AppIcon icon={Plus} size={17} color={palette.onPrimary} />
+        <Text>记一笔</Text>
+      </Button>
     </PageShell>
   )
 }
