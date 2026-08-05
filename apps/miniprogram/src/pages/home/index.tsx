@@ -4,6 +4,7 @@ import { ChevronRight, Package, PackagePlus, ReceiptText, Utensils } from 'lucid
 import { useMemo } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
+import { Onboarding } from '../../components/onboarding'
 import { PageShell } from '../../components/page-shell'
 import { StateText } from '../../components/state-text'
 import { useStore } from '../../store'
@@ -14,7 +15,7 @@ import { formatYuan } from '../../utils/money'
 import './index.scss'
 
 export default function HomePage() {
-  const { familyName, ledger, inventory, orders } = useStore()
+  const { familyName, ledger, inventory, orders, onboardingCompleted } = useStore()
 
   const pendingOrder = useMemo(() => orders.find((order) => order.status === 'pending') ?? null, [orders])
   const attentionItems = useMemo(() => inventory.flatMap((item) => {
@@ -51,6 +52,8 @@ export default function HomePage() {
 
   return (
     <PageShell>
+      {!onboardingCompleted && <Onboarding />}
+
       <View className='page-title'>
         <View>
           <Text className='page-title__text'>{familyName}</Text>

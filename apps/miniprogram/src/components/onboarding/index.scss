@@ -1,0 +1,129 @@
+.onboarding {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: var(--color-scrim);
+}
+
+.onboarding__card {
+  display: flex;
+  width: 100%;
+  max-width: 560rpx;
+  flex-direction: column;
+  align-items: center;
+  padding: var(--space-6) var(--space-5);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+}
+
+/* ---------- Dots ---------- */
+
+.onboarding__dots {
+  display: flex;
+  gap: 12rpx;
+  margin-bottom: var(--space-5);
+}
+
+.onboarding__dot {
+  width: 16rpx;
+  height: 16rpx;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  transition: background-color var(--duration-fast) var(--ease-out), width var(--duration-fast) var(--ease-out);
+}
+
+.onboarding__dot--active {
+  width: 40rpx;
+  border-radius: var(--radius-full);
+  background: var(--color-primary);
+}
+
+/* ---------- Icon ---------- */
+
+.onboarding__icon {
+  display: flex;
+  width: 120rpx;
+  height: 120rpx;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+  border-radius: var(--radius-full);
+  background: var(--color-tint-primary);
+}
+
+/* ---------- Text ---------- */
+
+.onboarding__title {
+  display: block;
+  color: var(--color-foreground);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.onboarding__description {
+  display: block;
+  margin-top: var(--space-1);
+  color: var(--color-primary);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.onboarding__detail {
+  display: block;
+  max-width: 480rpx;
+  margin-top: var(--space-3);
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-sm);
+  line-height: 1.65;
+}
+
+/* ---------- Actions ---------- */
+
+.onboarding__actions {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-5);
+}
+
+.onboarding__next {
+  display: flex;
+  width: 100%;
+  min-height: var(--button-height);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--color-primary-surface);
+  color: var(--color-on-primary);
+  font-size: var(--text-base);
+  font-weight: 700;
+}
+
+.onboarding__skip {
+  display: flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: center;
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-sm);
+}
+
+/* ---------- Counter ---------- */
+
+.onboarding__counter {
+  display: block;
+  margin-top: var(--space-3);
+  color: var(--color-disabled-foreground);
+  font-size: var(--text-xs);
+}

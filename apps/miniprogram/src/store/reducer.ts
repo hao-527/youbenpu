@@ -20,6 +20,8 @@ export interface AppState {
     expiryReminder: boolean
     mealReminder: boolean
   }
+  /** 首次引导是否已完成。false 时首页显示引导遮罩。 */
+  onboardingCompleted: boolean
 }
 
 export type AppAction =
@@ -48,6 +50,7 @@ export type AppAction =
   | { type: 'category/addInventory'; name: string }
   | { type: 'settings/toggleExpiryReminder' }
   | { type: 'settings/toggleMealReminder' }
+  | { type: 'onboarding/complete' }
 
 function currentMemberIsAdmin(state: AppState): boolean {
   return state.members.some((member) => member.id === state.currentMemberId && member.roleLabel === '家庭管理员')
@@ -140,6 +143,9 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, settings: { ...state.settings, expiryReminder: !state.settings.expiryReminder } }
     case 'settings/toggleMealReminder':
       return { ...state, settings: { ...state.settings, mealReminder: !state.settings.mealReminder } }
+
+    case 'onboarding/complete':
+      return { ...state, onboardingCompleted: true }
 
     case 'category/addDish': {
       const name = action.name.trim()

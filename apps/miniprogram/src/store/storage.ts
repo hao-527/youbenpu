@@ -369,7 +369,8 @@ function migrateState(source: UnknownRecord, fallback: AppState): AppState {
     settings: {
       expiryReminder: readBoolean(settings.expiryReminder, fallback.settings.expiryReminder),
       mealReminder: readBoolean(settings.mealReminder, fallback.settings.mealReminder)
-    }
+    },
+    onboardingCompleted: readBoolean(source.onboardingCompleted, fallback.onboardingCompleted)
   }
 }
 
