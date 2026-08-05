@@ -14,11 +14,6 @@ import { formatLocalDate, getPreviousDate } from '../../utils/date'
 
 import './index.scss'
 
-function safeDecode(value: string | undefined) {
-  if (!value) return ''
-  try { return decodeURIComponent(value) } catch { return value }
-}
-
 function createTimeLabel(date: string, today: string) {
   if (date === today) {
     const now = new Date()
@@ -34,14 +29,13 @@ export default function LedgerEntryPage() {
   const params = Taro.getCurrentInstance().router?.params
   const entryId = params?.id
   const editingEntry = entryId ? ledger.find((entry) => entry.id === entryId) : undefined
-  const orderId = params?.orderId ? safeDecode(params.orderId) : editingEntry?.orderId
   const today = formatLocalDate()
   const currentMemberName = members.find((member) => member.id === currentMemberId)?.displayName ?? members[0]?.displayName ?? ''
   const memberNames = members.map((member) => member.displayName)
 
   const [type, setType] = useState<TransactionType>(editingEntry?.type ?? 'expense')
   const [amount, setAmount] = useState(editingEntry ? (editingEntry.amountCents / 100).toFixed(2).replace(/\.00$/, '') : '')
-  const [purpose, setPurpose] = useState(editingEntry?.purpose ?? safeDecode(params?.purpose))
+  const [purpose, setPurpose] = useState(editingEntry?.purpose ?? '')
   const [memberName, setMemberName] = useState(editingEntry?.memberName ?? currentMemberName)
   const [date, setDate] = useState(editingEntry?.date ?? today)
   const [note, setNote] = useState(editingEntry?.note ?? '')
@@ -73,8 +67,7 @@ export default function LedgerEntryPage() {
       date,
       timeLabel: editingEntry?.date === date ? editingEntry.timeLabel : createTimeLabel(date, today),
       note: note.trim() || undefined,
-      noteVisibility: visibility,
-      ...(orderId ? { orderId } : {})
+      noteVisibility: visibility
     }
     dispatch(editingEntry ? { type: 'ledger/update', entry } : { type: 'ledger/add', entry })
     Taro.showToast({ title: editingEntry ? '记录已更新' : '已记一笔', icon: 'success' })

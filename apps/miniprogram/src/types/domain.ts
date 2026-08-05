@@ -16,8 +16,6 @@ export interface LedgerEntry {
   timeLabel: string
   note?: string
   noteVisibility: 'private' | 'shared'
-  /** 关联点餐单 ID（可选），用于追溯这餐的实际支出 */
-  orderId?: string
 }
 
 export interface MonthSummary {

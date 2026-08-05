@@ -146,8 +146,7 @@ function normalizeLedger(value: unknown, familyId: string, defaultMemberName: st
       date,
       timeLabel: readLimitedString(candidate.timeLabel, 40, date),
       ...(note ? { note } : {}),
-      noteVisibility: candidate.noteVisibility === 'private' ? 'private' : 'shared',
-      ...(readString(candidate.orderId) ? { orderId: readLimitedString(candidate.orderId, 80) } : {})
+      noteVisibility: candidate.noteVisibility === 'private' ? 'private' : 'shared'
     })
   })
 

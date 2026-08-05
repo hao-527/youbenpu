@@ -176,14 +176,7 @@ export default function LedgerPage() {
                 </View>
                 <View className='ledger-row__body'>
                   <Text className='ledger-row__title'>{entry.purpose}</Text>
-                  <View className='ledger-row__meta-line'>
-                    <Text className='ledger-row__meta'>{entry.memberName} · {entry.timeLabel}</Text>
-                    {entry.orderId && (
-                      <View className='ledger-row__tags'>
-                        <Text className='ledger-row__tag ledger-row__tag--order'>点餐</Text>
-                      </View>
-                    )}
-                  </View>
+                  <Text className='ledger-row__meta'>{entry.memberName} · {entry.timeLabel}</Text>
                 </View>
                 <View className='ledger-row__amount-wrap'>
                   <Text className={`ledger-row__amount num ${entry.type === 'income' ? 'ledger-row__amount--income' : ''}`}>
