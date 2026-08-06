@@ -1,3 +1,16 @@
+// TODO: These domain models are not yet wired to any HTTP handler or
+// repository. They define the target schema for when the API gains real
+// CRUD endpoints backed by a database. Until then, all business data
+// lives in the WeChat miniprogram's local storage (see apps/miniprogram/src/store).
+//
+// Known mismatches with the current frontend types:
+// - Frontend LedgerEntry uses `purpose` (free text) instead of `CategoryCode`.
+// - Frontend MealOrder stores `requesterName` (display name snapshot) while
+//   this model uses `RequesterID` (stable user reference).
+// - Frontend InventoryItem.category is a free string (user-extensible);
+//   this model uses `CategoryCode` which implies an enum — the API should
+//   accept arbitrary strings to match the frontend behavior.
+
 package ledger
 
 import (

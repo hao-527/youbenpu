@@ -29,7 +29,6 @@ export const palette = {
   /** Disabled controls, where the 3:1 minimum does not apply. */
   disabledForeground: '#A39890',
   accent: '#E8530E',
-  warning: '#B45309',
   destructive: '#DC2626',
   /** Deepened from #059669 (3.77:1) so income amounts clear 4.5:1. */
   success: '#047F5A',

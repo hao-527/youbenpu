@@ -76,6 +76,20 @@
   font-weight: 700;
 }
 
+.im-sidebar__delete {
+  display: flex;
+  width: 100%;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: center;
+  gap: 4rpx;
+  margin-top: var(--space-2);
+  border-top: var(--hairline) solid var(--color-border);
+  color: var(--color-destructive);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
 /* Right list */
 .im-list {
   flex: 1;

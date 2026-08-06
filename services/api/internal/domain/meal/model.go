@@ -1,3 +1,6 @@
+// TODO: Not yet wired to any HTTP handler or repository.
+// See ledger/model.go header for full context on the frontend/backend gap.
+
 package meal
 
 import "time"

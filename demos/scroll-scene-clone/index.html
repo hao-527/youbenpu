@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scroll Scene Clone — 滚动动效架构复刻</title>
+<meta name="description" content="用 Lenis + GSAP ScrollTrigger + Canvas 序列帧 + CSS clip-path 关键帧擦洗复刻的滚动叙事页面。演示用虚构内容。">
+<!-- 内联 favicon，省掉一次 404 请求 -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0a0b'/><path d='M7 8l9 17 9-17' fill='none' stroke='%23e8482b' stroke-width='3.6'/></svg>">
+<link rel="stylesheet" href="/src/styles/base.css">
+<link rel="stylesheet" href="/src/styles/scenes.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">跳到主内容</a>
+
+<div id="app">
+
+  <!-- ══════════════════════════════ HEADER ══════════════════════════════ -->
+  <header class="site-header">
+    <div class="mask"></div>
+    <a class="logo-box" href="#top">
+      <svg class="logo" viewBox="0 0 132 24" aria-label="VOLTA LAB">
+        <path d="M2 3l6 15 6-15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+        <text x="20" y="18" font-size="15" font-weight="700" letter-spacing="0.06em" fill="currentColor">VOLTA LAB</text>
+      </svg>
+    </a>
+
+    <nav class="pc-nav" aria-label="主导航">
+      <ul class="nav-items">
+        <li class="nav-list is-on"><a class="f-20 word-b" href="#top">首页</a></li>
+        <li class="nav-list"><a class="f-20 word-b" href="#reasons">技术</a></li>
+        <li class="nav-list"><a class="f-20 word-b" href="#products">产品</a></li>
+        <li class="nav-list"><a class="f-20 word-b" href="#history">历程</a></li>
+      </ul>
+      <a href="#footer" class="cta-btn layer-btn">
+        <span class="mask"></span>
+        <span class="f-18 txt word-b">联系我们</span>
+        <span class="arrow" aria-hidden="true">→</span>
+      </a>
+    </nav>
+
+    <button id="menu-toggle" class="menu-toggle" aria-expanded="false" aria-controls="overlay-menu">
+      <span class="f-16 word-b txt">菜单</span>
+      <span class="icon" aria-hidden="true">✕</span>
+    </button>
+  </header>
+
+  <!-- ══════════════════════════ OVERLAY MENU ══════════════════════════ -->
+  <nav id="overlay-menu" class="overlay-menu" aria-label="全屏菜单" aria-hidden="true">
+    <svg class="shape-overlays" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+      <rect class="path" x="0" y="0" width="100" height="100"></rect>
+    </svg>
+    <div class="items">
+      <div class="content">
+        <a href="#top"      class="lists overlay-nav-list"><span class="f-30 word-b">首页</span></a>
+        <a href="#reasons"  class="lists overlay-nav-list"><span class="f-30 word-b">技术</span></a>
+        <a href="#products" class="lists overlay-nav-list"><span class="f-30 word-b">产品</span></a>
+        <a href="#history"  class="lists overlay-nav-list"><span class="f-30 word-b">历程</span></a>
+        <a href="#footer"   class="lists overlay-nav-list"><span class="f-30 word-b">联系我们</span></a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="main" class="home">
+
+    <!-- ═══════════════════ SCENE 1 · HERO (sticky pin) ═══════════════════
+         .row 是"喂"滚动距离的高容器，.inner 用 position:sticky 钉住画面。
+         data-vh 由 JS 换算成真实 px，避开移动端 100vh 抖动。            -->
+    <section id="top" class="row banner" data-vh="2.4">
+      <div class="inner" data-vh="1">
+
+        <div class="bg">
+          <!-- 开场画面：模拟原站的 autoplay 视频，播完淡出 -->
+          <div class="media full">
+            <canvas class="intro-cv" aria-hidden="true"></canvas>
+          </div>
+
+          <!-- #fn1 承载 --go，CSS 关键帧 heroClip 被 GSAP 擦洗 -->
+          <div id="fn1" class="clip full">
+            <canvas class="hero-cv" data-count="120" aria-hidden="true"></canvas>
+          </div>
+        </div>
+
+        <!-- 第一屏文案：随滚动按 data-speed 分层飞出 -->
+        <div id="firstMv" class="group">
+          <div class="col half">
+            <h1 class="f-60 word-b fn1-alan" data-speed="50,0">
+              Power that<br>outlasts<br>the spec sheet<sup class="f-18 word-b">*</sup>
+            </h1>
+            <a href="#reasons" class="note fn1-alan" data-speed="30,0">
+              <span class="line"></span>
+              <span class="f-16">看技术</span>
+              <span class="layer-icon" aria-hidden="true">→</span>
+            </a>
+          </div>
+          <div class="btm">
+            <div class="left fn1-alan" data-speed="0,-10">
+              <p class="f-12">Scroll Scene Clone · 技术演示页</p>
+            </div>
+            <div class="right">
+              <p class="f-12 fn1-alan" data-speed="0,-30">
+                * VOLTA LAB 为虚构品牌，本页所有数字、年份与产品描述均为演示用途编造，不代表任何真实产品性能。
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 第二屏文案：反向飞入 -->
+        <div class="part">
+          <div class="col">
+            <h2 class="f-90 word-b fn2-alan" data-speed="0,30"><b>三个理由</b>选择 VOLTA LAB</h2>
+            <ul class="item">
+              <li class="fn2-alan" data-speed="0,40">
+                <h3 class="f-24 word-h accent">持续输出</h3>
+                <p class="f-18">相比参考标准延长 240% 放电时长</p>
+                <p class="f-14 gray">* 虚构数据，仅用于演示数字滚动效果</p>
+              </li>
+              <li class="fn2-alan" data-speed="0,40">
+                <h3 class="f-24 word-h accent">超长存储</h3>
+                <p class="f-18">密封存放条件下 18 年货架寿命</p>
+                <p class="f-14 gray">* 虚构数据</p>
+              </li>
+              <li class="fn2-alan" data-speed="0,40">
+                <h3 class="f-24 word-h accent">精密制造</h3>
+                <p class="f-18">单线年产能 2.4 亿只</p>
+                <p class="f-14 gray">* 虚构数据</p>
+              </li>
+            </ul>
+          </div>
+          <div class="img-box fn2-alan" data-speed="0,50">
+            <svg class="set-img" viewBox="0 0 200 200" aria-hidden="true">
+              <circle cx="100" cy="100" r="96" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 6"/>
+              <circle cx="100" cy="100" r="70" fill="none" stroke="currentColor" stroke-width="1"/>
+              <path d="M100 4 L108 22 L92 22 Z" fill="currentColor"/>
+            </svg>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ══════════ SCENE 2 · REASONS 分页擦除 (sticky pin) ══════════
+         3 块面板堆叠，前一块用 pageClip 关键帧 inset(0 100vw 0 0) 擦掉。 -->
+    <section id="reasons" class="row r1" data-vh="4">
+      <div class="inner">
+
+        <div class="tab-box" role="tablist" aria-label="技术要点">
+          <button class="tab is-on" role="tab" aria-selected="true">
+            <span class="layer-icon"><span class="icon-dot"></span><span class="f-42 word-h">持续输出</span></span>
+          </button>
+          <button class="tab" role="tab" aria-selected="false">
+            <span class="layer-icon"><span class="icon-dot"></span><span class="f-42 word-h">超长存储</span></span>
+          </button>
+          <button class="tab" role="tab" aria-selected="false">
+            <span class="layer-icon"><span class="icon-dot"></span><span class="f-42 word-h">精密制造</span></span>
+          </button>
+        </div>
+
+        <div class="mid" id="fn2">
+          <div class="group tab-parent tab-1" data-vh="1">
+            <div class="box">
+              <small class="f-36 word-h accent fn2-child">更长放电</small>
+              <h2 class="f-300 word-b accent-text fn2-child count-fn">+<em class="count" data-decimals="0">240</em>%</h2>
+            </div>
+            <p class="note f-24 word-r fn2-child">
+              <b class="f-24 word-b accent">+240%</b> 相比参考标准<br>延长的放电时长
+            </p>
+          </div>
+
+          <div class="group tab-parent tab-2" data-vh="1">
+            <div class="msg fn2-child">
+              <h3 class="f-140 word-b accent-text count-fn"><em class="count f-300 word-b" data-decimals="0">18</em> 年</h3>
+              <h4 class="f-36 word-b">密封存放条件下的货架寿命<br>年自放电率低于 1.2%</h4>
+              <p class="f-20 gray">（虚构指标，用于演示 CountUp 与分页擦除）</p>
+            </div>
+          </div>
+
+          <div class="group tab-parent tab-3" data-vh="1">
+            <div class="msg fn2-child">
+              <h3 class="f-140 word-b accent-text count-fn"><em class="count f-300 word-b" data-decimals="1">2.4</em> 亿</h3>
+              <h4 class="f-36 word-b">单条产线的年产能</h4>
+              <p class="f-24 word-r">从原料到成品全程 <b class="accent f-24 word-b">37</b> 道在线检测工序</p>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ═══════ SCENE 3 · PRODUCTS 常规入场 (normal flow) ═══════
+         演示 ScrollTrigger.batch 统一入场 + toggleClass 交给 CSS 级联。 -->
+    <section id="products" class="row r2">
+      <div class="bg">
+        <svg class="set-img" viewBox="0 0 200 200" aria-hidden="true">
+          <circle cx="100" cy="100" r="96" fill="none" stroke="currentColor" stroke-width="1" stroke-dasharray="2 6"/>
+          <circle cx="100" cy="100" r="60" fill="none" stroke="currentColor" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="inner">
+        <!-- 文字同时写在标签内容里：JS 挂了标题依然可读（渐进增强） -->
+        <h2 class="f-120 word-h alan-fn" data-text="Our Products" data-split="">Our Products</h2>
+
+        <div class="mid alan-parent-up alan-go">
+          <a class="box alan-child" href="#products">
+            <div class="photo grad-1"></div>
+            <div class="mask"></div>
+            <em class="num f-28 word-b">1.</em>
+            <h3 class="f-28 word-l"><b class="letter word-h">碱性电池</b> · 常规尺寸</h3>
+            <p class="f-16"><b class="f-24 word-b accent">500+</b> 项工艺专利，高体积能量密度，更长续航。（虚构描述）</p>
+          </a>
+          <a class="box alan-child" href="#products">
+            <div class="photo grad-2"></div>
+            <div class="mask"></div>
+            <em class="num f-28 word-b">2.</em>
+            <h3 class="f-28 word-l"><b class="letter word-h">碱性电池</b> · 特殊尺寸</h3>
+            <p class="f-16">覆盖 12 种非标规格，适配工业仪表与医疗设备。（虚构描述）</p>
+          </a>
+          <a class="box alan-child" href="#products">
+            <div class="photo grad-3"></div>
+            <div class="mask"></div>
+            <em class="num f-28 word-b">3.</em>
+            <h3 class="f-28 word-l"><b class="letter word-h">纽扣电池</b></h3>
+            <p class="f-16">0.16mm 超薄钢壳，低内阻高电压平台，10 年防漏保证。（虚构描述）</p>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ SCENE 4 · 横向时间轴 (sticky pin + horizontal scroll) ══════
+         .process 用 grid auto-flow column 横排，整体 translateX；
+         电池序列帧沿轴同步移动并 scrub 帧号。                        -->
+    <section id="history" class="row r5">
+      <div class="inner" data-vh="1">
+        <div class="bg"><div class="pic full grad-dark"></div></div>
+
+        <div class="pro">
+          <div class="box">
+            <div id="r5Scr" class="layer-scr">
+              <span class="txt f-14 word-b">继续滚动</span>
+              <span class="mouse"><em class="line"></em></span>
+            </div>
+          </div>
+        </div>
+
+        <div class="group process">
+          <div class="part">
+            <div class="col">
+              <h2 class="f-80 word-h txt">
+                <span class="letter" data-go="1" data-note="Advancing">Advancing</span>
+                <span class="letter" data-go="1" data-note="cell chemistry">cell chemistry</span>
+                <span class="letter" data-go="1" data-note="one decade">one decade</span>
+                <span class="letter" data-go="1" data-note="at a time">at a time</span>
+              </h2>
+            </div>
+          </div>
+
+          <div class="part note">
+            <h3 class="f-24 word-r">下面这条时间轴<br>与电池动画共用<br>同一条滚动进度</h3>
+          </div>
+
+          <div class="part history"><h4 class="f-90 word-b accent-text">1961</h4><p class="f-24 word-r">实验室成立，开始手工装配锌锰电池</p></div>
+          <div class="part history"><h4 class="f-90 word-b accent-text">1988</h4><p class="f-24 word-r">第一条自动化碱性电池产线投产</p></div>
+          <div class="part history"><h4 class="f-90 word-b accent-text">1994</h4><p class="f-24 word-r">完成无汞化改造，全线转向环保配方</p></div>
+          <div class="part history"><h4 class="f-90 word-b accent-text">2003</h4><p class="f-24 word-r">区域市场份额首次进入前三</p></div>
+          <div class="part history"><h4 class="f-90 word-b accent-text">2009</h4><p class="f-24 word-r">环形阴极结构第一代发布</p></div>
+          <div class="part history"><h4 class="f-90 word-b accent-text">2014</h4><p class="f-24 word-r">第二代环形阴极，内阻降低 22%</p></div>
+          <div class="part history"><h4 class="f-90 word-b accent-text">2019</h4><p class="f-24 word-r">第三代结构量产，货架寿命提升至 15 年</p></div>
+          <div class="part history"><h4 class="f-90 word-b accent-text">2024</h4><p class="f-24 word-r">第四代结构进入海外市场（以上年份与事件均为虚构）</p></div>
+
+          <div class="frame">
+            <canvas class="battery-cv" data-count="150" aria-hidden="true"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ══════════════════════════════ FOOTER ══════════════════════════════ -->
+  <footer id="footer">
+    <div class="top">
+      <div class="logo alan-fn">
+        <svg viewBox="0 0 132 24" aria-label="VOLTA LAB">
+          <path d="M2 3l6 15 6-15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round"/>
+          <text x="20" y="18" font-size="15" font-weight="700" letter-spacing="0.06em" fill="currentColor">VOLTA LAB</text>
+        </svg>
+      </div>
+      <ul class="items">
+        <li class="alan-parent-up alan-go">
+          <span class="f-20 alan-child word-h accent">页面用到的技术</span>
+          <span class="f-18 alan-child">Lenis 惯性滚动</span>
+          <span class="f-18 alan-child">GSAP ScrollTrigger scrub</span>
+          <span class="f-18 alan-child">Canvas 序列帧</span>
+        </li>
+        <li class="alan-parent-up alan-go">
+          <span class="f-20 alan-child word-h accent">CSS 手法</span>
+          <span class="f-18 alan-child">position: sticky 钉屏</span>
+          <span class="f-18 alan-child">负 animation-delay 擦洗关键帧</span>
+          <span class="f-18 alan-child">clip-path + attr() 双层文字</span>
+        </li>
+        <li class="alan-parent-up alan-go">
+          <span class="f-20 alan-child word-h accent">兜底</span>
+          <span class="f-18 alan-child">prefers-reduced-motion</span>
+          <span class="f-18 alan-child">键盘可达 / aria-expanded</span>
+          <span class="f-18 alan-child">无 JS 时内容仍可读</span>
+        </li>
+      </ul>
+    </div>
+    <div class="btm">
+      <p class="f-12">VOLTA LAB 是为本演示编造的虚构品牌，页面内所有数字、年份、产品与指标均无真实依据。</p>
+      <p class="f-12">Scroll Scene Clone · 动效架构参考实现</p>
+    </div>
+  </footer>
+
+  <div class="fix-box">
+    <a href="#footer" class="go-msg layer-btn">
+      <span class="mask"></span>
+      <span class="f-16 txt word-b">回到底部</span>
+      <span class="arrow" aria-hidden="true">↓</span>
+    </a>
+  </div>
+
+</div>
+
+<script type="module" src="/src/main.js"></script>
+</body>
+</html>

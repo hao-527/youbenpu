@@ -29,7 +29,7 @@ export default function FamilyManagePage() {
   const adminCount = members.filter((member) => member.roleLabel === '家庭管理员').length
   const locationUsage = useMemo(() => new Map(locations.map((location) => [
     location,
-    inventory.filter((item) => item.location === location).length
+    inventory.filter((item) => item.location === location && item.status !== 'finished' && item.status !== 'discarded' && item.status !== 'deleted').length
   ])), [inventory, locations])
 
   useEffect(() => {

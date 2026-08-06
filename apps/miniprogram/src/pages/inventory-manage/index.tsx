@@ -56,6 +56,27 @@ export default function InventoryManagePage() {
     return source.filter((item) => item.category === activeCategory)
   }, [tab, allItems, trashItems, activeCategory])
 
+  const isCustomCategory = (category: string) => customInventoryCategories.some((c) => c === category)
+  const canDeleteCategory = (category: string) => !inventory.some((item) => item.category === category && item.status !== 'deleted')
+
+  const deleteCustomCategory = (category: string) => {
+    if (!canDeleteCategory(category)) {
+      Taro.showToast({ title: '还有物品在使用这个分类', icon: 'none' })
+      return
+    }
+    Taro.showModal({
+      title: `删除自定义分类"${category}"？`,
+      content: '删除后，新增或编辑物品时不再出现这个分类。',
+      confirmText: '删除',
+      confirmColor: palette.destructive
+    }).then((result) => {
+      if (!result.confirm) return
+      dispatch({ type: 'category/removeInventory', name: category })
+      if (activeCategory === category) setActiveCategory('全部')
+      Taro.showToast({ title: '分类已删除', icon: 'success' })
+    })
+  }
+
   const restore = (id: string) => {
     const item = inventory.find((i) => i.id === id)
     if (!item) return
@@ -131,6 +152,12 @@ export default function InventoryManagePage() {
               {category}
             </Button>
           ))}
+          {activeCategory !== '全部' && isCustomCategory(activeCategory) && (
+            <Button className='im-sidebar__delete tap' hoverClass='tap--pressed' onClick={() => deleteCustomCategory(activeCategory)}>
+              <AppIcon icon={Trash2} size={14} color={palette.destructive} />
+              <Text>删除分类</Text>
+            </Button>
+          )}
         </ScrollView>
 
         {/* Right: item list */}

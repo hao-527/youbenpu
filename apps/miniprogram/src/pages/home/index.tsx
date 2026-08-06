@@ -15,16 +15,19 @@ import { formatYuan } from '../../utils/money'
 import './index.scss'
 
 export default function HomePage() {
-  const { familyName, ledger, inventory, orders, onboardingCompleted } = useStore()
+  const { familyName, ledger, inventory, orders, onboardingCompleted, settings } = useStore()
 
-  const pendingOrder = useMemo(() => orders.find((order) => order.status === 'pending') ?? null, [orders])
-  const attentionItems = useMemo(() => inventory.flatMap((item) => {
-    if (item.status === 'finished' || item.status === 'discarded') return []
-    const expiry = getInventoryExpiry(item.expiryDate)
-    return expiry.status === 'expiring' || expiry.status === 'expired'
-      ? [{ ...item, status: expiry.status, expiryLabel: expiry.label }]
-      : []
-  }), [inventory])
+  const pendingOrder = useMemo(() => settings.mealReminder ? orders.find((order) => order.status === 'pending') ?? null : null, [orders, settings.mealReminder])
+  const attentionItems = useMemo(() => {
+    if (!settings.expiryReminder) return []
+    return inventory.flatMap((item) => {
+      if (item.status === 'finished' || item.status === 'discarded' || item.status === 'deleted') return []
+      const expiry = getInventoryExpiry(item.expiryDate)
+      return expiry.status === 'expiring' || expiry.status === 'expired'
+        ? [{ ...item, status: expiry.status, expiryLabel: expiry.label }]
+        : []
+    })
+  }, [inventory, settings.expiryReminder])
 
   const summary = useMemo(() => {
     const start = getNaturalMonthStart(1)

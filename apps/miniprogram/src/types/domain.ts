@@ -18,13 +18,6 @@ export interface LedgerEntry {
   noteVisibility: 'private' | 'shared'
 }
 
-export interface MonthSummary {
-  incomeCents: number
-  expenseCents: number
-  /** 结余 = 收入 - 支出 */
-  balanceCents: number
-}
-
 /* ========== 点餐 ========== */
 
 export const dishCategories = ['炒菜', '汤', '凉菜', '主食', '甜品', '其他'] as const
@@ -98,15 +91,4 @@ export interface FamilyMember {
   displayName: string
   roleLabel: FamilyRole
   avatarText: string
-}
-
-/* ========== 首页概览 ========== */
-
-export interface FamilyOverview {
-  familyId: string
-  monthIncomeCents: number
-  monthExpenseCents: number
-  monthBalanceCents: number
-  pendingMealCount: number
-  expiringItemCount: number
 }

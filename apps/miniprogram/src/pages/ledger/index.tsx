@@ -39,10 +39,11 @@ function groupByDate(entries: LedgerEntry[], today: string, yesterday: string) {
 }
 
 export default function LedgerPage() {
-  const { ledger, members } = useStore()
+  const { ledger, members, currentMemberId } = useStore()
   const now = new Date()
   const today = formatLocalDate(now)
   const yesterday = getPreviousDate(today)
+  const currentMemberName = members.find((member) => member.id === currentMemberId)?.displayName ?? ''
   const [viewYear, setViewYear] = useState(now.getFullYear())
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1)
   const [memberFilter, setMemberFilter] = useState('全部')
@@ -177,6 +178,9 @@ export default function LedgerPage() {
                 <View className='ledger-row__body'>
                   <Text className='ledger-row__title'>{entry.purpose}</Text>
                   <Text className='ledger-row__meta'>{entry.memberName} · {entry.timeLabel}</Text>
+                  {entry.note && (entry.noteVisibility === 'shared' || entry.memberName === currentMemberName) && (
+                    <Text className='ledger-row__note'>{entry.note}</Text>
+                  )}
                 </View>
                 <View className='ledger-row__amount-wrap'>
                   <Text className={`ledger-row__amount num ${entry.type === 'income' ? 'ledger-row__amount--income' : ''}`}>

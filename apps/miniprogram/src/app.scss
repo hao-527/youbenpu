@@ -88,6 +88,7 @@ page {
   --color-border-strong: var(--neutral-300);
   --color-tint-primary: var(--orange-50);
   --color-tint-green: var(--green-50);
+  --color-tint-red: #fef2f2;
 
   /* Overlays: readable in both themes. */
   --color-scrim: rgba(28, 25, 23, 0.52);
@@ -139,6 +140,7 @@ page {
     --green-50: #062e22;
     --green-600: #34d399;
     --red-600: #f87171;
+    --color-tint-red: #2d1111;
 
     --color-background: #12100f;
     --color-surface: #1f1c1a;

@@ -1,0 +1,510 @@
+/* ════════════════════════════════════════════════════════════════════════
+   scenes.css — 各场景布局 + 全部关键帧
+
+   ★ 核心手法：「负 animation-delay 擦洗关键帧」
+     动画设为 paused，animation-delay 由 calc(var(--go) * -1s) 决定，
+     于是渲染出的就是 --go 所指向的那一"帧"。GSAP 只需把 --go 从 0
+     补间到 1，整段 clip-path 关键帧就被拖动了一遍 —— JS 每帧只写一个
+     自定义属性，插值交给浏览器。
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ══════════════════════════ 关键帧定义 ══════════════════════════ */
+
+/* 首屏：全屏画面收缩成左侧圆角卡片 */
+@keyframes heroClip {
+  0%  { clip-path: inset(0); }
+  to  { clip-path: inset(1.5rem 55vw 0.9rem var(--gutter) round 0.6rem); }
+}
+@media (max-width: 900px) {
+  @keyframes heroClip {
+    0%  { clip-path: inset(0); }
+    to  { clip-path: inset(1.6rem 5vw 56% round 0.3rem); }
+  }
+}
+
+/* 分页：向左横向擦除 */
+@keyframes pageClip {
+  0%  { clip-path: inset(0); }
+  to  { clip-path: inset(0 100vw 0 0); }
+}
+
+/* 文字逐字揭示：polygon 从 0 宽擦到满宽，头尾各留一段停顿 */
+@keyframes clipReveal {
+  0%   { clip-path: polygon(0% 0%, 0%   0%, 0%   100%, 0% 100%); }
+  5%   { clip-path: polygon(0% 0%, 0%   0%, 0%   100%, 0% 100%); }
+  30%  { clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%); }
+  to   { clip-path: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%); }
+}
+
+/* 滚动提示的滚轮小线 */
+@keyframes scrLine {
+  0%   { transform: translateY(-100%); opacity: 0; }
+  40%  { opacity: 1; }
+  to   { transform: translateY(160%); opacity: 0; }
+}
+
+/* ── 被 --go 擦洗的元素共用这组声明 ──
+   注意 .letter 自己不做动画，它只是 --go 的宿主：自定义属性会继承给
+   ::after，所以 GSAP 补间 .letter 上的 --go，动的是伪元素的 clip-path。 */
+/* ★ 初值只能声明在 GSAP 操作的那个元素上。
+   千万不要同时给 ::after 也写 --go: 0 —— 伪元素自己的声明优先级高于
+   从宿主继承来的值，写了就等于把继承链掐断，GSAP 改宿主的 --go
+   伪元素完全不响应（文字会一直停在灰色底层）。 */
+.banner .clip,
+.r1 .tab-parent,
+.r5 .process h2 .letter {
+  --go: 0;
+}
+.banner .clip,
+.r1 .tab-parent,
+.r5 .process h2 .letter::after {
+  animation-duration: 1s;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+  animation-play-state: paused;              /* 永远暂停 */
+  animation-delay: calc(var(--go) * -1s);    /* 负延迟 = 手动定位进度 */
+  animation-fill-mode: both;
+  will-change: clip-path;
+}
+
+/* ══════════════════════════════ HEADER ══════════════════════════════ */
+/* z-index 必须高于全屏菜单遮罩(100)。
+   给 .menu-toggle 单独写 z-index: 110 是没用的 —— header 自己有 z-index，
+   构成了层叠上下文，子元素无论多高都逃不出父级的 80。 */
+.site-header {
+  position: fixed; top: 0; left: 0; z-index: 120;
+  width: 100%; height: 0.9rem;
+  display: flex; align-items: center;
+  padding: 0 var(--gutter);
+  color: var(--c-fg);
+  opacity: 0;
+  transform: translateY(-30%);
+  transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out),
+              height 0.4s var(--ease-out);
+}
+.site-header.is-active { opacity: 1; transform: translateY(0); }
+.site-header.is-down { height: 0.7rem; }
+.site-header .mask {
+  position: absolute; inset: 0;
+  background: rgba(10, 10, 11, 0.55);
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  opacity: 0; transition: opacity 0.4s;
+}
+.site-header.is-down .mask { opacity: 1; }
+.site-header .logo-box { position: relative; z-index: 2; width: 1.4rem; flex: none; }
+.site-header .logo { width: 100%; color: currentColor; }
+
+.pc-nav {
+  position: relative; z-index: 2;
+  flex: 1; display: flex; align-items: center; justify-content: flex-end;
+  gap: 0.5rem;
+}
+.nav-items { display: flex; align-items: center; gap: 0.34rem; }
+.nav-list a { opacity: 0.62; transition: opacity 0.3s; }
+.nav-list.is-on a, .nav-list a:hover { opacity: 1; }
+.nav-list.is-on a { color: var(--c-accent); }
+
+/* 按钮的填充由伪层 .mask 从下往上刷起，避免 transform 改变布局边界 */
+.layer-btn {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 0.08rem;
+  padding: 0.14rem 0.22rem;
+  border: 1px solid var(--c-line); border-radius: 999px;
+  isolation: isolate;
+}
+.layer-btn .mask {
+  position: absolute; inset: 0; z-index: -1;
+  background: var(--c-accent);
+  transform: translateY(101%);
+  transition: transform 0.5s var(--ease-out);
+}
+.layer-btn:hover .mask { transform: translateY(0); }
+/* 图标类元素一律显式定尺寸，不指望继承 */
+.layer-btn .arrow {
+  font-size: var(--f-18);
+  line-height: 1;
+  transition: transform 0.4s var(--ease-out);
+}
+.layer-btn:hover .arrow { transform: translateX(0.06rem); }
+
+.menu-toggle { display: none; }
+
+/* ═══════════════════════════ OVERLAY MENU ═══════════════════════════ */
+.overlay-menu {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center;
+  opacity: 0; visibility: hidden;
+}
+/* 看着像遮罩形变，其实就是一个铺满的 rect 从 -100% 推到 0，
+   靠陡峭的贝塞尔制造"甩入"感。 */
+.overlay-menu .shape-overlays {
+  position: fixed; top: 0; left: 0;
+  width: 300vw; height: 100vh;
+  pointer-events: none;
+}
+.overlay-menu .shape-overlays .path {
+  fill: #0a0a0b;
+  transform: translateY(-100%);
+  transition: transform 1s var(--ease-menu);
+}
+.overlay-menu .shape-overlays.is-opened .path { transform: translate(0, 0); }
+.overlay-menu .items { position: relative; z-index: 2; width: 100vw; padding: 0 var(--gutter); }
+.overlay-menu .content { display: flex; flex-direction: column; gap: 0.06rem; }
+.overlay-menu .lists span {
+  display: block;
+  /* 全屏菜单要有体量感，直接吃视口宽度，不走 f-* 刻度 */
+  font-size: clamp(28px, 11vw, 76px);
+  line-height: 1.12;
+  color: rgba(244, 244, 242, 0.9);
+  transition: color 0.3s var(--ease-out);
+}
+.overlay-menu .lists:hover span { color: var(--c-accent); }
+
+/* ════════════════ 场景骨架：.row 喂距离 / .inner 钉屏 ════════════════ */
+.row { position: relative; width: 100%; }
+.row > .inner { position: relative; z-index: 5; }
+
+/* ═══════════════════════ SCENE 1 · HERO ═══════════════════════ */
+/* height 是无 JS 时的兜底值，data-vh 会被 JS 换算成 px 覆盖它 */
+.banner { height: 240vh; background: var(--c-bg); }
+.banner .inner {
+  position: sticky; top: 0; left: 0;
+  width: 100%; height: 100vh;
+  overflow: hidden;
+}
+.banner .bg { position: absolute; inset: 0; z-index: 1; background: var(--c-bg); }
+.banner .media { z-index: 9; transform: translateZ(0); }
+.banner .media canvas { width: 100%; height: 100%; }
+.banner .clip {
+  animation-name: heroClip;
+  animation-timing-function: ease-in-out;
+  background: #000;
+  z-index: 2;
+}
+.banner .clip canvas { width: 100%; height: 100%; opacity: 0; transition: opacity 0.8s; }
+.banner .clip canvas.is-active { opacity: 1; }
+
+.banner .group {
+  position: absolute; inset: 0; z-index: 10;
+  padding: 1.6rem var(--gutter) 0.4rem;
+  display: flex; flex-direction: column; justify-content: space-between;
+  opacity: 0; transition: opacity 1s var(--ease-out);
+  pointer-events: none;
+}
+.banner .group.is-active { opacity: 1; pointer-events: auto; }
+.banner .group .half { max-width: 52%; }
+.banner h1 { color: var(--c-fg); }
+.banner .note {
+  display: inline-flex; align-items: center; gap: 0.12rem;
+  margin-top: 0.4rem; color: var(--c-fg);
+}
+.banner .note .line { width: 0.5rem; height: 1px; background: var(--c-accent); transition: width 0.4s var(--ease-out); }
+.banner .note:hover .line { width: 0.8rem; }
+.banner .note .layer-icon {
+  font-size: var(--f-28);
+  line-height: 1;
+  transition: transform 0.4s var(--ease-out);
+}
+.banner .note:hover .layer-icon { transform: translateX(0.08rem); }
+.banner .btm { display: flex; align-items: flex-end; justify-content: space-between; gap: 0.4rem; }
+.banner .btm .left { color: var(--c-gray); }
+.banner .btm .right { max-width: 34%; color: var(--c-gray); }
+
+/* 第二屏内容：叠在同一个 sticky 舞台上，靠右侧留白避开收缩后的卡片 */
+.banner .part {
+  position: absolute; inset: 0; z-index: 8;
+  display: grid; grid-template-columns: 45vw 1fr;
+  align-items: center;
+  padding: 1.6rem var(--gutter) 1rem;
+  pointer-events: none;
+}
+.banner .part .col { grid-column: 2; padding-left: 0.4rem; }
+.banner .part h2 { color: var(--c-fg); margin-bottom: 0.4rem; }
+.banner .part h2 b { display: block; color: var(--c-accent); font-weight: 700; }
+.banner .part .item { display: flex; flex-direction: column; gap: 0.24rem; }
+.banner .part .item li { border-top: 1px solid var(--c-line); padding-top: 0.14rem; }
+.banner .part .item p { color: rgba(244, 244, 242, 0.72); }
+.banner .part .item p.gray { color: var(--c-gray); margin-top: 0.04rem; }
+.banner .img-box {
+  position: absolute; right: -1.2rem; bottom: -1.2rem;
+  width: 4.2rem; color: rgba(232, 72, 43, 0.4);
+  pointer-events: none;
+}
+.set-img { width: 100%; }
+
+/* ═════════════════ SCENE 2 · REASONS 分页擦除 ═════════════════ */
+.r1 { background: var(--c-bg); }
+.r1 .inner {
+  position: sticky; top: 0; left: 0;
+  width: 100%; height: 100vh; overflow: hidden;
+}
+.r1 .tab-box {
+  position: absolute; top: 0; left: 0; z-index: 10;
+  width: 100%; height: 2.2rem;
+  display: flex; align-items: flex-end; gap: 0.5rem;
+  padding: 0.9rem var(--gutter) 0.3rem;
+  overflow-x: auto; scrollbar-width: none;
+}
+.r1 .tab-box::-webkit-scrollbar { display: none; }
+.r1 .tab {
+  flex: none; opacity: 0.22;
+  transition: opacity 0.5s cubic-bezier(0.38, 0, 0, 1);
+  color: var(--c-fg);
+}
+.r1 .tab.is-on { opacity: 1; }
+.r1 .tab .layer-icon { display: inline-flex; align-items: center; gap: 0.16rem; white-space: nowrap; }
+.r1 .tab .icon-dot {
+  width: 0.18rem; height: 0.18rem; border-radius: 50%;
+  background: var(--c-accent); flex: none;
+  transition: transform 0.5s var(--ease-out);
+}
+.r1 .tab.is-on .icon-dot { transform: scale(1.5); }
+
+.r1 .mid { position: absolute; inset: 0; }
+.r1 .tab-parent {
+  animation-name: pageClip;
+  animation-timing-function: ease-in-out;
+  position: absolute; top: 0; left: 0;
+  width: 100%; height: 100%;
+  display: flex; flex-direction: column; justify-content: center;
+  padding: 2.4rem var(--gutter) 1rem;
+  background: var(--c-bg);
+}
+/* 先出现的面板压在上层，擦掉它才露出下一层 */
+.r1 .tab-parent:nth-of-type(1) { z-index: 3; }
+.r1 .tab-parent:nth-of-type(2) { z-index: 2; }
+.r1 .tab-parent:nth-of-type(3) { z-index: 1; }
+
+.r1 .tab-1 { background: radial-gradient(120% 90% at 18% 12%, #1c1420 0%, #0a0a0b 62%); }
+.r1 .tab-2 { background: radial-gradient(120% 90% at 82% 20%, #101c22 0%, #0a0a0b 62%); }
+.r1 .tab-3 { background: radial-gradient(120% 90% at 50% 88%, #201a12 0%, #0a0a0b 62%); }
+
+.r1 .box, .r1 .msg { max-width: 62%; }
+.r1 .tab-parent .note { margin-top: 0.4rem; max-width: 40%; color: rgba(244, 244, 242, 0.72); }
+.r1 .tab-parent h4 { margin-top: 0.2rem; color: var(--c-fg); }
+.r1 .tab-parent p { margin-top: 0.12rem; }
+.r1 .count { font-variant-numeric: tabular-nums; }
+
+/* ══════════════════ SCENE 3 · PRODUCTS 常规入场 ══════════════════ */
+.r2 { position: relative; padding: 1.6rem 0 1.4rem; background: var(--c-bg-light); color: var(--c-fg-dark); overflow: hidden; }
+.r2 .bg { position: absolute; top: -1rem; right: -1.4rem; width: 5rem; color: rgba(19, 19, 21, 0.12); }
+.r2 .inner { padding: 0 var(--gutter); }
+.r2 > .inner > h2 { margin-bottom: 0.6rem; }
+.r2 .mid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.24rem; }
+.r2 .box {
+  position: relative; overflow: hidden;
+  border-radius: 0.16rem;
+  padding: 0.32rem;
+  min-height: 4.2rem;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  color: var(--c-fg);
+  isolation: isolate;
+}
+.r2 .box .photo { position: absolute; inset: 0; z-index: -2; transition: transform 1.2s var(--ease-out); }
+.r2 .box:hover .photo { transform: scale(1.06); }
+.r2 .box .mask {
+  position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(to top, rgba(10, 10, 11, 0.88) 8%, rgba(10, 10, 11, 0.1) 70%);
+}
+.r2 .box .num { position: absolute; top: 0.26rem; left: 0.32rem; color: var(--c-accent-2); }
+.r2 .box h3 { margin-bottom: 0.12rem; }
+.r2 .box h3 .letter { display: block; color: var(--c-accent-2); }
+.r2 .box p { color: rgba(244, 244, 242, 0.76); }
+
+.grad-1 { background: linear-gradient(150deg, #3a1f4d, #12121a 70%); }
+.grad-2 { background: linear-gradient(150deg, #113340, #12121a 70%); }
+.grad-3 { background: linear-gradient(150deg, #4a2a10, #12121a 70%); }
+.grad-dark { background: radial-gradient(130% 100% at 30% 0%, #16161c 0%, #08080a 70%); }
+
+/* ═══════════════ SCENE 4 · 横向时间轴 ═══════════════ */
+.r5 { background: var(--c-bg); }         /* 高度由 JS 按 part 数量设置 */
+.r5 .inner {
+  position: sticky; top: 0; left: 0;
+  width: 100%; height: 100vh; overflow: hidden;
+}
+.r5 .bg { position: absolute; inset: 0; z-index: 1; }
+
+.r5 .pro { position: absolute; inset: 0; z-index: 4; display: flex; align-items: flex-end; padding: 0 var(--gutter) 0.4rem; pointer-events: none; }
+.layer-scr { display: flex; align-items: center; gap: 0.14rem; color: var(--c-gray); opacity: 0; transition: opacity 0.6s; }
+.layer-scr.is-on { opacity: 1; }
+.layer-scr .mouse {
+  position: relative; overflow: hidden;
+  width: 0.16rem; height: 0.28rem;
+  border: 1px solid var(--c-line); border-radius: 999px;
+}
+.layer-scr .mouse .line {
+  position: absolute; top: 0.05rem; left: 50%; margin-left: -0.5px;
+  width: 1px; height: 0.08rem; background: var(--c-accent);
+  animation: scrLine 1.6s var(--ease-out) infinite;
+}
+
+/* grid + auto-flow column = 横排轨道；总宽由 JS 量出后写死再 translateX */
+.r5 .process {
+  position: relative; z-index: 4;
+  height: 100%;
+  display: grid; grid-auto-flow: column; justify-content: start;
+  will-change: transform;
+}
+.r5 .process .part {
+  width: 100vw; height: 100%;
+  padding: 2rem var(--gutter) 2.4rem;
+  display: flex; align-items: center;
+}
+.r5 .process .part.note { width: 50vw; justify-content: center; color: var(--c-gray); }
+.r5 .process .part .col { width: 60%; }
+
+/* 双层文字：底层淡灰，:after 用 attr(data-note) 复制同一段文字并擦入 */
+.r5 .process h2 .letter {
+  position: relative; display: block;
+  color: rgba(244, 244, 242, 0.16);
+  line-height: 1;
+}
+.r5 .process h2 .letter::after {
+  content: attr(data-note);
+  position: absolute; top: 0; left: 0;
+  width: 100%;
+  color: var(--c-fg);
+  font: inherit; line-height: 1;
+  animation-name: clipReveal;
+  animation-timing-function: linear;
+}
+
+.r5 .process .history {
+  width: 40vw; height: 100%;
+  flex-direction: column; justify-content: flex-end; align-items: flex-start;
+  padding-bottom: 2.4rem; padding-right: 0.6rem;
+}
+.r5 .process .history:nth-of-type(2n) { justify-content: flex-start; padding-top: 2.6rem; }
+.r5 .process .history h4 { margin-bottom: 0.16rem; }
+.r5 .process .history p { color: rgba(244, 244, 242, 0.7); max-width: 3.6rem; }
+
+/* 电池序列帧：沿横轴移动，同时 scrub 自己的 150 帧 */
+.r5 .process .frame {
+  position: absolute; top: 0; bottom: 0; margin: auto 0;
+  left: calc(50vw - 2.5rem);
+  width: 5rem; height: 1.6rem; z-index: 6;
+  opacity: 0;
+  pointer-events: none;
+}
+.r5 .process .frame canvas { width: 100%; height: 100%; }
+
+/* ══════════════════ 通用入场：JS 只加 class，级联交给 CSS ══════════════════ */
+.alan-fn { opacity: 0; }               /* 初值也由 JS gsap.set 兜一层 */
+
+.alan-parent-up .alan-child {
+  opacity: 0;
+  transform: translateY(0.3rem);
+  transition: opacity 0.8s var(--ease-out), transform 0.8s var(--ease-out);
+}
+.alan-parent-up.go .alan-child { opacity: 1; transform: translateY(0); }
+.alan-parent-up.go .alan-child:nth-child(1) { transition-delay: 0.05s; }
+.alan-parent-up.go .alan-child:nth-child(2) { transition-delay: 0.13s; }
+.alan-parent-up.go .alan-child:nth-child(3) { transition-delay: 0.21s; }
+.alan-parent-up.go .alan-child:nth-child(4) { transition-delay: 0.29s; }
+.alan-parent-up.go .alan-child:nth-child(5) { transition-delay: 0.37s; }
+
+/* 拆字后的每个字 */
+[data-text] .letter { display: inline-block; will-change: transform, opacity; }
+
+/* ══════════════════════════════ FOOTER ══════════════════════════════ */
+footer {
+  padding: 1.2rem var(--gutter) 0.4rem;
+  background: #050506; color: var(--c-fg);
+  border-top: 1px solid var(--c-line);
+}
+footer .top { display: grid; grid-template-columns: 1.6rem 1fr; gap: 0.8rem; align-items: start; }
+footer .logo { width: 1.6rem; color: var(--c-fg); }
+footer .items { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; }
+footer .items li { display: flex; flex-direction: column; gap: 0.1rem; }
+footer .items span { color: rgba(244, 244, 242, 0.66); }
+footer .items .accent { color: var(--c-accent); margin-bottom: 0.06rem; }
+footer .btm {
+  margin-top: 1rem; padding-top: 0.24rem;
+  border-top: 1px solid var(--c-line);
+  display: flex; justify-content: space-between; gap: 0.4rem; flex-wrap: wrap;
+  color: var(--c-gray);
+}
+
+/* ══════════════════════════ 悬浮按钮 ══════════════════════════ */
+.fix-box {
+  position: fixed; right: var(--gutter); bottom: 0.4rem; z-index: 90;
+  opacity: 0; pointer-events: none;
+  transform: translateY(0.3rem);
+  transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+}
+.fix-box.go { opacity: 1; pointer-events: auto; transform: translateY(0); }
+.fix-box .go-msg { background: rgba(10, 10, 11, 0.7); backdrop-filter: blur(10px); }
+
+/* ══════════════════════════ 移动端断点 ══════════════════════════ */
+@media (max-width: 900px) {
+  .pc-nav { display: none; }
+  .menu-toggle {
+    position: relative; z-index: 110;
+    display: flex; align-items: center; gap: 0.1rem;
+    margin-left: auto; color: var(--c-fg);
+  }
+  .menu-toggle .icon { display: none; }
+  .menu-toggle[aria-expanded="true"] .txt { display: none; }
+  .menu-toggle[aria-expanded="true"] .icon { display: block; }
+
+  .banner .group .half { max-width: 100%; }
+  .banner .btm { flex-direction: column; align-items: flex-start; gap: 0.16rem; }
+  .banner .btm .right { max-width: 100%; }
+  .banner .part { grid-template-columns: 1fr; align-items: end; padding-bottom: 0.6rem; }
+  .banner .part .col { grid-column: 1; padding-left: 0; }
+  .banner .img-box { width: 2.6rem; right: -0.8rem; bottom: -0.8rem; }
+
+  .r1 .tab-box { height: 1.6rem; padding-top: 1rem; gap: 0.3rem; }
+  .r1 .tab-parent { padding-top: 1.9rem; }
+  .r1 .box, .r1 .msg { max-width: 100%; }
+  .r1 .tab-parent .note { max-width: 100%; }
+
+  .r2 .mid { grid-template-columns: 1fr; gap: 0.2rem; }
+  .r2 .box { min-height: 3.4rem; }
+
+  .r5 .process .part { width: 92vw; padding: 1.6rem var(--gutter) 1.8rem; }
+  .r5 .process .part.note { width: 70vw; }
+  .r5 .process .part .col { width: 100%; }
+  .r5 .process .history { width: 74vw; }
+  .r5 .process .frame { width: 3.2rem; height: 1rem; left: calc(50vw - 1.6rem); }
+
+  footer .top { grid-template-columns: 1fr; gap: 0.5rem; }
+  footer .items { grid-template-columns: 1fr; gap: 0.3rem; }
+  footer .btm { margin-top: 0.6rem; }
+}
+
+/* ═══════════════════ prefers-reduced-motion 兜底 ═══════════════════
+   原站没做这层。前庭敏感人群遇到 scrub 序列帧 + 大位移会不适，
+   这里把所有滚动驱动动画降级为静态，内容全部保持可读。        */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  /* 被 --go 擦洗的元素直接停在起始态，不再跟随滚动 */
+  .banner .clip, .r1 .tab-parent, .r5 .process h2 .letter::after {
+    animation: none !important;
+    clip-path: none !important;
+  }
+  .banner .group, .banner .part { opacity: 1 !important; }
+  .alan-fn, .alan-parent-up .alan-child { opacity: 1 !important; transform: none !important; }
+  .site-header { opacity: 1 !important; transform: none !important; }
+  .r1 .tab { opacity: 1; }
+  .layer-scr .mouse .line { animation: none; }
+  /* 分页面板改为纵向平铺，不再靠擦除切换 */
+  .r1 .inner { position: relative; height: auto; }
+  .r1 .mid { position: relative; inset: auto; }
+  .r1 .tab-parent { position: relative; height: auto; min-height: 60vh; padding-top: 1rem; }
+  .r1 .tab-box { position: relative; height: auto; padding-top: 1.4rem; }
+  /* 横向轨道改为纵向堆叠 */
+  .r5 .inner { position: relative; height: auto; }
+  .r5 .process { display: block; width: auto !important; transform: none !important; }
+  .r5 .process .part { width: auto; height: auto; display: block; }
+  .r5 .process .part.note, .r5 .process .history { width: auto; padding-top: 0.4rem; }
+  .r5 .process .frame { display: none; }
+  .banner { height: auto; }
+  .banner .inner { position: relative; height: auto; min-height: 100vh; }
+  .banner .part { position: relative; inset: auto; margin-top: 1rem; }
+}

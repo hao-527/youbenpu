@@ -49,7 +49,9 @@ export type AppAction =
   | { type: 'member/remove'; id: string }
   | { type: 'member/updateRole'; id: string; roleLabel: FamilyRole }
   | { type: 'category/addDish'; name: string }
+  | { type: 'category/removeDish'; name: string }
   | { type: 'category/addInventory'; name: string }
+  | { type: 'category/removeInventory'; name: string }
   | { type: 'settings/toggleExpiryReminder' }
   | { type: 'settings/toggleMealReminder' }
   | { type: 'onboarding/complete' }
@@ -112,7 +114,7 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, locations: [...state.locations, name] }
     }
     case 'location/delete':
-      if (state.inventory.some((item) => item.location === action.name && item.status !== 'deleted')) return state
+      if (state.inventory.some((item) => item.location === action.name && item.status !== 'finished' && item.status !== 'discarded' && item.status !== 'deleted')) return state
       return { ...state, locations: state.locations.filter((location) => location !== action.name) }
 
     case 'family/rename': {
@@ -160,12 +162,24 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       if (allDish.some((item) => item.toLowerCase() === name.toLowerCase())) return state
       return { ...state, customDishCategories: [...allDish, name] }
     }
+    case 'category/removeDish': {
+      const name = action.name.trim()
+      if (!name) return state
+      if (state.dishes.some((dish) => dish.category.toLowerCase() === name.toLowerCase())) return state
+      return { ...state, customDishCategories: state.customDishCategories.filter((item) => item.toLowerCase() !== name.toLowerCase()) }
+    }
     case 'category/addInventory': {
       const name = action.name.trim()
       if (!name || name.length > 10) return state
       const allInv = [...state.customInventoryCategories]
       if (allInv.some((item) => item.toLowerCase() === name.toLowerCase())) return state
       return { ...state, customInventoryCategories: [...allInv, name] }
+    }
+    case 'category/removeInventory': {
+      const name = action.name.trim()
+      if (!name) return state
+      if (state.inventory.some((item) => item.category.toLowerCase() === name.toLowerCase() && item.status !== 'deleted')) return state
+      return { ...state, customInventoryCategories: state.customInventoryCategories.filter((item) => item.toLowerCase() !== name.toLowerCase()) }
     }
 
     default:

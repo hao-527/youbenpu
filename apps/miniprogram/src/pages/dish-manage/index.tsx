@@ -28,6 +28,27 @@ export default function DishManagePage() {
     orders.filter((order) => order.status === 'pending').flatMap((order) => order.items.map((item) => item.dishId))
   ), [orders])
 
+  const isCustomCategory = (category: string) => customDishCategories.some((c) => c === category)
+  const canDeleteCategory = (category: string) => !dishes.some((dish) => dish.category === category)
+
+  const deleteCustomCategory = (category: string) => {
+    if (!canDeleteCategory(category)) {
+      Taro.showToast({ title: '还有菜品在使用这个分类', icon: 'none' })
+      return
+    }
+    Taro.showModal({
+      title: `删除自定义分类"${category}"？`,
+      content: '删除后，新增或编辑菜品时不再出现这个分类。',
+      confirmText: '删除',
+      confirmColor: palette.destructive
+    }).then((result) => {
+      if (!result.confirm) return
+      dispatch({ type: 'category/removeDish', name: category })
+      if (activeCategory === category) setActiveCategory('全部')
+      Taro.showToast({ title: '分类已删除', icon: 'success' })
+    })
+  }
+
   const deleteDish = (id: string, name: string) => {
     if (pendingDishIds.has(id)) {
       Taro.showToast({ title: '当前点餐单正在使用这道菜', icon: 'none' })
@@ -69,6 +90,15 @@ export default function DishManagePage() {
           ))}
         </View>
       </ScrollView>
+
+      {activeCategory !== '全部' && isCustomCategory(activeCategory) && (
+        <View className='content-toolbar'>
+          <Button className='danger-action tap' hoverClass='tap--pressed' onClick={() => deleteCustomCategory(activeCategory)}>
+            <AppIcon icon={Trash2} size={15} color={palette.destructive} />
+            <Text>删除"{activeCategory}"分类</Text>
+          </Button>
+        </View>
+      )}
 
       {visibleDishes.length === 0 ? (
         <View className='empty-state surface-card'>
