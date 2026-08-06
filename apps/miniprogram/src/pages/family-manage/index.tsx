@@ -1,9 +1,10 @@
-import { Button, Input, Picker, Text, View } from '@tarojs/components'
+import { Button, Input, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { ChevronDown, Home, MapPin, Pencil, Plus, ShieldCheck, Trash2, UserPlus, Users } from 'lucide'
+import { Home, MapPin, Pencil, Plus, ShieldCheck, Trash2, UserPlus, Users } from 'lucide'
 import { useEffect, useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
+import { ChipSelect } from '../../components/chip-select'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { useDispatch, useStore } from '../../store'
@@ -97,7 +98,7 @@ export default function FamilyManagePage() {
     }
     Taro.showModal({
       title: '调整成员角色',
-      content: `确认将“${member.displayName}”设为${roleLabel}？`,
+      content: `确认将"${member.displayName}"设为${roleLabel}？`,
       confirmText: '确认调整',
       confirmColor: palette.primary
     }).then((result) => {
@@ -114,7 +115,7 @@ export default function FamilyManagePage() {
       return
     }
     Taro.showModal({
-      title: `移除“${member.displayName}”？`,
+      title: `移除"${member.displayName}"？`,
       content: '成员会从当前家庭移除，已有账本和点餐记录仍会保留。',
       confirmText: '移除成员',
       confirmColor: palette.destructive
@@ -149,7 +150,7 @@ export default function FamilyManagePage() {
     if (usageCount > 0) {
       Taro.showModal({
         title: '暂时不能删除',
-        content: `还有 ${usageCount} 件物品存放在“${location}”。请先到物品详情中调整存放位置。`,
+        content: `还有 ${usageCount} 件物品存放在"${location}"。请先到物品详情中调整存放位置。`,
         showCancel: false,
         confirmText: '我知道了',
         confirmColor: palette.primary
@@ -157,7 +158,7 @@ export default function FamilyManagePage() {
       return
     }
     Taro.showModal({
-      title: `删除“${location}”？`,
+      title: `删除"${location}"？`,
       content: '删除后，新增物品时将不能再选择这个位置。',
       confirmText: '删除位置',
       confirmColor: palette.destructive
@@ -173,8 +174,8 @@ export default function FamilyManagePage() {
       <PageHeader title='家庭管理' subtitle={isAdmin ? '管理成员、角色和常用位置' : '查看家庭信息与维护常用位置'} />
 
       <View className='family-overview surface-card'>
-        <View className='icon-bubble icon-bubble--lg icon-bubble--primary'>
-          <AppIcon icon={Home} size={24} color={palette.primary} />
+        <View className='icon-bubble icon-bubble--md icon-bubble--primary'>
+          <AppIcon icon={Home} size={22} color={palette.primary} />
         </View>
         <View className='family-overview__body'>
           <Text className='family-overview__name'>{familyName}</Text>
@@ -182,14 +183,14 @@ export default function FamilyManagePage() {
         </View>
         {isAdmin && (
           <Button className='icon-action tap' hoverClass='tap--pressed' aria-label='修改家庭名称' onClick={openRename}>
-            <AppIcon icon={Pencil} size={18} color={palette.primary} />
+            <AppIcon icon={Pencil} size={17} color={palette.primary} />
           </Button>
         )}
       </View>
 
       {!isAdmin && (
         <View className='family-permission-note'>
-          <AppIcon icon={ShieldCheck} size={17} color={palette.subtleForeground} />
+          <AppIcon icon={ShieldCheck} size={16} color={palette.subtleForeground} />
           <Text>家庭名称、成员和角色仅管理员可以修改。</Text>
         </View>
       )}
@@ -202,7 +203,7 @@ export default function FamilyManagePage() {
           </View>
           {isAdmin && (
             <Button className='content-action tap' hoverClass='tap--pressed' onClick={() => setShowAddMember(true)}>
-              <AppIcon icon={UserPlus} size={17} color={palette.primary} />
+              <AppIcon icon={UserPlus} size={16} color={palette.primary} />
               <Text>添加成员</Text>
             </Button>
           )}
@@ -218,23 +219,23 @@ export default function FamilyManagePage() {
                   {member.id === currentMemberId && <Text className='family-member-row__current'>当前用户</Text>}
                 </View>
                 {isAdmin ? (
-                  <Picker mode='selector' range={roleOptions} value={Math.max(0, roleOptions.indexOf(member.roleLabel))} onChange={(event) => updateMemberRole(member, roleOptions[Number(event.detail.value)] ?? member.roleLabel)}>
-                    <View className='family-role-picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
-                      {member.roleLabel === '家庭管理员' && <AppIcon icon={ShieldCheck} size={13} color={palette.primary} />}
-                      <Text>{member.roleLabel}</Text>
-                      <AppIcon icon={ChevronDown} size={13} color={palette.subtleForeground} />
-                    </View>
-                  </Picker>
+                  <View className='family-role-chips'>
+                    <ChipSelect
+                      options={roleOptions}
+                      value={member.roleLabel}
+                      onChange={(v) => updateMemberRole(member, v as FamilyRole)}
+                    />
+                  </View>
                 ) : (
                   <View className='family-role-label'>
-                    {member.roleLabel === '家庭管理员' && <AppIcon icon={ShieldCheck} size={13} color={palette.primary} />}
+                    {member.roleLabel === '家庭管理员' && <AppIcon icon={ShieldCheck} size={12} color={palette.primary} />}
                     <Text>{member.roleLabel}</Text>
                   </View>
                 )}
               </View>
               {isAdmin && member.id !== currentMemberId && (
                 <Button className='icon-action family-member-row__remove tap' hoverClass='tap--pressed' aria-label={`移除成员${member.displayName}`} onClick={() => removeMember(member)}>
-                  <AppIcon icon={Trash2} size={17} color={palette.destructive} />
+                  <AppIcon icon={Trash2} size={16} color={palette.destructive} />
                 </Button>
               )}
             </View>
@@ -253,7 +254,7 @@ export default function FamilyManagePage() {
 
         <View className='family-location-create surface-card'>
           <View className='icon-bubble icon-bubble--sm icon-bubble--primary'>
-            <AppIcon icon={MapPin} size={19} color={palette.primary} />
+            <AppIcon icon={MapPin} size={18} color={palette.primary} />
           </View>
           <Input
             className='family-location-create__input'
@@ -267,14 +268,14 @@ export default function FamilyManagePage() {
             onConfirm={addLocation}
           />
           <Button className='family-location-create__button tap' hoverClass='tap--pressed' aria-label='添加位置' onClick={addLocation}>
-            <AppIcon icon={Plus} size={20} color={palette.onPrimary} />
+            <AppIcon icon={Plus} size={18} color={palette.onPrimary} />
           </Button>
         </View>
 
         {locations.length === 0 ? (
           <View className='empty-state surface-card family-location-empty'>
             <View className='empty-state__icon'>
-              <AppIcon icon={MapPin} size={30} color={palette.subtleForeground} />
+              <AppIcon icon={MapPin} size={28} color={palette.subtleForeground} />
             </View>
             <Text className='empty-state__title'>还没有常用位置</Text>
             <Text className='empty-state__copy'>添加位置后，新增物品时即可直接选择。</Text>
@@ -286,7 +287,7 @@ export default function FamilyManagePage() {
               return (
                 <View key={location} className='family-location-row'>
                   <View className='icon-bubble icon-bubble--sm icon-bubble--primary'>
-                    <AppIcon icon={MapPin} size={17} color={palette.primary} />
+                    <AppIcon icon={MapPin} size={16} color={palette.primary} />
                   </View>
                   <View className='family-location-row__body'>
                     <Text className='family-location-row__name'>{location}</Text>
@@ -299,7 +300,7 @@ export default function FamilyManagePage() {
                     aria-disabled={usageCount > 0 ? 'true' : 'false'}
                     onClick={() => removeLocation(location)}
                   >
-                    <AppIcon icon={Trash2} size={17} color={usageCount > 0 ? palette.disabledForeground : palette.destructive} />
+                    <AppIcon icon={Trash2} size={16} color={usageCount > 0 ? palette.disabledForeground : palette.destructive} />
                   </Button>
                 </View>
               )
@@ -334,8 +335,8 @@ export default function FamilyManagePage() {
               <Button className='family-sheet__cancel tap' hoverClass='tap--pressed' onClick={() => setShowAddMember(false)}>取消</Button>
             </View>
             <View className='family-sheet__intro'>
-              <AppIcon icon={Users} size={18} color={palette.primary} />
-              <Text>新成员默认拥有“家庭成员”权限。</Text>
+              <AppIcon icon={Users} size={17} color={palette.primary} />
+              <Text>新成员默认拥有"家庭成员"权限。</Text>
             </View>
             <View className='field'>
               <Text className='field__label'>成员名称</Text>

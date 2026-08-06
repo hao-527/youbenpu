@@ -1,9 +1,12 @@
-import { Button, Image, Input, Picker, Text, View } from '@tarojs/components'
+import { Button, Image, Input, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { Camera, ChevronRight, MapPin, Package } from 'lucide'
-import { useState } from 'react'
+import { Calendar, Camera, MapPin, Package } from 'lucide'
+import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
+import { ChipSelect } from '../../components/chip-select'
+import { DatePicker } from '../../components/date-picker'
+import { ListSelect } from '../../components/list-select'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { useDispatch, useStore } from '../../store'
@@ -15,15 +18,21 @@ import { choosePersistentImage } from '../../utils/media'
 
 import './index.scss'
 
-const CUSTOM_PLACEHOLDER = '+ 自定义'
-
 export default function InventoryFormPage() {
   const { inventory, locations, familyId, customInventoryCategories } = useStore()
   const dispatch = useDispatch()
   const itemId = Taro.getCurrentInstance().router?.params?.id
   const editingItem = itemId ? inventory.find((item) => item.id === itemId) : undefined
 
-  const allCategories: string[] = [...inventoryCategories, ...customInventoryCategories, CUSTOM_PLACEHOLDER]
+  const allCategories = useMemo(
+    () => [...inventoryCategories, ...customInventoryCategories] as string[],
+    [customInventoryCategories]
+  )
+
+  const locationOptions = useMemo(
+    () => locations.map((loc) => ({ label: loc, value: loc })),
+    [locations]
+  )
 
   const [name, setName] = useState(editingItem?.name ?? '')
   const [category, setCategory] = useState<InventoryCategory>(editingItem?.category ?? '食品')
@@ -31,10 +40,26 @@ export default function InventoryFormPage() {
   const [quantity, setQuantity] = useState(editingItem?.quantityLabel ?? '')
   const [expiryDate, setExpiryDate] = useState(editingItem?.expiryDate ?? '')
   const [photo, setPhoto] = useState(editingItem?.photo ?? '')
+  const [showLocationPicker, setShowLocationPicker] = useState(false)
+  const [showDatePicker, setShowDatePicker] = useState(false)
 
   const choosePhoto = async () => {
     const selected = await choosePersistentImage()
     if (selected) setPhoto(selected)
+  }
+
+  const addCustomCategory = () => {
+    ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
+      title: '新增物品分类',
+      editable: true,
+      placeholderText: '输入分类名称（10字内）'
+    }).then((result) => {
+      if (!result.confirm || !result.content) return
+      const newName = result.content.trim().slice(0, 10)
+      if (!newName) return
+      dispatch({ type: 'category/addInventory', name: newName })
+      setCategory(newName)
+    })
   }
 
   const submit = () => {
@@ -129,40 +154,19 @@ export default function InventoryFormPage() {
 
         <View className='field'>
           <Text className='field__label'>分类</Text>
-          <Picker mode='selector' range={allCategories} value={Math.max(0, allCategories.indexOf(category))} onChange={(event) => {
-            const selected = allCategories[Number(event.detail.value)]
-            if (selected === CUSTOM_PLACEHOLDER) {
-              ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
-                title: '新增物品分类',
-                editable: true,
-                placeholderText: '输入分类名称（10字内）'
-              }).then((result) => {
-                if (!result.confirm || !result.content) return
-                const newName = result.content.trim().slice(0, 10)
-                if (!newName) return
-                dispatch({ type: 'category/addInventory', name: newName })
-                setCategory(newName)
-              })
-            } else if (selected) {
-              setCategory(selected)
-            }
-          }}>
-            <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
-              <Text>{category}</Text>
-              <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
-            </View>
-          </Picker>
+          <ChipSelect options={allCategories} value={category} onChange={(v) => setCategory(v)} />
+          <Button className='inventory-form-add-category tap' hoverClass='tap--pressed' onClick={addCustomCategory}>
+            <Text>+ 自定义分类</Text>
+          </Button>
         </View>
 
         <View className='field'>
           <Text className='field__label'>存放位置</Text>
-          <Picker mode='selector' range={locations} value={Math.max(0, locations.indexOf(location))} onChange={(event) => setLocation(locations[Number(event.detail.value)] ?? locations[0])}>
-            <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
-              <Text>{location}</Text>
-              <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
-            </View>
-          </Picker>
-          <Text className='field__hint'>位置可在“我的 → 家庭管理”中维护</Text>
+          <Button className='field__control field__control--picker tap' hoverClass='tap--pressed' onClick={() => setShowLocationPicker(true)}>
+            <Text>{location}</Text>
+            <AppIcon icon={MapPin} size={16} color={palette.subtleForeground} />
+          </Button>
+          <Text className='field__hint'>位置可在"我的 → 家庭管理"中维护</Text>
         </View>
 
         <View className='field'>
@@ -172,13 +176,10 @@ export default function InventoryFormPage() {
 
         <View className='field'>
           <Text className='field__label'>到期日期 <Text className='field__optional'>选填</Text></Text>
-          <Picker mode='date' value={expiryDate || formatLocalDate()} onChange={(event) => setExpiryDate(event.detail.value)}>
-            <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
-              <Text className={expiryDate ? '' : 'inventory-form-empty-date'}>{expiryDate || '无需到期提醒'}</Text>
-              <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
-            </View>
-          </Picker>
-          {expiryDate && <Button className='inventory-form-clear tap' hoverClass='tap--pressed' onClick={() => setExpiryDate('')}>清除到期日期</Button>}
+          <Button className='field__control field__control--picker tap' hoverClass='tap--pressed' onClick={() => setShowDatePicker(true)}>
+            <Text className={expiryDate ? '' : 'inventory-form-empty-date'}>{expiryDate || '无需到期提醒'}</Text>
+            <AppIcon icon={Calendar} size={16} color={palette.subtleForeground} />
+          </Button>
         </View>
       </View>
 
@@ -187,6 +188,24 @@ export default function InventoryFormPage() {
           {editingItem ? '保存修改' : '添加物品'}
         </Button>
       </View>
+
+      <ListSelect
+        open={showLocationPicker}
+        title='选择存放位置'
+        options={locationOptions}
+        value={location}
+        onSelect={setLocation}
+        onClose={() => setShowLocationPicker(false)}
+      />
+
+      <DatePicker
+        open={showDatePicker}
+        value={expiryDate}
+        clearable
+        onSelect={setExpiryDate}
+        onClear={() => setExpiryDate('')}
+        onClose={() => setShowDatePicker(false)}
+      />
     </PageShell>
   )
 }

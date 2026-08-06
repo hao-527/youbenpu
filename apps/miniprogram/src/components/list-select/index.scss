@@ -1,0 +1,34 @@
+.ls-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.ls-item {
+  display: flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.ls-item + .ls-item {
+  border-top: var(--hairline) solid var(--color-border);
+}
+
+.ls-item__label {
+  color: var(--color-foreground);
+  font-size: var(--text-md);
+  font-weight: 500;
+}
+
+.ls-item--active {
+  background: var(--color-tint-primary);
+}
+
+.ls-item--active .ls-item__label {
+  color: var(--color-primary-text);
+  font-weight: 600;
+}

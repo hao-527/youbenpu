@@ -1,31 +1,30 @@
 .month-nav {
   display: flex;
-  min-height: 96rpx;
+  min-height: 80rpx;
   align-items: center;
   justify-content: center;
-  gap: var(--space-4);
-}
-
-.month-nav__btn {
-  display: flex;
-  width: var(--touch-target);
-  height: var(--touch-target);
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-full);
-}
-
-.month-nav__btn[disabled] {
-  background: transparent;
-  opacity: 1;
+  margin-bottom: var(--space-2);
 }
 
 .month-nav__label {
-  min-width: 220rpx;
+  display: inline-flex;
+  min-height: 60rpx;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-3);
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+}
+
+.month-nav__text {
   color: var(--color-foreground);
-  font-size: var(--text-base);
-  font-weight: 700;
-  text-align: center;
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.ledger-filter-row {
+  margin-bottom: var(--space-3);
 }
 
 /* ---------- Month summary ---------- */

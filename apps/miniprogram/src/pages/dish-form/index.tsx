@@ -1,9 +1,10 @@
-import { Button, Image, Input, Picker, Text, Textarea, View } from '@tarojs/components'
+import { Button, Image, Input, Text, Textarea, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { Camera, ChevronRight, Utensils } from 'lucide'
-import { useState } from 'react'
+import { Camera, Utensils } from 'lucide'
+import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
+import { ChipSelect } from '../../components/chip-select'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { useDispatch, useStore } from '../../store'
@@ -15,15 +16,16 @@ import { choosePersistentImage } from '../../utils/media'
 
 import './index.scss'
 
-const CUSTOM_PLACEHOLDER = '+ 自定义'
-
 export default function DishFormPage() {
   const { dishes, familyId, customDishCategories } = useStore()
   const dispatch = useDispatch()
   const dishId = Taro.getCurrentInstance().router?.params?.id
   const editingDish = dishId ? dishes.find((dish) => dish.id === dishId) : undefined
 
-  const categoryOptions: string[] = [...dishCategories, ...customDishCategories, CUSTOM_PLACEHOLDER]
+  const allCategories = useMemo(
+    () => [...dishCategories, ...customDishCategories] as string[],
+    [customDishCategories]
+  )
 
   const [name, setName] = useState(editingDish?.name ?? '')
   const [category, setCategory] = useState<DishCategory>(editingDish?.category ?? '炒菜')
@@ -34,6 +36,20 @@ export default function DishFormPage() {
   const choosePhoto = async () => {
     const selected = await choosePersistentImage()
     if (selected) setPhoto(selected)
+  }
+
+  const addCustomCategory = () => {
+    ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
+      title: '新增菜品分类',
+      editable: true,
+      placeholderText: '输入分类名称（10字内）'
+    }).then((result) => {
+      if (!result.confirm || !result.content) return
+      const newName = result.content.trim().slice(0, 10)
+      if (!newName) return
+      dispatch({ type: 'category/addDish', name: newName })
+      setCategory(newName)
+    })
   }
 
   const submit = () => {
@@ -116,29 +132,10 @@ export default function DishFormPage() {
 
         <View className='field'>
           <Text className='field__label'>分类</Text>
-          <Picker mode='selector' range={categoryOptions} value={Math.max(0, categoryOptions.indexOf(category))} onChange={(event) => {
-            const selected = categoryOptions[Number(event.detail.value)]
-            if (selected === CUSTOM_PLACEHOLDER) {
-              ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
-                title: '新增菜品分类',
-                editable: true,
-                placeholderText: '输入分类名称（10字内）'
-              }).then((result) => {
-                if (!result.confirm || !result.content) return
-                const newName = result.content.trim().slice(0, 10)
-                if (!newName) return
-                dispatch({ type: 'category/addDish', name: newName })
-                setCategory(newName)
-              })
-            } else if (selected) {
-              setCategory(selected)
-            }
-          }}>
-            <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
-              <Text>{category}</Text>
-              <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
-            </View>
-          </Picker>
+          <ChipSelect options={allCategories} value={category} onChange={(v) => setCategory(v)} />
+          <Button className='dish-form-add-category tap' hoverClass='tap--pressed' onClick={addCustomCategory}>
+            <Text>+ 自定义分类</Text>
+          </Button>
         </View>
 
         <View className='field'>

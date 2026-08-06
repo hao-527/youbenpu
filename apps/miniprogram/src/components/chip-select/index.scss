@@ -1,0 +1,37 @@
+.chip-select {
+  display: flex;
+  gap: var(--space-2);
+  overflow-x: auto;
+  white-space: nowrap;
+  -webkit-overflow-scrolling: touch;
+}
+
+.chip-select--wrap {
+  flex-wrap: wrap;
+  overflow-x: visible;
+  white-space: normal;
+}
+
+.chip-select__item {
+  display: inline-flex;
+  min-height: 60rpx;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-3);
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-muted-foreground);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  transition: background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    border-color var(--duration-fast) var(--ease-out);
+}
+
+.chip-select__item--active {
+  border-color: var(--color-primary-surface);
+  background: var(--color-tint-primary);
+  color: var(--color-primary-text);
+}

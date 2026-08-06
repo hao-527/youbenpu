@@ -1,9 +1,11 @@
-import { Button, Picker, Text, View } from '@tarojs/components'
+import { Button, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { ArrowDownLeft, ArrowUpRight, ChevronDown, ChevronLeft, ChevronRight, Plus, Users } from 'lucide'
+import { ArrowDownLeft, ArrowUpRight, ChevronRight, Plus, Users } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
+import { ChipSelect } from '../../components/chip-select'
+import { MonthPicker } from '../../components/month-picker'
 import { PageShell } from '../../components/page-shell'
 import { useStore } from '../../store'
 import { palette } from '../../theme/palette'
@@ -47,9 +49,11 @@ export default function LedgerPage() {
   const [viewYear, setViewYear] = useState(now.getFullYear())
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1)
   const [memberFilter, setMemberFilter] = useState('全部')
+  const [showMonthPicker, setShowMonthPicker] = useState(false)
+
+  const memberOptions = useMemo(() => ['全部', ...members.map((member) => member.displayName)], [members])
 
   const monthPrefix = `${viewYear}-${String(viewMonth).padStart(2, '0')}`
-  const memberOptions = useMemo(() => ['全部', ...members.map((member) => member.displayName)], [members])
   const filteredEntries = useMemo(() => ledger
     .filter((entry) => entry.date.startsWith(monthPrefix)
       && (memberFilter === '全部' || entry.memberName === memberFilter))
@@ -63,25 +67,12 @@ export default function LedgerPage() {
   }, { incomeCents: 0, expenseCents: 0, balanceCents: 0 }), [filteredEntries])
   const grouped = useMemo(() => groupByDate(filteredEntries, today, yesterday), [filteredEntries, today, yesterday])
 
-  /** 成员支出小计：本月各成员的支出金额（排除收入） */
   const memberStats = useMemo(() => members.map((member) => {
     const expenseCents = filteredEntries
       .filter((entry) => entry.memberName === member.displayName && entry.type === 'expense')
       .reduce((sum, entry) => sum + entry.amountCents, 0)
     return { name: member.displayName, expenseCents }
   }).filter((item) => item.expenseCents > 0), [filteredEntries, members])
-
-  const currentMonthIndex = now.getFullYear() * 12 + now.getMonth()
-  const viewMonthIndex = viewYear * 12 + viewMonth - 1
-  const isCurrentMonth = viewMonthIndex >= currentMonthIndex
-
-  const moveMonth = (delta: number) => {
-    const next = new Date(viewYear, viewMonth - 1 + delta, 1)
-    const nextIndex = next.getFullYear() * 12 + next.getMonth()
-    if (nextIndex > currentMonthIndex) return
-    setViewYear(next.getFullYear())
-    setViewMonth(next.getMonth() + 1)
-  }
 
   return (
     <PageShell withFab>
@@ -90,30 +81,21 @@ export default function LedgerPage() {
           <Text className='page-title__text'>账本</Text>
           <Text className='page-title__subtitle'>{memberFilter === '全部' ? '全家收支' : `${memberFilter}的收支`}</Text>
         </View>
-        {/* Secondary filter, so it lives in the title row rather than taking
-            a full toolbar row of its own. */}
-        <Picker
-          mode='selector'
-          range={memberOptions}
-          value={Math.max(0, memberOptions.indexOf(memberFilter))}
-          onChange={(event) => setMemberFilter(memberOptions[Number(event.detail.value)] ?? '全部')}
-        >
-          <View className='ledger-member-filter tap' hoverClass='tap--pressed' hoverStayTime={100}>
-            <AppIcon icon={Users} size={15} color={palette.subtleForeground} />
-            <Text className='ledger-member-filter__label'>{memberFilter}</Text>
-            <AppIcon icon={ChevronDown} size={14} color={palette.subtleForeground} />
-          </View>
-        </Picker>
+        <View className='ledger-member-filter'>
+          <AppIcon icon={Users} size={14} color={palette.subtleForeground} />
+        </View>
       </View>
 
+      {/* Month navigation — tap label opens MonthPicker */}
       <View className='month-nav'>
-        <Button className='month-nav__btn tap' hoverClass='tap--pressed' aria-label='上一个月' onClick={() => moveMonth(-1)}>
-          <AppIcon icon={ChevronLeft} size={20} color={palette.foreground} />
+        <Button className='month-nav__label tap' hoverClass='tap--pressed' onClick={() => setShowMonthPicker(true)}>
+          <Text className='month-nav__text num'>{getMonthLabel(viewYear, viewMonth)}</Text>
         </Button>
-        <Text className='month-nav__label num'>{getMonthLabel(viewYear, viewMonth)}</Text>
-        <Button className='month-nav__btn tap' hoverClass='tap--pressed' disabled={isCurrentMonth} aria-label='下一个月' onClick={() => moveMonth(1)}>
-          <AppIcon icon={ChevronRight} size={20} color={isCurrentMonth ? palette.disabledForeground : palette.foreground} />
-        </Button>
+      </View>
+
+      {/* Member filter chips */}
+      <View className='ledger-filter-row'>
+        <ChipSelect options={memberOptions} value={memberFilter} onChange={setMemberFilter} wrap={false} />
       </View>
 
       <View className='ledger-overview surface-card'>
@@ -173,7 +155,7 @@ export default function LedgerPage() {
                 onClick={() => Taro.navigateTo({ url: `/pages/ledger-entry/index?id=${entry.id}` })}
               >
                 <View className={`icon-bubble ${entry.type === 'income' ? 'icon-bubble--green' : 'icon-bubble--primary'}`}>
-                  <AppIcon icon={entry.type === 'income' ? ArrowDownLeft : ArrowUpRight} size={18} color={entry.type === 'income' ? palette.success : palette.primary} />
+                  <AppIcon icon={entry.type === 'income' ? ArrowDownLeft : ArrowUpRight} size={16} color={entry.type === 'income' ? palette.success : palette.primary} />
                 </View>
                 <View className='ledger-row__body'>
                   <Text className='ledger-row__title'>{entry.purpose}</Text>
@@ -186,7 +168,7 @@ export default function LedgerPage() {
                   <Text className={`ledger-row__amount num ${entry.type === 'income' ? 'ledger-row__amount--income' : ''}`}>
                     {entry.type === 'income' ? '+' : '-'}{formatYuan(entry.amountCents).slice(1)}
                   </Text>
-                  <AppIcon icon={ChevronRight} size={15} color={palette.subtleForeground} />
+                  <AppIcon icon={ChevronRight} size={14} color={palette.subtleForeground} />
                 </View>
               </Button>
             ))}
@@ -200,9 +182,17 @@ export default function LedgerPage() {
         aria-label='记一笔'
         onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}
       >
-        <AppIcon icon={Plus} size={17} color={palette.onPrimary} />
+        <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
         <Text>记一笔</Text>
       </Button>
+
+      <MonthPicker
+        open={showMonthPicker}
+        year={viewYear}
+        month={viewMonth}
+        onSelect={(y, m) => { setViewYear(y); setViewMonth(m) }}
+        onClose={() => setShowMonthPicker(false)}
+      />
     </PageShell>
   )
 }

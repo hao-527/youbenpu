@@ -128,7 +128,14 @@
   font-weight: 600;
 }
 
-.family-role-picker,
+.family-role-chips {
+  margin-top: var(--space-1);
+}
+
+.family-role-chips .chip-select {
+  gap: var(--space-1);
+}
+
 .family-role-label {
   display: inline-flex;
   align-items: center;
@@ -139,17 +146,8 @@
   font-weight: 600;
 }
 
-/* Picker version is interactive, so it needs a real tap target and a hint. */
-.family-role-picker {
-  min-height: var(--touch-target);
-  padding: 0 var(--space-2) 0 var(--space-1);
-  border: var(--hairline) solid var(--color-border);
-  border-radius: var(--radius-full);
-  transition: background-color var(--duration-fast) var(--ease-out);
-}
-
 .family-role-label {
-  min-height: 52rpx;
+  min-height: 48rpx;
 }
 
 .family-member-row__remove {

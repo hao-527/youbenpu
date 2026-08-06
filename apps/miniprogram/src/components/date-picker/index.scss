@@ -1,0 +1,127 @@
+/* ---------- Shortcuts ---------- */
+
+.dp-shortcuts {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.dp-shortcut {
+  display: inline-flex;
+  min-height: 56rpx;
+  align-items: center;
+  justify-content: center;
+  padding: 0 var(--space-3);
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface);
+  color: var(--color-muted-foreground);
+  font-size: var(--text-xs);
+  font-weight: 600;
+}
+
+.dp-shortcut--active {
+  border-color: var(--color-primary-surface);
+  background: var(--color-tint-primary);
+  color: var(--color-primary-text);
+}
+
+.dp-shortcut--clear {
+  border-color: var(--color-destructive);
+  color: var(--color-destructive);
+  background: transparent;
+}
+
+/* ---------- Month nav ---------- */
+
+.dp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-2);
+}
+
+.dp-nav__btn {
+  display: flex;
+  width: 64rpx;
+  height: 64rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+}
+
+.dp-nav__btn[disabled] {
+  opacity: 0.4;
+}
+
+.dp-nav__label {
+  min-width: 180rpx;
+  color: var(--color-foreground);
+  font-size: var(--text-md);
+  font-weight: 600;
+  text-align: center;
+}
+
+/* ---------- Weekdays ---------- */
+
+.dp-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  margin-bottom: var(--space-1);
+}
+
+.dp-weekday {
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-align: center;
+  line-height: 48rpx;
+}
+
+/* ---------- Calendar grid ---------- */
+
+.dp-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4rpx;
+  padding-bottom: var(--space-2);
+}
+
+.dp-cell {
+  display: flex;
+  height: 72rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+}
+
+.dp-cell--empty {
+  pointer-events: none;
+}
+
+.dp-cell__day {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-foreground);
+  font-feature-settings: 'tnum';
+}
+
+.dp-cell--today .dp-cell__day {
+  color: var(--color-primary-text);
+  font-weight: 700;
+}
+
+.dp-cell--selected {
+  background: var(--color-primary-surface);
+}
+
+.dp-cell--selected .dp-cell__day {
+  color: var(--color-on-primary);
+  font-weight: 700;
+}
+
+.dp-cell--disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}

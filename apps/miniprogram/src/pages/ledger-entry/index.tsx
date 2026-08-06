@@ -1,9 +1,11 @@
-import { Button, Input, Picker, Text, Textarea, View } from '@tarojs/components'
+import { Button, Input, Text, Textarea, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { ChevronRight, Trash2 } from 'lucide'
-import { useState } from 'react'
+import { Calendar, Trash2 } from 'lucide'
+import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
+import { ChipSelect } from '../../components/chip-select'
+import { DatePicker } from '../../components/date-picker'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { useDispatch, useStore } from '../../store'
@@ -23,6 +25,12 @@ function createTimeLabel(date: string, today: string) {
   return `${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日`
 }
 
+function getDateDisplayLabel(date: string, today: string) {
+  if (date === today) return '今天'
+  if (date === getPreviousDate(today)) return '昨天'
+  return `${Number(date.slice(5, 7))}月${Number(date.slice(8, 10))}日`
+}
+
 export default function LedgerEntryPage() {
   const { ledger, members, familyId, currentMemberId } = useStore()
   const dispatch = useDispatch()
@@ -31,7 +39,7 @@ export default function LedgerEntryPage() {
   const editingEntry = entryId ? ledger.find((entry) => entry.id === entryId) : undefined
   const today = formatLocalDate()
   const currentMemberName = members.find((member) => member.id === currentMemberId)?.displayName ?? members[0]?.displayName ?? ''
-  const memberNames = members.map((member) => member.displayName)
+  const memberNames = useMemo(() => members.map((member) => member.displayName), [members])
 
   const [type, setType] = useState<TransactionType>(editingEntry?.type ?? 'expense')
   const [amount, setAmount] = useState(editingEntry ? (editingEntry.amountCents / 100).toFixed(2).replace(/\.00$/, '') : '')
@@ -40,6 +48,7 @@ export default function LedgerEntryPage() {
   const [date, setDate] = useState(editingEntry?.date ?? today)
   const [note, setNote] = useState(editingEntry?.note ?? '')
   const [visibility, setVisibility] = useState<LedgerEntry['noteVisibility']>(editingEntry?.noteVisibility ?? 'shared')
+  const [showDatePicker, setShowDatePicker] = useState(false)
 
   const submit = () => {
     const normalizedAmount = amount.trim()
@@ -124,25 +133,17 @@ export default function LedgerEntryPage() {
           <Input className='field__control' type='text' maxlength={40} placeholder='例如：菜市场采购' placeholderClass='input-placeholder' value={purpose} onInput={(event) => setPurpose(event.detail.value)} />
         </View>
 
-        <View className='ledger-entry-grid'>
-          <View className='field'>
-            <Text className='field__label'>成员</Text>
-            <Picker mode='selector' range={memberNames} value={Math.max(0, memberNames.indexOf(memberName))} onChange={(event) => setMemberName(memberNames[Number(event.detail.value)] ?? currentMemberName)}>
-              <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
-                <Text>{memberName || '请选择'}</Text>
-                <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
-              </View>
-            </Picker>
-          </View>
-          <View className='field'>
-            <Text className='field__label'>日期</Text>
-            <Picker mode='date' value={date} end={today} onChange={(event) => setDate(event.detail.value)}>
-              <View className='field__control field__control--picker tap' hoverClass='tap--pressed' hoverStayTime={100}>
-                <Text className='num'>{date}</Text>
-                <AppIcon icon={ChevronRight} size={16} color={palette.subtleForeground} />
-              </View>
-            </Picker>
-          </View>
+        <View className='field'>
+          <Text className='field__label'>成员</Text>
+          <ChipSelect options={memberNames} value={memberName} onChange={setMemberName} />
+        </View>
+
+        <View className='field'>
+          <Text className='field__label'>日期</Text>
+          <Button className='field__control field__control--picker tap' hoverClass='tap--pressed' onClick={() => setShowDatePicker(true)}>
+            <Text className='num'>{getDateDisplayLabel(date, today)}</Text>
+            <AppIcon icon={Calendar} size={16} color={palette.subtleForeground} />
+          </Button>
         </View>
 
         <View className='field'>
@@ -171,6 +172,14 @@ export default function LedgerEntryPage() {
           {editingEntry ? '保存修改' : '确认记录'}
         </Button>
       </View>
+
+      <DatePicker
+        open={showDatePicker}
+        value={date}
+        max={today}
+        onSelect={setDate}
+        onClose={() => setShowDatePicker(false)}
+      />
     </PageShell>
   )
 }

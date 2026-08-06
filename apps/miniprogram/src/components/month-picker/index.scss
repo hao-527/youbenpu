@@ -1,0 +1,64 @@
+.mp-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-5);
+  margin-bottom: var(--space-3);
+}
+
+.mp-nav__btn {
+  display: flex;
+  width: 64rpx;
+  height: 64rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-full);
+}
+
+.mp-nav__btn[disabled] {
+  opacity: 0.4;
+}
+
+.mp-nav__year {
+  min-width: 140rpx;
+  color: var(--color-foreground);
+  font-size: var(--text-lg);
+  font-weight: 600;
+  text-align: center;
+}
+
+.mp-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  padding-bottom: var(--space-2);
+}
+
+.mp-cell {
+  display: flex;
+  height: 80rpx;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  background: var(--color-muted);
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.mp-cell__label {
+  color: var(--color-foreground);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.mp-cell--selected {
+  background: var(--color-primary-surface);
+}
+
+.mp-cell--selected .mp-cell__label {
+  color: var(--color-on-primary);
+}
+
+.mp-cell--disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
