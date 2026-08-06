@@ -1,0 +1,113 @@
+.auth-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  padding: calc(env(safe-area-inset-top) + 120rpx) var(--page-gutter) calc(env(safe-area-inset-bottom) + var(--space-6));
+}
+
+.auth-loading {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+}
+
+.auth-loading__text {
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-md);
+}
+
+/* ---------- Hero ---------- */
+
+.auth-hero {
+  margin-bottom: var(--space-8);
+  text-align: center;
+}
+
+.auth-hero__title {
+  display: block;
+  color: var(--color-foreground);
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.auth-hero__subtitle {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-md);
+}
+
+/* ---------- Choices ---------- */
+
+.auth-choices {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.auth-choice {
+  display: flex;
+  min-height: var(--row-height-lg);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  text-align: left;
+}
+
+.auth-choice__body {
+  min-width: 0;
+  flex: 1;
+}
+
+.auth-choice__title {
+  display: block;
+  color: var(--color-foreground);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.auth-choice__copy {
+  display: block;
+  margin-top: 4rpx;
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-xs);
+}
+
+/* ---------- Form ---------- */
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.auth-form__title {
+  display: block;
+  margin-bottom: var(--space-2);
+  color: var(--color-foreground);
+  font-size: var(--text-xl);
+  font-weight: 700;
+}
+
+.auth-form__submit {
+  margin-top: var(--space-3);
+}
+
+.auth-form__back {
+  display: flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: center;
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.auth-invite-input {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}

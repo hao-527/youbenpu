@@ -1,0 +1,24 @@
+/** API base URL — switch per environment */
+const API_BASE = process.env.NODE_ENV === 'production'
+  ? 'https://api.youbenpu.com'   // TODO: replace with your real domain
+  : 'http://127.0.0.1:8080'
+
+export const API = {
+  BASE: API_BASE,
+  AUTH_LOGIN: `${API_BASE}/api/v1/auth/login`,
+  FAMILY: `${API_BASE}/api/v1/family`,
+  FAMILY_INFO: `${API_BASE}/api/v1/family/info`,
+  FAMILY_RENAME: `${API_BASE}/api/v1/family/rename`,
+  FAMILY_INVITE: `${API_BASE}/api/v1/family/invite`,
+  FAMILY_JOIN: `${API_BASE}/api/v1/family/join`,
+  FAMILY_LEAVE: `${API_BASE}/api/v1/family/leave`,
+  FAMILY_MEMBER_ROLE: `${API_BASE}/api/v1/family/member/role`,
+  FAMILY_MEMBER_REMOVE: `${API_BASE}/api/v1/family/member`,
+  LEDGER: `${API_BASE}/api/v1/ledger`,
+  INVENTORY: `${API_BASE}/api/v1/inventory`,
+  DISHES: `${API_BASE}/api/v1/dishes`,
+  ORDERS: `${API_BASE}/api/v1/orders`,
+  LOCATIONS: `${API_BASE}/api/v1/locations`,
+  CATEGORIES: `${API_BASE}/api/v1/categories`,
+  UPLOAD_PRESIGN: `${API_BASE}/api/v1/upload/presign`,
+} as const

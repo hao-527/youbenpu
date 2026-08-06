@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/zhanghao527/youbenpu/services/api/internal/config"
+	"github.com/zhanghao527/youbenpu/services/api/internal/database"
 	"github.com/zhanghao527/youbenpu/services/api/internal/httpapi"
 	"github.com/zhanghao527/youbenpu/services/api/internal/storage"
 )
@@ -24,6 +25,26 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Database
+	db, err := database.Connect(database.Config{
+		Host:     cfg.DBHost,
+		Port:     cfg.DBPort,
+		User:     cfg.DBUser,
+		Password: cfg.DBPassword,
+		DBName:   cfg.DBName,
+	})
+	if err != nil {
+		logger.Error("connect database", "error", err)
+		os.Exit(1)
+	}
+	defer db.Close()
+
+	if err := database.Migrate(db, logger); err != nil {
+		logger.Error("run migrations", "error", err)
+		os.Exit(1)
+	}
+
+	// Object store (local filesystem for development)
 	objectStore, err := storage.NewLocalStore(cfg.UploadDirectory)
 	if err != nil {
 		logger.Error("initialize local object store", "error", err)
@@ -33,6 +54,7 @@ func main() {
 	handler := httpapi.NewRouter(httpapi.Dependencies{
 		Config:      cfg,
 		Logger:      logger,
+		DB:          db,
 		ObjectStore: objectStore,
 	})
 

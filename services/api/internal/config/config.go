@@ -18,6 +18,26 @@ type Config struct {
 	HTTPAddress     string
 	UploadDirectory string
 	ShutdownTimeout time.Duration
+
+	// Database
+	DBHost     string
+	DBPort     string
+	DBUser     string
+	DBPassword string
+	DBName     string
+
+	// WeChat Mini Program
+	WXAppID     string
+	WXAppSecret string
+
+	// JWT
+	JWTSecret string
+
+	// Tencent COS
+	COSBucket    string
+	COSRegion    string
+	COSSecretID  string
+	COSSecretKey string
 }
 
 func Load() (Config, error) {
@@ -26,6 +46,22 @@ func Load() (Config, error) {
 		HTTPAddress:     envOrDefault("HTTP_ADDRESS", defaultHTTPAddress),
 		UploadDirectory: envOrDefault("UPLOAD_DIR", defaultUploadDirectory),
 		ShutdownTimeout: defaultShutdownTimeout,
+
+		DBHost:     envOrDefault("DB_HOST", "127.0.0.1"),
+		DBPort:     envOrDefault("DB_PORT", "3306"),
+		DBUser:     envOrDefault("DB_USER", "root"),
+		DBPassword: envOrDefault("DB_PASSWORD", ""),
+		DBName:     envOrDefault("DB_NAME", "youbenpu"),
+
+		WXAppID:     envOrDefault("WX_APPID", ""),
+		WXAppSecret: envOrDefault("WX_APP_SECRET", ""),
+
+		JWTSecret: envOrDefault("JWT_SECRET", "youbenpu-dev-secret-change-me"),
+
+		COSBucket:    envOrDefault("COS_BUCKET", "shenghuoyoubenpu-1410259056"),
+		COSRegion:    envOrDefault("COS_REGION", "ap-beijing"),
+		COSSecretID:  envOrDefault("COS_SECRET_ID", ""),
+		COSSecretKey: envOrDefault("COS_SECRET_KEY", ""),
 	}
 
 	if value := strings.TrimSpace(os.Getenv("SHUTDOWN_TIMEOUT")); value != "" {

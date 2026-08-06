@@ -25,6 +25,7 @@ export interface AppState {
 }
 
 export type AppAction =
+  | { type: 'hydrate'; state: AppState }
   | { type: 'ledger/add'; entry: LedgerEntry }
   | { type: 'ledger/update'; entry: LedgerEntry }
   | { type: 'ledger/delete'; id: string }
@@ -62,6 +63,8 @@ function currentMemberIsAdmin(state: AppState): boolean {
 
 export function appReducer(state: AppState, action: AppAction): AppState {
   switch (action.type) {
+    case 'hydrate':
+      return action.state
     case 'ledger/add':
       return { ...state, ledger: [action.entry, ...state.ledger] }
     case 'ledger/update':

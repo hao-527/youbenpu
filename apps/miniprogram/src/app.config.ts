@@ -1,5 +1,6 @@
 export default defineAppConfig({
   pages: [
+    'pages/auth/index',
     'pages/home/index',
     'pages/ledger/index',
     'pages/meals/index',
