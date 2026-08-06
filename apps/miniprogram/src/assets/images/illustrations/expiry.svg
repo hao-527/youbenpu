@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="52" fill="#FFF8F0"/>
+  <!-- Calendar body -->
+  <rect x="32" y="38" width="48" height="48" rx="8" fill="#FFFFFF" stroke="#E8530E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Calendar header -->
+  <rect x="32" y="38" width="48" height="16" rx="8" fill="#E8530E"/>
+  <!-- Fix bottom corners of header -->
+  <rect x="32" y="46" width="48" height="8" fill="#E8530E"/>
+  <!-- Calendar rings -->
+  <rect x="44" y="34" width="4" height="10" rx="2" fill="#C9440A"/>
+  <rect x="64" y="34" width="4" height="10" rx="2" fill="#C9440A"/>
+  <!-- Calendar date grid -->
+  <circle cx="44" cy="64" r="3" fill="#FDDCB5"/>
+  <circle cx="56" cy="64" r="3" fill="#FDDCB5"/>
+  <circle cx="68" cy="64" r="3" fill="#FDDCB5"/>
+  <circle cx="44" cy="76" r="3" fill="#FDDCB5"/>
+  <!-- Highlighted urgent date -->
+  <circle cx="56" cy="76" r="5" fill="#E8530E" opacity="0.9"/>
+  <circle cx="68" cy="76" r="3" fill="#FDDCB5"/>
+  <!-- Alarm bell -->
+  <g transform="translate(72, 24)">
+    <!-- Bell body -->
+    <path d="M8 12C8 6 12 2 16 2C20 2 24 6 24 12V18H8V12Z" fill="#FFD97A" stroke="#D4880A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- Bell bottom -->
+    <rect x="6" y="18" width="20" height="4" rx="2" fill="#FFD97A" stroke="#D4880A" stroke-width="1.5"/>
+    <!-- Bell clapper -->
+    <circle cx="16" cy="24" r="2.5" fill="#D4880A"/>
+    <!-- Bell top knob -->
+    <circle cx="16" cy="2" r="2" fill="#D4880A"/>
+    <!-- Ring lines (ringing) -->
+    <path d="M2 8C4 6 5 4 6 4" stroke="#E8530E" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+    <path d="M26 4C27 4 28 6 30 8" stroke="#E8530E" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>
+  </g>
+  <!-- Exclamation accent -->
+  <circle cx="30" cy="30" r="2" fill="#E8530E" opacity="0.6"/>
+  <!-- Sparkle -->
+  <path d="M94 70L96 66L98 70L96 74Z" fill="#F5A86C" opacity="0.6"/>
+</svg>

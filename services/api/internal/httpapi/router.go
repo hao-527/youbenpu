@@ -36,85 +36,108 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	}
 
 	mux := http.NewServeMux()
+
+	// Public routes
 	mux.HandleFunc("GET /healthz", r.health)
 	mux.HandleFunc("GET /api/v1/meta", r.meta)
 	mux.HandleFunc("POST /api/v1/auth/login", r.login)
 
-	// Routes that need auth but NOT family (creating/joining family)
-	authMux := http.NewServeMux()
-	authMux.HandleFunc("POST /api/v1/family", r.createFamily)
-	authMux.HandleFunc("POST /api/v1/family/join", r.joinFamily)
-	mux.Handle("/api/v1/family", r.requireAuth(authMux))
-	mux.Handle("/api/v1/family/", r.requireAuth(authMux))
+	// Auth required (no family needed)
+	mux.Handle("POST /api/v1/family", r.auth(http.HandlerFunc(r.wrapCreateFamily)))
+	mux.Handle("POST /api/v1/family/join", r.auth(http.HandlerFunc(r.wrapJoinFamily)))
 
-	// Routes that need auth + family
-	familyMux := http.NewServeMux()
-	familyMux.HandleFunc("GET /api/v1/family/info", r.getFamily)
-	familyMux.HandleFunc("PUT /api/v1/family/rename", r.renameFamily)
-	familyMux.HandleFunc("POST /api/v1/family/invite", r.createInvitation)
-	familyMux.HandleFunc("POST /api/v1/family/leave", r.leaveFamily)
-	familyMux.HandleFunc("PUT /api/v1/family/member/role", r.updateMemberRole)
-	familyMux.HandleFunc("DELETE /api/v1/family/member", r.removeMember)
-	mux.Handle("/api/v1/family/info", r.requireAuth(r.requireFamily(familyMux)))
-	mux.Handle("/api/v1/family/rename", r.requireAuth(r.requireFamily(familyMux)))
-	mux.Handle("/api/v1/family/invite", r.requireAuth(r.requireFamily(familyMux)))
-	mux.Handle("/api/v1/family/leave", r.requireAuth(r.requireFamily(familyMux)))
-	mux.Handle("/api/v1/family/member/", r.requireAuth(r.requireFamily(familyMux)))
+	// Auth + Family required
+	mux.Handle("GET /api/v1/family/info", r.authFamily(http.HandlerFunc(r.wrapGetFamily)))
+	mux.Handle("PUT /api/v1/family/rename", r.authFamily(http.HandlerFunc(r.wrapRenameFamily)))
+	mux.Handle("POST /api/v1/family/invite", r.authFamily(http.HandlerFunc(r.wrapCreateInvitation)))
+	mux.Handle("POST /api/v1/family/leave", r.authFamily(http.HandlerFunc(r.wrapLeaveFamily)))
+	mux.Handle("PUT /api/v1/family/member/role", r.authFamily(http.HandlerFunc(r.wrapUpdateMemberRole)))
+	mux.Handle("DELETE /api/v1/family/member", r.authFamily(http.HandlerFunc(r.wrapRemoveMember)))
 
 	// Ledger
-	familyMux.HandleFunc("GET /api/v1/ledger", r.listLedger)
-	familyMux.HandleFunc("POST /api/v1/ledger", r.createLedger)
-	familyMux.HandleFunc("PUT /api/v1/ledger/{id}", r.updateLedger)
-	familyMux.HandleFunc("DELETE /api/v1/ledger/{id}", r.deleteLedger)
-	mux.Handle("/api/v1/ledger", r.requireAuth(r.requireFamily(familyMux)))
-	mux.Handle("/api/v1/ledger/", r.requireAuth(r.requireFamily(familyMux)))
+	mux.Handle("GET /api/v1/ledger", r.authFamily(http.HandlerFunc(r.wrapListLedger)))
+	mux.Handle("POST /api/v1/ledger", r.authFamily(http.HandlerFunc(r.wrapCreateLedger)))
+	mux.Handle("PUT /api/v1/ledger/{id}", r.authFamily(http.HandlerFunc(r.wrapUpdateLedger)))
+	mux.Handle("DELETE /api/v1/ledger/{id}", r.authFamily(http.HandlerFunc(r.wrapDeleteLedger)))
 
 	// Inventory
-	familyMux.HandleFunc("GET /api/v1/inventory", r.listInventory)
-	familyMux.HandleFunc("POST /api/v1/inventory", r.createInventory)
-	familyMux.HandleFunc("PUT /api/v1/inventory/{id}", r.updateInventory)
-	familyMux.HandleFunc("PUT /api/v1/inventory/{id}/status", r.updateInventoryStatus)
-	familyMux.HandleFunc("DELETE /api/v1/inventory/{id}", r.deleteInventory)
-	mux.Handle("/api/v1/inventory", r.requireAuth(r.requireFamily(familyMux)))
-	mux.Handle("/api/v1/inventory/", r.requireAuth(r.requireFamily(familyMux)))
+	mux.Handle("GET /api/v1/inventory", r.authFamily(http.HandlerFunc(r.wrapListInventory)))
+	mux.Handle("POST /api/v1/inventory", r.authFamily(http.HandlerFunc(r.wrapCreateInventory)))
+	mux.Handle("PUT /api/v1/inventory/{id}", r.authFamily(http.HandlerFunc(r.wrapUpdateInventory)))
+	mux.Handle("PUT /api/v1/inventory/{id}/status", r.authFamily(http.HandlerFunc(r.wrapUpdateInventoryStatus)))
+	mux.Handle("DELETE /api/v1/inventory/{id}", r.authFamily(http.HandlerFunc(r.wrapDeleteInventory)))
 
 	// Dishes
-	familyMux.HandleFunc("GET /api/v1/dishes", r.listDishes)
-	familyMux.HandleFunc("POST /api/v1/dishes", r.createDish)
-	familyMux.HandleFunc("PUT /api/v1/dishes/{id}", r.updateDish)
-	familyMux.HandleFunc("PUT /api/v1/dishes/{id}/toggle", r.toggleDishAvailable)
-	familyMux.HandleFunc("DELETE /api/v1/dishes/{id}", r.deleteDish)
-	mux.Handle("/api/v1/dishes", r.requireAuth(r.requireFamily(familyMux)))
-	mux.Handle("/api/v1/dishes/", r.requireAuth(r.requireFamily(familyMux)))
+	mux.Handle("GET /api/v1/dishes", r.authFamily(http.HandlerFunc(r.wrapListDishes)))
+	mux.Handle("POST /api/v1/dishes", r.authFamily(http.HandlerFunc(r.wrapCreateDish)))
+	mux.Handle("PUT /api/v1/dishes/{id}", r.authFamily(http.HandlerFunc(r.wrapUpdateDish)))
+	mux.Handle("PUT /api/v1/dishes/{id}/toggle", r.authFamily(http.HandlerFunc(r.wrapToggleDishAvailable)))
+	mux.Handle("DELETE /api/v1/dishes/{id}", r.authFamily(http.HandlerFunc(r.wrapDeleteDish)))
 
 	// Orders
-	familyMux.HandleFunc("GET /api/v1/orders", r.listOrders)
-	familyMux.HandleFunc("POST /api/v1/orders", r.createOrder)
-	familyMux.HandleFunc("PUT /api/v1/orders/{id}/status", r.updateOrderStatus)
-	familyMux.HandleFunc("DELETE /api/v1/orders/{id}", r.deleteOrder)
-	mux.Handle("/api/v1/orders", r.requireAuth(r.requireFamily(familyMux)))
-	mux.Handle("/api/v1/orders/", r.requireAuth(r.requireFamily(familyMux)))
+	mux.Handle("GET /api/v1/orders", r.authFamily(http.HandlerFunc(r.wrapListOrders)))
+	mux.Handle("POST /api/v1/orders", r.authFamily(http.HandlerFunc(r.wrapCreateOrder)))
+	mux.Handle("PUT /api/v1/orders/{id}/status", r.authFamily(http.HandlerFunc(r.wrapUpdateOrderStatus)))
+	mux.Handle("DELETE /api/v1/orders/{id}", r.authFamily(http.HandlerFunc(r.wrapDeleteOrder)))
 
-	// Locations
-	familyMux.HandleFunc("GET /api/v1/locations", r.listLocations)
-	familyMux.HandleFunc("POST /api/v1/locations", r.createLocation)
-	familyMux.HandleFunc("DELETE /api/v1/locations/{id}", r.deleteLocation)
-	mux.Handle("/api/v1/locations", r.requireAuth(r.requireFamily(familyMux)))
-	mux.Handle("/api/v1/locations/", r.requireAuth(r.requireFamily(familyMux)))
+	// Locations & Categories
+	mux.Handle("GET /api/v1/locations", r.authFamily(http.HandlerFunc(r.wrapListLocations)))
+	mux.Handle("POST /api/v1/locations", r.authFamily(http.HandlerFunc(r.wrapCreateLocation)))
+	mux.Handle("DELETE /api/v1/locations/{id}", r.authFamily(http.HandlerFunc(r.wrapDeleteLocation)))
+	mux.Handle("GET /api/v1/categories", r.authFamily(http.HandlerFunc(r.wrapListCategories)))
+	mux.Handle("POST /api/v1/categories", r.authFamily(http.HandlerFunc(r.wrapCreateCategory)))
+	mux.Handle("DELETE /api/v1/categories/{id}", r.authFamily(http.HandlerFunc(r.wrapDeleteCategory)))
 
-	// Custom categories
-	familyMux.HandleFunc("GET /api/v1/categories", r.listCategories)
-	familyMux.HandleFunc("POST /api/v1/categories", r.createCategory)
-	familyMux.HandleFunc("DELETE /api/v1/categories/{id}", r.deleteCategory)
-	mux.Handle("/api/v1/categories", r.requireAuth(r.requireFamily(familyMux)))
-	mux.Handle("/api/v1/categories/", r.requireAuth(r.requireFamily(familyMux)))
-
-	// Upload (presign for COS direct upload)
-	familyMux.HandleFunc("POST /api/v1/upload/presign", r.uploadPresign)
-	mux.Handle("/api/v1/upload/", r.requireAuth(r.requireFamily(familyMux)))
+	// Upload
+	mux.Handle("POST /api/v1/upload/presign", r.authFamily(http.HandlerFunc(r.wrapUploadPresign)))
 
 	return r.recoverPanic(r.requestLog(r.securityHeaders(r.cors(mux))))
 }
+
+// auth wraps a handler with authentication only.
+func (r *router) auth(next http.Handler) http.Handler {
+	return r.requireAuth(next)
+}
+
+// authFamily wraps with both auth and family check.
+func (r *router) authFamily(next http.Handler) http.Handler {
+	return r.requireAuth(r.requireFamily(next))
+}
+
+// Wrapper functions that adapt handler signatures
+func (r *router) wrapCreateFamily(w http.ResponseWriter, req *http.Request)        { r.createFamily(w, req) }
+func (r *router) wrapJoinFamily(w http.ResponseWriter, req *http.Request)           { r.joinFamily(w, req) }
+func (r *router) wrapGetFamily(w http.ResponseWriter, req *http.Request)            { r.getFamily(w, req) }
+func (r *router) wrapRenameFamily(w http.ResponseWriter, req *http.Request)         { r.renameFamily(w, req) }
+func (r *router) wrapCreateInvitation(w http.ResponseWriter, req *http.Request)     { r.createInvitation(w, req) }
+func (r *router) wrapLeaveFamily(w http.ResponseWriter, req *http.Request)          { r.leaveFamily(w, req) }
+func (r *router) wrapUpdateMemberRole(w http.ResponseWriter, req *http.Request)     { r.updateMemberRole(w, req) }
+func (r *router) wrapRemoveMember(w http.ResponseWriter, req *http.Request)         { r.removeMember(w, req) }
+func (r *router) wrapListLedger(w http.ResponseWriter, req *http.Request)           { r.listLedger(w, req) }
+func (r *router) wrapCreateLedger(w http.ResponseWriter, req *http.Request)         { r.createLedger(w, req) }
+func (r *router) wrapUpdateLedger(w http.ResponseWriter, req *http.Request)         { r.updateLedger(w, req) }
+func (r *router) wrapDeleteLedger(w http.ResponseWriter, req *http.Request)         { r.deleteLedger(w, req) }
+func (r *router) wrapListInventory(w http.ResponseWriter, req *http.Request)        { r.listInventory(w, req) }
+func (r *router) wrapCreateInventory(w http.ResponseWriter, req *http.Request)      { r.createInventory(w, req) }
+func (r *router) wrapUpdateInventory(w http.ResponseWriter, req *http.Request)      { r.updateInventory(w, req) }
+func (r *router) wrapUpdateInventoryStatus(w http.ResponseWriter, req *http.Request) { r.updateInventoryStatus(w, req) }
+func (r *router) wrapDeleteInventory(w http.ResponseWriter, req *http.Request)      { r.deleteInventory(w, req) }
+func (r *router) wrapListDishes(w http.ResponseWriter, req *http.Request)           { r.listDishes(w, req) }
+func (r *router) wrapCreateDish(w http.ResponseWriter, req *http.Request)           { r.createDish(w, req) }
+func (r *router) wrapUpdateDish(w http.ResponseWriter, req *http.Request)           { r.updateDish(w, req) }
+func (r *router) wrapToggleDishAvailable(w http.ResponseWriter, req *http.Request)  { r.toggleDishAvailable(w, req) }
+func (r *router) wrapDeleteDish(w http.ResponseWriter, req *http.Request)           { r.deleteDish(w, req) }
+func (r *router) wrapListOrders(w http.ResponseWriter, req *http.Request)           { r.listOrders(w, req) }
+func (r *router) wrapCreateOrder(w http.ResponseWriter, req *http.Request)          { r.createOrder(w, req) }
+func (r *router) wrapUpdateOrderStatus(w http.ResponseWriter, req *http.Request)    { r.updateOrderStatus(w, req) }
+func (r *router) wrapDeleteOrder(w http.ResponseWriter, req *http.Request)          { r.deleteOrder(w, req) }
+func (r *router) wrapListLocations(w http.ResponseWriter, req *http.Request)        { r.listLocations(w, req) }
+func (r *router) wrapCreateLocation(w http.ResponseWriter, req *http.Request)       { r.createLocation(w, req) }
+func (r *router) wrapDeleteLocation(w http.ResponseWriter, req *http.Request)       { r.deleteLocation(w, req) }
+func (r *router) wrapListCategories(w http.ResponseWriter, req *http.Request)       { r.listCategories(w, req) }
+func (r *router) wrapCreateCategory(w http.ResponseWriter, req *http.Request)       { r.createCategory(w, req) }
+func (r *router) wrapDeleteCategory(w http.ResponseWriter, req *http.Request)       { r.deleteCategory(w, req) }
+func (r *router) wrapUploadPresign(w http.ResponseWriter, req *http.Request)        { r.uploadPresign(w, req) }
 
 func (r *router) health(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]string{
@@ -125,10 +148,9 @@ func (r *router) health(response http.ResponseWriter, _ *http.Request) {
 
 func (r *router) meta(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]string{
-		"name":                "生活有本谱",
-		"api_version":         "v1",
-		"environment":         r.config.Environment,
-		"object_store_driver": r.objectStore.Driver(),
+		"name":        "生活有本谱",
+		"api_version": "v1",
+		"environment": r.config.Environment,
 	})
 }
 

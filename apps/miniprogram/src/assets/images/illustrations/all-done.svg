@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="52" fill="#FFF8F0"/>
+  <!-- Checkmark circle -->
+  <circle cx="60" cy="60" r="28" fill="#E8F5E9" stroke="#3D9142" stroke-width="2.5"/>
+  <!-- Checkmark -->
+  <path d="M46 60L55 69L74 50" stroke="#3D9142" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+  <!-- Celebration confetti -->
+  <!-- Orange dot -->
+  <circle cx="32" cy="38" r="4" fill="#E8530E" opacity="0.7"/>
+  <!-- Yellow star -->
+  <path d="M88 42L90 38L92 42L90 46Z" fill="#FFD97A"/>
+  <!-- Small orange diamond -->
+  <path d="M28 70L30 67L32 70L30 73Z" fill="#F5A86C" opacity="0.8"/>
+  <!-- Green dot -->
+  <circle cx="90" cy="72" r="3" fill="#7BC47F" opacity="0.7"/>
+  <!-- Ribbon curves -->
+  <path d="M36 28C40 32 44 28 48 32" stroke="#E8530E" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <path d="M72 26C76 30 80 26 84 30" stroke="#FFD97A" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.7"/>
+  <path d="M80 84C84 88 88 84 92 88" stroke="#F5A86C" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <path d="M28 82C32 86 36 82 40 86" stroke="#7BC47F" stroke-width="2" stroke-linecap="round" fill="none" opacity="0.6"/>
+  <!-- Sparkle top -->
+  <path d="M60 22L62 18L64 22L62 26Z" fill="#E8530E" opacity="0.5"/>
+  <!-- Tiny dots -->
+  <circle cx="44" cy="92" r="2" fill="#FDDCB5"/>
+  <circle cx="76" cy="90" r="2.5" fill="#FFD97A" opacity="0.8"/>
+</svg>
