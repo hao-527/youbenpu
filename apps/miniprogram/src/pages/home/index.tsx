@@ -12,6 +12,13 @@ import { palette } from '../../theme/palette'
 import { formatLocalDate, getInventoryExpiry, getNaturalMonthStart } from '../../utils/date'
 import { formatYuan } from '../../utils/money'
 
+import illustLedger from '../../assets/images/illustrations/ledger.svg'
+import illustNote from '../../assets/images/illustrations/note.svg'
+import illustMeal from '../../assets/images/illustrations/meal.svg'
+import illustStorage from '../../assets/images/illustrations/storage.svg'
+import illustAllDone from '../../assets/images/illustrations/all-done.svg'
+import illustExpiry from '../../assets/images/illustrations/expiry.svg'
+
 import './index.scss'
 
 export default function HomePage() {
@@ -44,10 +51,10 @@ export default function HomePage() {
   const today = new Date()
   const dateLabel = `${today.getMonth() + 1}月${today.getDate()}日`
 
-  const quickActions = [
-    { key: 'ledger', label: '记一笔', copy: '记录家庭收支', icon: ReceiptText, url: '/pages/ledger-entry/index' },
-    { key: 'meals', label: pendingOrder ? '看点餐' : '点餐', copy: pendingOrder ? '处理当前点餐单' : '选今天吃什么', icon: Utensils, url: pendingOrder ? '/pages/meal-orders/index' : '/pages/meal-create/index' },
-    { key: 'inventory', label: '加物品', copy: '记录存放位置', icon: PackagePlus, url: '/pages/inventory-form/index' }
+  const featureActions = [
+    { key: 'ledger', label: '记一笔', copy: '记录家庭收支', icon: ReceiptText, illust: illustNote, url: '/pages/ledger-entry/index' },
+    { key: 'meals', label: pendingOrder ? '看点餐' : '今天吃什么', copy: pendingOrder ? '处理当前点餐单' : '不知道吃什么？来选一选', icon: Utensils, illust: illustMeal, url: pendingOrder ? '/pages/meal-orders/index' : '/pages/meal-create/index' },
+    { key: 'inventory', label: '家里有什么', copy: '管理物品与到期提醒', icon: PackagePlus, illust: illustStorage, url: '/pages/inventory-form/index' }
   ] as const
 
   const pendingCount = pendingOrder ? pendingOrder.items.length : 0
@@ -65,37 +72,39 @@ export default function HomePage() {
       </View>
 
       <View className='home-overview surface-card'>
-        <Text className='home-overview__label'>本月家庭结余</Text>
-        <Text className={`home-overview__balance num ${summary.balanceCents < 0 ? 'home-overview__balance--negative' : ''}`}>{formatYuan(summary.balanceCents)}</Text>
-        <View className='home-overview__metrics'>
-          <View className='home-overview__metric'>
-            <Text className='home-overview__metric-label'>收入</Text>
-            <Text className='home-overview__metric-value num home-overview__metric-value--income'>{formatYuan(summary.incomeCents)}</Text>
-          </View>
-          <View className='home-overview__metric'>
-            <Text className='home-overview__metric-label'>支出</Text>
-            <Text className='home-overview__metric-value num'>{formatYuan(summary.expenseCents)}</Text>
+        <View className='home-overview__info'>
+          <Text className='home-overview__label'>本月家庭结余</Text>
+          <Text className={`home-overview__balance num ${summary.balanceCents < 0 ? 'home-overview__balance--negative' : ''}`}>{formatYuan(summary.balanceCents)}</Text>
+          <View className='home-overview__metrics'>
+            <View className='home-overview__metric'>
+              <Text className='home-overview__metric-label'>收入</Text>
+              <Text className='home-overview__metric-value num home-overview__metric-value--income'>{formatYuan(summary.incomeCents)}</Text>
+            </View>
+            <View className='home-overview__metric'>
+              <Text className='home-overview__metric-label'>支出</Text>
+              <Text className='home-overview__metric-value num'>{formatYuan(summary.expenseCents)}</Text>
+            </View>
           </View>
         </View>
+        <Image className='home-overview__illust' src={illustLedger} mode='aspectFit' />
       </View>
 
       <View className='section'>
         <View className='section__head'>
           <Text className='section__title'>快捷操作</Text>
         </View>
-        <View className='home-quick-grid'>
-          {quickActions.map((action) => (
+        <View className='home-feature-grid'>
+          {featureActions.map((action) => (
             <Button
               key={action.key}
-              className='home-quick-card surface-card tap'
+              className='home-feature-card surface-card tap'
               hoverClass='tap--pressed'
               aria-label={`${action.label}，${action.copy}`}
               onClick={() => Taro.navigateTo({ url: action.url })}
             >
-              <View className='icon-bubble icon-bubble--xs icon-bubble--primary home-quick-card__icon'>
-                <AppIcon icon={action.icon} size={20} color={palette.primary} />
-              </View>
-              <Text className='home-quick-card__title'>{action.label}</Text>
+              <Image className='home-feature-card__illust' src={action.illust} mode='aspectFit' />
+              <Text className='home-feature-card__title'>{action.label}</Text>
+              <Text className='home-feature-card__copy'>{action.copy}</Text>
             </Button>
           ))}
         </View>
@@ -109,9 +118,7 @@ export default function HomePage() {
 
         {taskCount === 0 ? (
           <View className='home-all-clear surface-card'>
-            <View className='icon-bubble icon-bubble--xs icon-bubble--green'>
-              <AppIcon icon={Package} size={23} color={palette.success} />
-            </View>
+            <Image className='home-all-clear__illust' src={illustAllDone} mode='aspectFit' />
             <View className='home-all-clear__body'>
               <Text className='home-all-clear__title'>今天没有待处理事项</Text>
               <Text className='home-all-clear__copy'>点餐和物品到期提醒会显示在这里</Text>

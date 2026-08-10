@@ -1,6 +1,8 @@
-/** API base URL — switch per environment */
-const API_BASE = process.env.NODE_ENV === 'production'
-  ? 'https://api.youbenpu.com'   // TODO: replace with your real domain
+/** API base URL — injected by Taro defineConstants per environment */
+declare const API_BASE_URL: string
+
+const API_BASE = typeof API_BASE_URL !== 'undefined'
+  ? API_BASE_URL
   : 'http://127.0.0.1:8080'
 
 export const API = {

@@ -4,6 +4,7 @@ import devConfig from './dev'
 import prodConfig from './prod'
 
 export default defineConfig(async (merge, { command }) => {
+  const isWatch = process.argv.includes('--watch')
   const baseConfig: UserConfigExport = {
     projectName: 'youbenpu-miniprogram',
     date: '2026-08-03',
@@ -50,5 +51,5 @@ export default defineConfig(async (merge, { command }) => {
     }
   }
 
-  return merge({}, baseConfig, command === 'build' ? prodConfig : devConfig)
+  return merge({}, baseConfig, command === 'build' && !isWatch ? prodConfig : devConfig)
 })
