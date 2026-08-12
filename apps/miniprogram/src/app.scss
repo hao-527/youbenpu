@@ -14,6 +14,7 @@ page {
    * read muddy. Lightness steps match the previous slate ramp, so every
    * contrast ratio is preserved or slightly better.
    */
+  --orange-25: #fff8f0;
   --orange-50: #fff1eb;
   --orange-600: #e8530e;
   --orange-700: #c9440a;
@@ -45,6 +46,7 @@ page {
   --radius-md: 12rpx;
   --radius-lg: 16rpx;
   --radius-card: 20rpx;
+  --radius-xl: 28rpx;
   --radius-sheet: 32rpx;
   --radius-full: 999rpx;
   --hairline: 1rpx;
@@ -66,6 +68,7 @@ page {
   --text-lg: 34rpx;
   --text-xl: 38rpx;
   --text-2xl: 48rpx;
+  --text-3xl: 52rpx;
   --text-display: 60rpx;
 
   /* ---------- Semantic: color ---------- */
@@ -92,6 +95,7 @@ page {
   --color-border: var(--neutral-200);
   --color-border-strong: var(--neutral-300);
   --color-tint-primary: var(--orange-50);
+  --color-tint-warm: var(--orange-25);
   --color-tint-green: var(--green-50);
   --color-tint-red: #fef2f2;
 
@@ -108,6 +112,7 @@ page {
   --shadow-md: 0 20rpx 56rpx rgba(28, 25, 23, 0.16);
   --shadow-card: 0 1rpx 2rpx rgba(28, 25, 23, 0.04), 0 12rpx 28rpx -12rpx rgba(28, 25, 23, 0.1);
   --shadow-bar: 0 -10rpx 32rpx rgba(28, 25, 23, 0.08);
+  --shadow-cta: 0 8rpx 20rpx rgba(190, 64, 9, 0.16);
 
   /* ---------- Component ---------- */
   --page-gutter: 36rpx;
@@ -131,6 +136,7 @@ page {
 
 @media (prefers-color-scheme: dark) {
   page {
+    --orange-25: #1e1008;
     --orange-50: #2d1508;
     --orange-600: #fb923c;
     --orange-700: #fdba74;
@@ -163,6 +169,7 @@ page {
     --shadow-md: 0 24rpx 64rpx rgba(0, 0, 0, 0.55);
     --shadow-card: 0 0 0 var(--hairline) rgba(255, 255, 255, 0.06);
     --shadow-bar: 0 0 0 var(--hairline) rgba(255, 255, 255, 0.06);
+    --shadow-cta: 0 8rpx 20rpx rgba(251, 146, 60, 0.2);
   }
 }
 
@@ -249,7 +256,7 @@ button::after {
   color: var(--color-on-primary);
   font-size: var(--text-sm);
   font-weight: 600;
-  box-shadow: 0 6rpx 20rpx rgba(190, 64, 9, 0.25);
+  box-shadow: var(--shadow-cta);
   transition: background-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
 }
 

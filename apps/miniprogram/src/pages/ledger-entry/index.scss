@@ -68,7 +68,7 @@
   color: var(--color-primary-text);
   font-size: var(--text-xl);
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.1;
 }
 
 .ledger-entry-amount--income .ledger-entry-amount__symbol {
@@ -80,10 +80,10 @@
   height: 82rpx;
   flex: 1;
   color: var(--color-primary-text);
-  font-size: 58rpx;
+  font-size: var(--text-display);
   font-weight: 700;
   letter-spacing: -0.03em;
-  line-height: 1;
+  line-height: 1.1;
 }
 
 .ledger-entry-amount--income .ledger-entry-amount__input {
@@ -191,7 +191,7 @@
 .fixed-action-bar .button {
   min-height: 88rpx;
   border-radius: var(--radius-full);
-  box-shadow: 0 8rpx 20rpx rgba(190, 64, 9, 0.16);
+  box-shadow: var(--shadow-cta);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -207,7 +207,7 @@
   }
 
   .ledger-entry-amount__input {
-    font-size: 52rpx;
+    font-size: var(--text-3xl);
     height: 76rpx;
   }
 }
