@@ -1,5 +1,20 @@
 .ledger-entry-card {
-  padding: var(--space-4);
+  margin: 0;
+}
+
+.ledger-entry-form {
+  gap: 0;
+}
+
+.ledger-entry-type-switch {
+  width: 330rpx;
+  margin-bottom: var(--space-5);
+  border-radius: var(--radius-full);
+}
+
+.ledger-entry-type-switch .segmented-control__item {
+  min-height: 56rpx;
+  border-radius: var(--radius-full);
 }
 
 .ledger-entry-type--expense {
@@ -10,14 +25,36 @@
   color: var(--color-success);
 }
 
-/* ---------- Amount (hero input) ---------- */
+.ledger-entry-field {
+  position: relative;
+  padding: var(--space-4) 0;
+  border-top: var(--hairline) solid var(--color-border);
+}
+
+.ledger-entry-field--amount {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.ledger-entry-field .field__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+/* ---------- Amount (compact hero) ---------- */
 
 .ledger-entry-amount {
   display: flex;
-  min-height: 160rpx;
-  align-items: baseline;
+  min-height: 116rpx;
+  align-items: center;
   gap: var(--space-1);
-  padding: var(--space-4) var(--space-3) var(--space-3);
+  margin-top: var(--space-2);
+  padding: 0 var(--space-4);
   border-radius: var(--radius-lg);
   background: var(--color-tint-primary);
   transition: background-color var(--duration-fast) var(--ease-out);
@@ -29,7 +66,7 @@
 
 .ledger-entry-amount__symbol {
   color: var(--color-primary-text);
-  font-size: var(--text-2xl);
+  font-size: var(--text-xl);
   font-weight: 700;
   line-height: 1;
 }
@@ -40,10 +77,10 @@
 
 .ledger-entry-amount__input {
   min-width: 0;
-  height: 100rpx;
+  height: 82rpx;
   flex: 1;
   color: var(--color-primary-text);
-  font-size: 72rpx;
+  font-size: 58rpx;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -53,28 +90,124 @@
   color: var(--color-success);
 }
 
-.ledger-entry-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
+.ledger-entry-purpose {
+  position: relative;
+  z-index: 2;
+  margin-top: var(--space-2);
+}
+
+.ledger-entry-purpose__input-wrap {
+  display: flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  gap: var(--space-2);
+  padding: 0 var(--space-3);
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  transition: border-color var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out);
+}
+
+.ledger-entry-purpose--open .ledger-entry-purpose__input-wrap {
+  border-color: var(--color-primary);
+  background: var(--color-background);
+}
+
+.ledger-entry-purpose__input {
+  min-width: 0;
+  height: var(--touch-target);
+  flex: 1;
+  padding: 0;
+  color: var(--color-foreground);
+  font-size: var(--text-md);
+}
+
+.ledger-entry-purpose__suggestions {
+  position: absolute;
+  top: calc(100% - 1px);
+  right: 0;
+  left: 0;
+  overflow: hidden;
+  border: var(--hairline) solid var(--color-primary);
+  border-top: 0;
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  background: var(--color-background);
+  box-shadow: var(--shadow-md);
+}
+
+.ledger-entry-purpose__option {
+  display: flex;
+  width: 100%;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: flex-start;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: 0;
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: var(--text-md);
+  text-align: left;
+}
+
+.ledger-entry-purpose__option + .ledger-entry-purpose__option {
+  border-top: var(--hairline) solid var(--color-border);
+}
+
+.ledger-entry-purpose__option.tap--pressed {
+  background: var(--color-tint-primary);
+}
+
+.ledger-entry-field .field__control,
+.ledger-entry-field .chip-select,
+.ledger-entry-field > .segmented-control {
+  margin-top: var(--space-2);
+}
+
+.ledger-entry-field .field__control {
+  background: var(--color-background);
+}
+
+.ledger-entry-field .field__control--textarea {
+  min-height: 132rpx;
+}
+
+.ledger-entry-field > .segmented-control {
+  border-radius: var(--radius-md);
 }
 
 .ledger-entry-delete {
-  margin-top: var(--space-4);
+  margin: var(--space-5) 0 0;
+  border-top: var(--hairline) solid var(--color-border);
+  padding-top: var(--space-4);
+}
+
+.fixed-action-bar {
+  padding-top: var(--space-3);
+  border-top-color: var(--color-border);
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.fixed-action-bar .button {
+  min-height: 88rpx;
+  border-radius: var(--radius-full);
+  box-shadow: 0 8rpx 20rpx rgba(190, 64, 9, 0.16);
+}
+
+@media (prefers-color-scheme: dark) {
+  .fixed-action-bar {
+    background: rgba(31, 28, 26, 0.92);
+  }
 }
 
 @media screen and (max-width: 350px) {
   .ledger-entry-amount {
-    min-height: 140rpx;
-    padding: var(--space-3) var(--space-2) var(--space-2);
+    min-height: 108rpx;
+    padding: 0 var(--space-3);
   }
 
   .ledger-entry-amount__input {
-    font-size: 60rpx;
-    height: 88rpx;
-  }
-
-  .ledger-entry-grid {
-    grid-template-columns: 1fr;
+    font-size: 52rpx;
+    height: 76rpx;
   }
 }

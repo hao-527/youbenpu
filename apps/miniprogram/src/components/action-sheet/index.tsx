@@ -1,4 +1,4 @@
-import { Button, Text, View } from '@tarojs/components'
+import { Button, ScrollView, Text, View } from '@tarojs/components'
 import { useEffect, useState } from 'react'
 
 import './index.scss'
@@ -17,7 +17,6 @@ export function ActionSheet({ open, title, onClose, children }: ActionSheetProps
   useEffect(() => {
     if (open) {
       setVisible(true)
-      // trigger enter animation next frame
       requestAnimationFrame(() => setAnimating(true))
     } else {
       setAnimating(false)
@@ -38,9 +37,9 @@ export function ActionSheet({ open, title, onClose, children }: ActionSheetProps
             <Button className='asheet__close tap' hoverClass='tap--pressed' onClick={onClose}>取消</Button>
           </View>
         )}
-        <View className='asheet__body'>
+        <ScrollView className='asheet__body' scrollY enhanced showScrollbar={false}>
           {children}
-        </View>
+        </ScrollView>
       </View>
     </View>
   )

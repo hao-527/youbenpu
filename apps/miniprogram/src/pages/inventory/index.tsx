@@ -1,6 +1,6 @@
-import { Button, Image, Input, ScrollView, Text, View } from '@tarojs/components'
+import { Button, Image, Input, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { ChevronRight, MapPin, Package, Plus, Search, Settings2, Timer } from 'lucide'
+import { ChevronRight, MapPin, Package, Plus, Search, Settings2, Timer, X } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
@@ -11,6 +11,9 @@ import { useStore } from '../../store'
 import { palette } from '../../theme/palette'
 import { inventoryCategories, type InventoryCategory, type InventoryItem, type InventoryStatus } from '../../types/domain'
 import { getInventoryExpiry } from '../../utils/date'
+
+import illustExpiry from '../../assets/images/illustrations/expiry.svg'
+import illustStorage from '../../assets/images/illustrations/storage.svg'
 
 import './index.scss'
 
@@ -53,8 +56,7 @@ export default function InventoryPage() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
   const [locationFilter, setLocationFilter] = useState('全部地点')
   const [categoryFilter, setCategoryFilter] = useState<'全部' | InventoryCategory>('全部')
-  const [showTimePicker, setShowTimePicker] = useState(false)
-  const [showLocationPicker, setShowLocationPicker] = useState(false)
+  const [openFilter, setOpenFilter] = useState<'category' | 'time' | 'location' | null>(null)
 
   const displayInventory = useMemo(() => inventory
     .filter((item) => item.status !== 'finished' && item.status !== 'discarded' && item.status !== 'deleted')
@@ -63,9 +65,13 @@ export default function InventoryPage() {
       return { ...item, expiryLabel: expiry.label, status: expiry.status }
     }), [inventory])
 
-  const locationOptions = useMemo(() => ['全部地点', ...locations], [locations])
-  const categoryOptions = useMemo(() => ['全部', ...inventoryCategories, ...customInventoryCategories] as string[], [customInventoryCategories])
+  const locationOptions = useMemo(() => Array.from(new Set(['全部地点', ...locations])), [locations])
+  const categoryOptions = useMemo(
+    () => Array.from(new Set(['全部', ...inventoryCategories, ...customInventoryCategories])) as string[],
+    [customInventoryCategories]
+  )
   const activeCount = displayInventory.length
+  const hasActiveFilters = Boolean(keyword.trim()) || timeFilter !== 'all' || locationFilter !== '全部地点' || categoryFilter !== '全部'
 
   const visibleItems = useMemo(() => displayInventory.filter((item) => {
     const normalizedKeyword = keyword.trim().toLowerCase()
@@ -85,6 +91,7 @@ export default function InventoryPage() {
   }), [categoryFilter, displayInventory, keyword, locationFilter, timeFilter])
 
   const timeListOptions = useMemo(() => timeOptions.map((o) => ({ label: o.label, value: o.key })), [])
+  const categoryListOptions = useMemo(() => categoryOptions.map((c) => ({ label: c, value: c })), [categoryOptions])
   const locationListOptions = useMemo(() => locationOptions.map((l) => ({ label: l, value: l })), [locationOptions])
 
   return (
@@ -116,9 +123,17 @@ export default function InventoryPage() {
 
       <View className='inventory-filters'>
         <Button
+          className={`inventory-filter tap ${categoryFilter !== '全部' ? 'inventory-filter--active' : ''}`}
+          hoverClass='tap--pressed'
+          onClick={() => setOpenFilter('category')}
+        >
+          <AppIcon icon={Package} size={14} color={categoryFilter !== '全部' ? palette.primary : palette.subtleForeground} />
+          <Text className='inventory-filter__label'>{categoryFilter}</Text>
+        </Button>
+        <Button
           className={`inventory-filter tap ${timeFilter !== 'all' ? 'inventory-filter--active' : ''}`}
           hoverClass='tap--pressed'
-          onClick={() => setShowTimePicker(true)}
+          onClick={() => setOpenFilter('time')}
         >
           <AppIcon icon={Timer} size={14} color={timeFilter !== 'all' ? palette.primary : palette.subtleForeground} />
           <Text className='inventory-filter__label'>{timeOptions.find((o) => o.key === timeFilter)?.label ?? '全部时间'}</Text>
@@ -126,36 +141,42 @@ export default function InventoryPage() {
         <Button
           className={`inventory-filter tap ${locationFilter !== '全部地点' ? 'inventory-filter--active' : ''}`}
           hoverClass='tap--pressed'
-          onClick={() => setShowLocationPicker(true)}
+          onClick={() => setOpenFilter('location')}
         >
           <AppIcon icon={MapPin} size={14} color={locationFilter !== '全部地点' ? palette.primary : palette.subtleForeground} />
           <Text className='inventory-filter__label'>{locationFilter}</Text>
         </Button>
       </View>
 
-      <ScrollView className='category-chips' scrollX enableFlex>
-        <View className='category-chips__track'>
-          {categoryOptions.map((option) => (
-            <Button
-              key={option}
-              className={`category-chip tap ${categoryFilter === option ? 'category-chip--active' : ''}`}
-              hoverClass='tap--pressed'
-              onClick={() => setCategoryFilter(option)}
-            >
-              {option}
-            </Button>
-          ))}
-        </View>
-      </ScrollView>
+      <View className='inventory-results-bar'>
+        <Text className='inventory-results-bar__count'>{visibleItems.length} 件结果</Text>
+        {hasActiveFilters && (
+          <Button
+            className='inventory-results-bar__clear tap'
+            hoverClass='tap--pressed'
+            aria-label='清除筛选'
+            onClick={() => {
+              setKeyword('')
+              setCategoryFilter('全部')
+              setTimeFilter('all')
+              setLocationFilter('全部地点')
+            }}
+          >
+            <AppIcon icon={X} size={13} color={palette.primary} />
+            <Text>清除筛选</Text>
+          </Button>
+        )}
+      </View>
 
       {visibleItems.length === 0 ? (
         <View className='empty-state surface-card inventory-empty'>
-          <View className='empty-state__icon'>
-            <AppIcon icon={Package} size={30} color={palette.subtleForeground} />
-          </View>
+          <Image
+            className='inventory-empty__illust'
+            src={timeFilter === 'all' ? illustStorage : illustExpiry}
+            mode='aspectFit'
+          />
           <Text className='empty-state__title'>没有找到相关物品</Text>
-          <Text className='empty-state__copy'>调整搜索或筛选条件，也可以新增一个物品。</Text>
-          <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/inventory-form/index' })}>新增物品</Button>
+          <Text className='empty-state__copy'>{hasActiveFilters ? '没有符合条件的物品，试试清除筛选或调整关键词。' : '还没有记录物品，点击下方“新增”开始建立家庭物品清单。'}</Text>
         </View>
       ) : (
         <View className='inventory-list surface-card'>
@@ -196,21 +217,30 @@ export default function InventoryPage() {
       </Button>
 
       <ListSelect
-        open={showTimePicker}
+        open={openFilter === 'category'}
+        title='选择分类'
+        options={categoryListOptions}
+        value={categoryFilter}
+        onSelect={(v) => setCategoryFilter(v as InventoryCategory)}
+        onClose={() => setOpenFilter(null)}
+      />
+
+      <ListSelect
+        open={openFilter === 'time'}
         title='到期时间筛选'
         options={timeListOptions}
         value={timeFilter}
         onSelect={(v) => setTimeFilter(v as TimeFilter)}
-        onClose={() => setShowTimePicker(false)}
+        onClose={() => setOpenFilter(null)}
       />
 
       <ListSelect
-        open={showLocationPicker}
+        open={openFilter === 'location'}
         title='选择地点'
         options={locationListOptions}
         value={locationFilter}
         onSelect={setLocationFilter}
-        onClose={() => setShowLocationPicker(false)}
+        onClose={() => setOpenFilter(null)}
       />
     </PageShell>
   )

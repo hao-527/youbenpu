@@ -1,10 +1,9 @@
-import { Button, Text, View } from '@tarojs/components'
+import { Button, Image, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { ArrowDownLeft, ArrowUpRight, ChevronRight, Plus, Users } from 'lucide'
+import { ArrowDownLeft, ArrowUpRight, ChevronRight, Plus } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
-import { ChipSelect } from '../../components/chip-select'
 import { MonthPicker } from '../../components/month-picker'
 import { PageShell } from '../../components/page-shell'
 import { useStore } from '../../store'
@@ -12,6 +11,9 @@ import { palette } from '../../theme/palette'
 import type { LedgerEntry } from '../../types/domain'
 import { formatLocalDate, getPreviousDate } from '../../utils/date'
 import { formatYuan } from '../../utils/money'
+
+import illustLedger from '../../assets/images/illustrations/ledger.svg'
+import illustNote from '../../assets/images/illustrations/note.svg'
 
 import './index.scss'
 
@@ -48,16 +50,12 @@ export default function LedgerPage() {
   const currentMemberName = members.find((member) => member.id === currentMemberId)?.displayName ?? ''
   const [viewYear, setViewYear] = useState(now.getFullYear())
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1)
-  const [memberFilter, setMemberFilter] = useState('全部')
   const [showMonthPicker, setShowMonthPicker] = useState(false)
-
-  const memberOptions = useMemo(() => ['全部', ...members.map((member) => member.displayName)], [members])
 
   const monthPrefix = `${viewYear}-${String(viewMonth).padStart(2, '0')}`
   const filteredEntries = useMemo(() => ledger
-    .filter((entry) => entry.date.startsWith(monthPrefix)
-      && (memberFilter === '全部' || entry.memberName === memberFilter))
-    .sort((a, b) => b.date.localeCompare(a.date) || b.timeLabel.localeCompare(a.timeLabel)), [ledger, memberFilter, monthPrefix])
+    .filter((entry) => entry.date.startsWith(monthPrefix))
+    .sort((a, b) => b.date.localeCompare(a.date) || b.timeLabel.localeCompare(a.timeLabel)), [ledger, monthPrefix])
 
   const summary = useMemo(() => filteredEntries.reduce((result, entry) => {
     if (entry.type === 'income') result.incomeCents += entry.amountCents
@@ -75,32 +73,25 @@ export default function LedgerPage() {
   }).filter((item) => item.expenseCents > 0), [filteredEntries, members])
 
   return (
-    <PageShell withFab>
+    <PageShell withFab={grouped.length > 0}>
       <View className='page-title'>
         <View>
-          <Text className='page-title__text'>账本</Text>
-          <Text className='page-title__subtitle'>{memberFilter === '全部' ? '全家收支' : `${memberFilter}的收支`}</Text>
+          <View className='ledger-page-title__row'>
+            <Text className='page-title__text'>账本</Text>
+            <Image className='ledger-page-title__illust' src={illustLedger} mode='aspectFit' />
+          </View>
+          <Text className='page-title__subtitle'>家庭收支</Text>
         </View>
-        <View className='ledger-member-filter'>
-          <AppIcon icon={Users} size={14} color={palette.subtleForeground} />
-        </View>
-      </View>
-
-      {/* Month navigation — tap label opens MonthPicker */}
-      <View className='month-nav'>
-        <Button className='month-nav__label tap' hoverClass='tap--pressed' onClick={() => setShowMonthPicker(true)}>
-          <Text className='month-nav__text num'>{getMonthLabel(viewYear, viewMonth)}</Text>
-        </Button>
-      </View>
-
-      {/* Member filter chips */}
-      <View className='ledger-filter-row'>
-        <ChipSelect options={memberOptions} value={memberFilter} onChange={setMemberFilter} wrap={false} />
       </View>
 
       <View className='ledger-overview surface-card'>
-        <Text className='ledger-overview__label'>本月结余</Text>
-        <Text className={`ledger-overview__balance num ${summary.balanceCents < 0 ? 'ledger-overview__balance--negative' : ''}`}>{formatYuan(summary.balanceCents)}</Text>
+        <View className='ledger-overview__head'>
+          <Text className='ledger-overview__label'>本月结余</Text>
+          <Button className='month-nav__label ledger-overview__month tap' hoverClass='tap--pressed' onClick={() => setShowMonthPicker(true)}>
+            <Text className='month-nav__text num'>{getMonthLabel(viewYear, viewMonth)}</Text>
+          </Button>
+        </View>
+        <Text className={`ledger-overview__balance num ${summary.balanceCents < 0 ? 'ledger-overview__balance--negative' : ''} ${summary.balanceCents === 0 ? 'ledger-overview__balance--zero' : ''}`}>{formatYuan(summary.balanceCents)}</Text>
         <View className='ledger-overview__metrics'>
           <View className='ledger-overview__metric'>
             <Text className='ledger-overview__metric-label'>收入</Text>
@@ -112,79 +103,89 @@ export default function LedgerPage() {
             <Text className='ledger-overview__metric-value num'>{formatYuan(summary.expenseCents)}</Text>
           </View>
         </View>
+
+        {memberStats.length > 0 && (
+          <View className='ledger-member-stats'>
+            <View className='ledger-member-stats__head'>
+              <Text className='ledger-member-stats__title'>本月支出</Text>
+              <Text className='ledger-member-stats__meta'>按成员</Text>
+            </View>
+            <View className='ledger-member-stats__rows'>
+              {memberStats.map((item) => (
+                <View key={item.name} className='ledger-member-stat'>
+                  <Text className='ledger-member-stat__name'>{item.name}</Text>
+                  <Text className='ledger-member-stat__amount num'>{formatYuan(item.expenseCents)}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+          )}
       </View>
 
-      {memberStats.length > 0 && (
-        <View className='ledger-member-stats surface-card'>
-          <View className='ledger-member-stats__head'>
-            <Text className='ledger-member-stats__title'>本月支出</Text>
-            <Text className='ledger-member-stats__meta'>按成员</Text>
-          </View>
-          <View className='ledger-member-stats__rows'>
-            {memberStats.map((item) => (
-              <View key={item.name} className='ledger-member-stat'>
-                <Text className='ledger-member-stat__name'>{item.name}</Text>
-                <Text className='ledger-member-stat__amount num'>{formatYuan(item.expenseCents)}</Text>
-              </View>
-            ))}
-          </View>
+      <View className='ledger-records section'>
+        <View className='section__head ledger-records__head'>
+          <Text className='section__title'>最近记录</Text>
+          <Text className='section__meta'>{filteredEntries.length > 0 ? `${filteredEntries.length} 笔` : '本月'}</Text>
         </View>
+
+        {grouped.length === 0 ? (
+          <View className='empty-state surface-card'>
+          <Image className='ledger-empty__illust' src={illustNote} mode='aspectFit' />
+            <Text className='empty-state__title'>本月还没有记录</Text>
+            <Text className='empty-state__copy'>从第一笔家庭收支开始，掌握每一笔钱的去向。</Text>
+            <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}>
+              记一笔
+            </Button>
+          </View>
+        ) : grouped.map((group) => (
+          <View key={group.date} className='ledger-day'>
+            <View className='section__head ledger-day__head'>
+              <Text className='section__title'>{group.label}</Text>
+              <Text className='section__meta'>{group.entries.length} 笔</Text>
+            </View>
+            <View className='ledger-list surface-card'>
+              {group.entries.map((entry) => (
+                <Button
+                  key={entry.id}
+                  className='ledger-row tap tap-row'
+                  hoverClass='tap--pressed'
+                  aria-label={`${entry.purpose}，${entry.type === 'income' ? '收入' : '支出'}${formatYuan(entry.amountCents)}`}
+                  onClick={() => Taro.navigateTo({ url: `/pages/ledger-entry/index?id=${entry.id}` })}
+                >
+                  <View className={`icon-bubble ${entry.type === 'income' ? 'icon-bubble--green' : 'icon-bubble--primary'}`}>
+                    <AppIcon icon={entry.type === 'income' ? ArrowDownLeft : ArrowUpRight} size={16} color={entry.type === 'income' ? palette.success : palette.primary} />
+                  </View>
+                  <View className='ledger-row__body'>
+                    <Text className='ledger-row__title'>{entry.purpose}</Text>
+                    <Text className='ledger-row__meta'>{entry.memberName} · {entry.timeLabel}</Text>
+                    {entry.note && (entry.noteVisibility === 'shared' || entry.memberName === currentMemberName) && (
+                      <Text className='ledger-row__note'>{entry.note}</Text>
+                    )}
+                  </View>
+                  <View className='ledger-row__amount-wrap'>
+                    <Text className={`ledger-row__amount num ${entry.type === 'income' ? 'ledger-row__amount--income' : ''}`}>
+                      {entry.type === 'income' ? '+' : '-'}{formatYuan(entry.amountCents).slice(1)}
+                    </Text>
+                    <AppIcon icon={ChevronRight} size={14} color={palette.subtleForeground} />
+                  </View>
+                </Button>
+              ))}
+            </View>
+          </View>
+        ))}
+      </View>
+
+      {grouped.length > 0 && (
+        <Button
+          className='fab tap'
+          hoverClass='tap--pressed'
+          aria-label='记一笔'
+          onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}
+        >
+          <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
+          <Text>记一笔</Text>
+        </Button>
       )}
-
-      {grouped.length === 0 ? (
-        <View className='empty-state surface-card'>
-          <Text className='empty-state__title'>这个月还没有记录</Text>
-          <Text className='empty-state__copy'>{memberFilter === '全部' ? '记录第一笔家庭收支，月底更清楚钱花在哪里。' : '当前成员在这个月没有收支记录。'}</Text>
-          <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}>
-            记一笔
-          </Button>
-        </View>
-      ) : grouped.map((group) => (
-        <View key={group.date} className='section ledger-day'>
-          <View className='section__head ledger-day__head'>
-            <Text className='section__title'>{group.label}</Text>
-            <Text className='section__meta'>{group.entries.length} 笔</Text>
-          </View>
-          <View className='ledger-list surface-card'>
-            {group.entries.map((entry) => (
-              <Button
-                key={entry.id}
-                className='ledger-row tap tap-row'
-                hoverClass='tap--pressed'
-                aria-label={`${entry.purpose}，${entry.type === 'income' ? '收入' : '支出'}${formatYuan(entry.amountCents)}`}
-                onClick={() => Taro.navigateTo({ url: `/pages/ledger-entry/index?id=${entry.id}` })}
-              >
-                <View className={`icon-bubble ${entry.type === 'income' ? 'icon-bubble--green' : 'icon-bubble--primary'}`}>
-                  <AppIcon icon={entry.type === 'income' ? ArrowDownLeft : ArrowUpRight} size={16} color={entry.type === 'income' ? palette.success : palette.primary} />
-                </View>
-                <View className='ledger-row__body'>
-                  <Text className='ledger-row__title'>{entry.purpose}</Text>
-                  <Text className='ledger-row__meta'>{entry.memberName} · {entry.timeLabel}</Text>
-                  {entry.note && (entry.noteVisibility === 'shared' || entry.memberName === currentMemberName) && (
-                    <Text className='ledger-row__note'>{entry.note}</Text>
-                  )}
-                </View>
-                <View className='ledger-row__amount-wrap'>
-                  <Text className={`ledger-row__amount num ${entry.type === 'income' ? 'ledger-row__amount--income' : ''}`}>
-                    {entry.type === 'income' ? '+' : '-'}{formatYuan(entry.amountCents).slice(1)}
-                  </Text>
-                  <AppIcon icon={ChevronRight} size={14} color={palette.subtleForeground} />
-                </View>
-              </Button>
-            ))}
-          </View>
-        </View>
-      ))}
-
-      <Button
-        className='fab tap'
-        hoverClass='tap--pressed'
-        aria-label='记一笔'
-        onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}
-      >
-        <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
-        <Text>记一笔</Text>
-      </Button>
 
       <MonthPicker
         open={showMonthPicker}

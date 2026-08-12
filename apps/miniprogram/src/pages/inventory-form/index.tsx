@@ -4,7 +4,6 @@ import { Calendar, Camera, MapPin, Package } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
-import { ChipSelect } from '../../components/chip-select'
 import { DatePicker } from '../../components/date-picker'
 import { ListSelect } from '../../components/list-select'
 import { PageHeader } from '../../components/page-header'
@@ -41,6 +40,7 @@ export default function InventoryFormPage() {
   const [expiryDate, setExpiryDate] = useState(editingItem?.expiryDate ?? '')
   const [photo, setPhoto] = useState(editingItem?.photo ?? '')
   const [showLocationPicker, setShowLocationPicker] = useState(false)
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
 
   const choosePhoto = async () => {
@@ -57,8 +57,34 @@ export default function InventoryFormPage() {
       if (!result.confirm || !result.content) return
       const newName = result.content.trim().slice(0, 10)
       if (!newName) return
+      if (allCategories.includes(newName)) {
+        setCategory(newName)
+        setShowCategoryPicker(false)
+        return
+      }
       dispatch({ type: 'category/addInventory', name: newName })
       setCategory(newName)
+      setShowCategoryPicker(false)
+    })
+  }
+
+  const addLocation = () => {
+    ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
+      title: '新增存放位置',
+      editable: true,
+      placeholderText: '例如：冰箱冷藏、阳台柜'
+    }).then((result) => {
+      if (!result.confirm || !result.content) return
+      const newLocation = result.content.trim().slice(0, 20)
+      if (!newLocation) return
+      if (locations.includes(newLocation)) {
+        setLocation(newLocation)
+        setShowLocationPicker(false)
+        return
+      }
+      dispatch({ type: 'location/add', name: newLocation })
+      setLocation(newLocation)
+      setShowLocationPicker(false)
     })
   }
 
@@ -69,8 +95,8 @@ export default function InventoryFormPage() {
       Taro.showToast({ title: '请填写物品名称', icon: 'none' })
       return
     }
-    if (!location || !locations.includes(location)) {
-      Taro.showToast({ title: '请选择有效的存放位置', icon: 'none' })
+    if (!location) {
+      Taro.showToast({ title: '请选择存放位置', icon: 'none' })
       return
     }
     if (normalizedName.length > 40 || normalizedQuantity.length > 30) {
@@ -112,22 +138,6 @@ export default function InventoryFormPage() {
     )
   }
 
-  if (locations.length === 0) {
-    return (
-      <PageShell tabPage={false}>
-        <PageHeader title={editingItem ? '编辑物品' : '新增物品'} />
-        <View className='empty-state surface-card'>
-          <View className='empty-state__icon empty-state__icon--primary'>
-            <AppIcon icon={MapPin} size={32} color={palette.primary} />
-          </View>
-          <Text className='empty-state__title'>请先设置存放位置</Text>
-          <Text className='empty-state__copy'>物品必须有明确位置，之后查找才有意义。</Text>
-          <Button className='button button--primary empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.redirectTo({ url: '/pages/family-manage/index?section=locations' })}>设置位置</Button>
-        </View>
-      </PageShell>
-    )
-  }
-
   return (
     <PageShell tabPage={false} withFixedBar>
       <PageHeader title={editingItem ? '编辑物品' : '新增物品'} subtitle='名称和存放位置为必填项' />
@@ -154,19 +164,18 @@ export default function InventoryFormPage() {
 
         <View className='field'>
           <Text className='field__label'>分类</Text>
-          <ChipSelect options={allCategories} value={category} onChange={(v) => setCategory(v)} />
-          <Button className='inventory-form-add-category tap' hoverClass='tap--pressed' onClick={addCustomCategory}>
-            <Text>+ 自定义分类</Text>
+          <Button className='field__control field__control--picker tap' hoverClass='tap--pressed' onClick={() => setShowCategoryPicker(true)}>
+            <Text>{category}</Text>
+            <AppIcon icon={Package} size={16} color={palette.subtleForeground} />
           </Button>
         </View>
 
         <View className='field'>
           <Text className='field__label'>存放位置</Text>
           <Button className='field__control field__control--picker tap' hoverClass='tap--pressed' onClick={() => setShowLocationPicker(true)}>
-            <Text>{location}</Text>
+            <Text className={location ? '' : 'inventory-form-empty-date'}>{location || '点击选择或新增位置'}</Text>
             <AppIcon icon={MapPin} size={16} color={palette.subtleForeground} />
           </Button>
-          <Text className='field__hint'>位置可在"我的 → 家庭管理"中维护</Text>
         </View>
 
         <View className='field'>
@@ -190,12 +199,25 @@ export default function InventoryFormPage() {
       </View>
 
       <ListSelect
+        open={showCategoryPicker}
+        title='选择分类'
+        options={allCategories.map((c) => ({ label: c, value: c }))}
+        value={category}
+        onSelect={(v) => setCategory(v)}
+        onClose={() => setShowCategoryPicker(false)}
+        addLabel='自定义分类'
+        onAdd={addCustomCategory}
+      />
+
+      <ListSelect
         open={showLocationPicker}
         title='选择存放位置'
         options={locationOptions}
         value={location}
         onSelect={setLocation}
         onClose={() => setShowLocationPicker(false)}
+        addLabel='新增位置'
+        onAdd={addLocation}
       />
 
       <DatePicker

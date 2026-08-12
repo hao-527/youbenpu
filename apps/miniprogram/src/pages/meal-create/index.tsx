@@ -124,7 +124,7 @@ export default function MealCreatePage() {
           </View>
           <Text className='empty-state__title'>还没有可点的菜</Text>
           <Text className='empty-state__copy'>先添加菜品或将暂停菜品重新上架。</Text>
-          <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.redirectTo({ url: '/pages/dish-manage/index' })}>
+          <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}>
             去管理菜品
           </Button>
         </View>

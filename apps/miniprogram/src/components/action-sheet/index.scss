@@ -17,9 +17,11 @@
 }
 
 .asheet {
+  display: flex;
+  flex-direction: column;
   width: 100%;
   max-width: 540PX;
-  max-height: 80vh;
+  max-height: 75vh;
   border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
   background: var(--color-surface);
   box-shadow: var(--shadow-md);
@@ -34,6 +36,7 @@
 .asheet__handle {
   width: 48rpx;
   height: 6rpx;
+  flex-shrink: 0;
   margin: 16rpx auto 0;
   border-radius: var(--radius-full);
   background: var(--color-border-strong);
@@ -41,6 +44,7 @@
 
 .asheet__header {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   justify-content: space-between;
   padding: var(--space-3) var(--space-4) var(--space-2);
@@ -59,8 +63,9 @@
 }
 
 .asheet__body {
+  flex: 1;
+  min-height: 0;
   padding: 0 var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-4));
-  overflow-y: auto;
 }
 
 @media (prefers-color-scheme: dark) {

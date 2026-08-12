@@ -1,6 +1,6 @@
 import { Button, Input, Text, Textarea, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { Calendar, Trash2 } from 'lucide'
+import { Calendar, ChevronDown, Trash2 } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
@@ -40,6 +40,26 @@ export default function LedgerEntryPage() {
   const today = formatLocalDate()
   const currentMemberName = members.find((member) => member.id === currentMemberId)?.displayName ?? members[0]?.displayName ?? ''
   const memberNames = useMemo(() => members.map((member) => member.displayName), [members])
+  const purposeOptions = useMemo(() => {
+    const seen = new Set<string>()
+    const values: string[] = []
+
+    for (const entry of ledger) {
+      const value = entry.purpose.trim()
+      const key = value.toLocaleLowerCase()
+      if (!value || seen.has(key)) continue
+      seen.add(key)
+      values.push(value)
+      if (values.length >= 12) break
+    }
+
+    const currentPurpose = editingEntry?.purpose.trim() ?? ''
+    if (currentPurpose && !seen.has(currentPurpose.toLocaleLowerCase())) {
+      values.unshift(currentPurpose)
+    }
+
+    return values.map((value) => ({ label: value, value }))
+  }, [editingEntry?.purpose, ledger])
 
   const [type, setType] = useState<TransactionType>(editingEntry?.type ?? 'expense')
   const [amount, setAmount] = useState(editingEntry ? (editingEntry.amountCents / 100).toFixed(2).replace(/\.00$/, '') : '')
@@ -47,8 +67,15 @@ export default function LedgerEntryPage() {
   const [memberName, setMemberName] = useState(editingEntry?.memberName ?? currentMemberName)
   const [date, setDate] = useState(editingEntry?.date ?? today)
   const [note, setNote] = useState(editingEntry?.note ?? '')
+  const filteredPurposeOptions = useMemo(() => {
+    const keyword = purpose.trim().toLocaleLowerCase()
+    if (!keyword) return purposeOptions
+    return purposeOptions.filter((option) => option.value.toLocaleLowerCase().includes(keyword))
+  }, [purpose, purposeOptions])
+
   const [visibility, setVisibility] = useState<LedgerEntry['noteVisibility']>(editingEntry?.noteVisibility ?? 'shared')
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showPurposeSuggestions, setShowPurposeSuggestions] = useState(false)
 
   const submit = () => {
     const normalizedAmount = amount.trim()
@@ -114,13 +141,13 @@ export default function LedgerEntryPage() {
     <PageShell tabPage={false} withFixedBar>
       <PageHeader title={editingEntry ? '编辑记录' : '记一笔'} subtitle='金额和用途为必填项' />
 
-      <View className='ledger-entry-card form-page surface-card'>
-        <View className='segmented-control'>
+      <View className='ledger-entry-card ledger-entry-form form-page'>
+        <View className='segmented-control ledger-entry-type-switch'>
           <Button className={`segmented-control__item tap ${type === 'expense' ? 'segmented-control__item--active ledger-entry-type--expense' : ''}`} hoverClass='tap--pressed' onClick={() => setType('expense')}>支出</Button>
           <Button className={`segmented-control__item tap ${type === 'income' ? 'segmented-control__item--active ledger-entry-type--income' : ''}`} hoverClass='tap--pressed' onClick={() => setType('income')}>收入</Button>
         </View>
 
-        <View className='field'>
+        <View className='field ledger-entry-field ledger-entry-field--amount'>
           <Text className='field__label'>金额</Text>
           <View className={`ledger-entry-amount ${type === 'income' ? 'ledger-entry-amount--income' : ''}`}>
             <Text className='ledger-entry-amount__symbol'>¥</Text>
@@ -128,17 +155,52 @@ export default function LedgerEntryPage() {
           </View>
         </View>
 
-        <View className='field'>
+        <View className='field ledger-entry-field'>
           <Text className='field__label'>用途</Text>
-          <Input className='field__control' type='text' maxlength={40} placeholder='例如：菜市场采购' placeholderClass='input-placeholder' value={purpose} onInput={(event) => setPurpose(event.detail.value)} />
+          <View className={`ledger-entry-purpose ${showPurposeSuggestions ? 'ledger-entry-purpose--open' : ''}`}>
+            <View className='ledger-entry-purpose__input-wrap'>
+              <Input
+                className='ledger-entry-purpose__input'
+                type='text'
+                maxlength={40}
+                placeholder='例如：菜市场采购'
+                placeholderClass='input-placeholder'
+                value={purpose}
+                onFocus={() => purposeOptions.length > 0 && setShowPurposeSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowPurposeSuggestions(false), 180)}
+                onInput={(event) => {
+                  setPurpose(event.detail.value)
+                  setShowPurposeSuggestions(purposeOptions.length > 0)
+                }}
+              />
+              {purposeOptions.length > 0 && <AppIcon icon={ChevronDown} size={16} color={palette.subtleForeground} />}
+            </View>
+            {showPurposeSuggestions && filteredPurposeOptions.length > 0 && (
+              <View className='ledger-entry-purpose__suggestions'>
+                {filteredPurposeOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    className='ledger-entry-purpose__option tap'
+                    hoverClass='tap--pressed'
+                    onClick={() => {
+                      setPurpose(option.value)
+                      setShowPurposeSuggestions(false)
+                    }}
+                  >
+                    <Text>{option.label}</Text>
+                  </Button>
+                ))}
+              </View>
+            )}
+          </View>
         </View>
 
-        <View className='field'>
+        <View className='field ledger-entry-field'>
           <Text className='field__label'>成员</Text>
           <ChipSelect options={memberNames} value={memberName} onChange={setMemberName} />
         </View>
 
-        <View className='field'>
+        <View className='field ledger-entry-field'>
           <Text className='field__label'>日期</Text>
           <Button className='field__control field__control--picker tap' hoverClass='tap--pressed' onClick={() => setShowDatePicker(true)}>
             <Text className='num'>{getDateDisplayLabel(date, today)}</Text>
@@ -146,12 +208,12 @@ export default function LedgerEntryPage() {
           </Button>
         </View>
 
-        <View className='field'>
+        <View className='field ledger-entry-field'>
           <Text className='field__label'>备注 <Text className='field__optional'>选填</Text></Text>
           <Textarea className='field__control field__control--textarea' maxlength={120} placeholder='补充这笔收支的说明' placeholderClass='input-placeholder' value={note} onInput={(event) => setNote(event.detail.value)} />
         </View>
 
-        <View className='field'>
+        <View className='field ledger-entry-field'>
           <Text className='field__label'>备注可见范围</Text>
           <View className='segmented-control'>
             <Button className={`segmented-control__item tap ${visibility === 'shared' ? 'segmented-control__item--active' : ''}`} hoverClass='tap--pressed' onClick={() => setVisibility('shared')}>家庭可见</Button>
@@ -180,6 +242,7 @@ export default function LedgerEntryPage() {
         onSelect={setDate}
         onClose={() => setShowDatePicker(false)}
       />
+
     </PageShell>
   )
 }

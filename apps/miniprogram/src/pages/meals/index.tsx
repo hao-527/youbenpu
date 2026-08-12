@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
 import { PageShell } from '../../components/page-shell'
+import illustMeal from '../../assets/images/illustrations/meal.svg'
 import { StateText } from '../../components/state-text'
 import { useStore } from '../../store'
 import { palette } from '../../theme/palette'
@@ -34,23 +35,12 @@ export default function MealsPage() {
   }
 
   return (
-    <PageShell>
-      <View className='page-title'>
+    <PageShell className='meals-page'>
+      <View className='page-title meals-page-title'>
         <View>
           <Text className='page-title__text'>吃饭</Text>
           <Text className='page-title__subtitle'>选好今天吃什么，家里人都能看到</Text>
         </View>
-      </View>
-
-      <View className='content-toolbar content-toolbar--spread'>
-        <Button className='content-action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
-          <AppIcon icon={History} size={16} color={palette.foreground} />
-          <Text>点餐记录</Text>
-        </Button>
-        <Button className='content-action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}>
-          <AppIcon icon={Settings2} size={16} color={palette.foreground} />
-          <Text>菜品管理</Text>
-        </Button>
       </View>
 
       {pendingOrder ? (
@@ -84,9 +74,7 @@ export default function MealsPage() {
         </Button>
       ) : (
         <View className='meal-focus-card meal-focus-card--empty surface-card'>
-          <View className='icon-bubble icon-bubble--lg icon-bubble--primary meal-focus-card__icon'>
-            <AppIcon icon={Utensils} size={28} color={palette.primary} />
-          </View>
+          <Image className='meal-focus-card__illust' src={illustMeal} mode='aspectFit' />
           <Text className='meal-focus-card__title'>今天想吃什么？</Text>
           <Text className='meal-focus-card__meta'>从家里的菜谱里挑几道，一次提交给全家</Text>
           <Button className='button button--primary tap meal-focus-card__button' hoverClass='tap--pressed' onClick={openCreateOrder}>
@@ -95,13 +83,25 @@ export default function MealsPage() {
         </View>
       )}
 
-      <View className='section'>
-        <View className='section__head'>
-          <Text className='section__title'>可点菜品</Text>
-          <Text className='section__meta'>{availableDishes.length} 道</Text>
+      <View className='section meals-dish-section'>
+        <View className='section__head meals-dish-section__head'>
+          <View className='meals-dish-section__title-group'>
+            <Text className='section__title'>可点菜品</Text>
+            <Text className='section__meta'>{availableDishes.length} 道</Text>
+          </View>
+          <View className='meals-dish-section__actions'>
+            <Button className='content-action meals-section-action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
+              <AppIcon icon={History} size={15} color={palette.foreground} />
+              <Text>点餐记录</Text>
+            </Button>
+            <Button className='content-action meals-section-action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}>
+              <AppIcon icon={Settings2} size={15} color={palette.foreground} />
+              <Text>菜品管理</Text>
+            </Button>
+          </View>
         </View>
 
-        <ScrollView className='tabs' scrollX enableFlex>
+        <ScrollView className='tabs meals-category-tabs' scrollX enableFlex>
           <View className='tabs__track'>
             {categories.map((category) => (
               <Button
@@ -117,10 +117,8 @@ export default function MealsPage() {
         </ScrollView>
 
         {visibleDishes.length === 0 ? (
-          <View className='empty-state surface-card'>
-            <View className='empty-state__icon'>
-              <AppIcon icon={Utensils} size={30} color={palette.subtleForeground} />
-            </View>
+          <View className='empty-state surface-card meals-empty-state'>
+            <Image className='meals-empty-state__illust' src={illustMeal} mode='aspectFit' />
             <Text className='empty-state__title'>这个分类还没有可点的菜</Text>
             <Text className='empty-state__copy'>可以到菜品管理中新增菜品，或将暂停菜品重新上架。</Text>
             <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}>

@@ -4,7 +4,7 @@ import { Camera, Utensils } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
-import { ChipSelect } from '../../components/chip-select'
+import { ListSelect } from '../../components/list-select'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { useDispatch, useStore } from '../../store'
@@ -32,6 +32,7 @@ export default function DishFormPage() {
   const [method, setMethod] = useState(editingDish?.method ?? '')
   const [ingredientsText, setIngredientsText] = useState(editingDish?.ingredients.join('、') ?? '')
   const [photo, setPhoto] = useState(editingDish?.photo ?? '')
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false)
 
   const choosePhoto = async () => {
     const selected = await choosePersistentImage()
@@ -47,8 +48,14 @@ export default function DishFormPage() {
       if (!result.confirm || !result.content) return
       const newName = result.content.trim().slice(0, 10)
       if (!newName) return
+      if (allCategories.includes(newName)) {
+        setCategory(newName)
+        setShowCategoryPicker(false)
+        return
+      }
       dispatch({ type: 'category/addDish', name: newName })
       setCategory(newName)
+      setShowCategoryPicker(false)
     })
   }
 
@@ -132,9 +139,9 @@ export default function DishFormPage() {
 
         <View className='field'>
           <Text className='field__label'>分类</Text>
-          <ChipSelect options={allCategories} value={category} onChange={(v) => setCategory(v)} />
-          <Button className='dish-form-add-category tap' hoverClass='tap--pressed' onClick={addCustomCategory}>
-            <Text>+ 自定义分类</Text>
+          <Button className='field__control field__control--picker tap' hoverClass='tap--pressed' onClick={() => setShowCategoryPicker(true)}>
+            <Text>{category}</Text>
+            <AppIcon icon={Utensils} size={16} color={palette.subtleForeground} />
           </Button>
         </View>
 
@@ -155,6 +162,17 @@ export default function DishFormPage() {
           {editingDish ? '保存修改' : '添加到菜品库'}
         </Button>
       </View>
+
+      <ListSelect
+        open={showCategoryPicker}
+        title='选择分类'
+        options={allCategories.map((c) => ({ label: c, value: c }))}
+        value={category}
+        onSelect={(v) => setCategory(v)}
+        onClose={() => setShowCategoryPicker(false)}
+        addLabel='自定义分类'
+        onAdd={addCustomCategory}
+      />
     </PageShell>
   )
 }

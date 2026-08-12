@@ -1,6 +1,6 @@
 import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
-import { Pencil, Plus, Trash2, Utensils } from 'lucide'
+import { Trash2, Utensils } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
@@ -68,12 +68,9 @@ export default function DishManagePage() {
     <PageShell tabPage={false}>
       <PageHeader title='菜品管理' subtitle={`${dishes.filter((dish) => dish.available).length} 道可点`} />
 
-      <View className='content-toolbar content-toolbar--spread'>
-        <Text className='dish-manage-hint'>暂停后不会出现在点餐选择页</Text>
-        <Button className='content-action content-action--primary tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-form/index' })}>
-          <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
-          <Text>添加菜品</Text>
-        </Button>
+      <View className='dish-manage-summary'>
+        <Text className='dish-manage-summary__count'>{visibleDishes.length} 道菜品</Text>
+        <Text className='dish-manage-summary__hint'>点击菜品可编辑，暂停后不会出现在点餐选择页</Text>
       </View>
 
       <ScrollView className='tabs' scrollX enableFlex>
@@ -144,14 +141,6 @@ export default function DishManagePage() {
                     onClick={() => dispatch({ type: 'dish/toggleAvailable', id: dish.id })}
                   >
                     {dish.available ? '暂停' : '上架'}
-                  </Button>
-                  <Button
-                    className='icon-action tap'
-                    hoverClass='tap--pressed'
-                    aria-label={`编辑${dish.name}`}
-                    onClick={() => Taro.navigateTo({ url: `/pages/dish-form/index?id=${dish.id}` })}
-                  >
-                    <AppIcon icon={Pencil} size={17} color={palette.subtleForeground} />
                   </Button>
                   <Button
                     className='icon-action tap'

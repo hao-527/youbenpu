@@ -1,4 +1,17 @@
-.dish-manage-hint {
+.dish-manage-summary {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 var(--space-2);
+}
+
+.dish-manage-summary__count {
+  color: var(--color-foreground);
+  font-size: var(--text-sm);
+  font-weight: 700;
+}
+
+.dish-manage-summary__hint {
   min-width: 0;
   flex: 1;
   color: var(--color-subtle-foreground);
@@ -117,11 +130,6 @@
     width: 92rpx;
     min-width: 92rpx;
     height: 92rpx;
-  }
-
-  /* Copy row already opens the editor, so drop the duplicate pencil. */
-  .dish-manage-row__actions .icon-action:nth-child(2) {
-    display: none;
   }
 
   .dish-manage-row__toggle {
