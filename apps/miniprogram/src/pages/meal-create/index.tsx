@@ -11,6 +11,7 @@ import { uid } from '../../store/uid'
 import { palette } from '../../theme/palette'
 import type { DishCategory, MealOrder } from '../../types/domain'
 import { dishCategories } from '../../types/domain'
+import { getPortableImageUrl } from '../../utils/image-source'
 
 import './index.scss'
 
@@ -49,7 +50,7 @@ export default function MealCreatePage() {
     const items = availableDishes.flatMap((dish) => {
       const quantity = quantities[dish.id] ?? 0
       return quantity > 0
-        ? [{ id: uid('oi-'), dishId: dish.id, name: dish.name, quantity, photo: dish.photo }]
+        ? [{ id: uid('oi-'), dishId: dish.id, name: dish.name, quantity, photo: getPortableImageUrl(dish.photo) }]
         : []
     })
 
@@ -142,8 +143,8 @@ export default function MealCreatePage() {
             const quantity = quantities[dish.id] ?? 0
             return (
               <View key={dish.id} className={`meal-select-row ${quantity > 0 ? 'meal-select-row--selected' : ''}`}>
-                {dish.photo ? (
-                  <Image className='meal-select-row__photo' src={dish.photo} mode='aspectFill' lazyLoad />
+                {getPortableImageUrl(dish.photo) ? (
+                  <Image className='meal-select-row__photo' src={getPortableImageUrl(dish.photo)} mode='aspectFill' lazyLoad />
                 ) : (
                   <View className='meal-select-row__photo meal-select-row__placeholder'>
                     <AppIcon icon={Utensils} size={20} color={palette.subtleForeground} />

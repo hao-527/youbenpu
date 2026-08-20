@@ -3,19 +3,21 @@ import type { AppState } from './reducer'
 /**
  * First-run seed data. On subsequent launches, persisted state is used.
  *
- * Business data (ledger, dishes, orders, inventory) starts empty — the user
- * builds their own through the onboarding flow and normal usage. Only
- * structural scaffolding that would be confusing to start without (locations,
- * the owner member, and the household name) is pre-filled.
+ * Family identity starts empty on purpose: a brand-new user has no family
+ * until they create or join one through the family-setup sheet, and the real
+ * family/members then arrive from the API. Seeding a placeholder family here
+ * made the home page claim "我们家" while 我的 said "还没有加入家庭".
+ *
+ * Business data (ledger, dishes, orders, inventory) also starts empty. Only
+ * the default storage locations are pre-filled, since starting with none is
+ * more confusing than helpful.
  */
 export const initialState: AppState = {
   schemaVersion: 2,
-  familyId: 'family-home-001',
-  currentMemberId: 'm-owner',
-  familyName: '我们家',
-  members: [
-    { id: 'm-owner', familyId: 'family-home-001', displayName: '我', roleLabel: '家庭管理员', avatarText: '我' }
-  ],
+  familyId: '',
+  currentMemberId: '',
+  familyName: '',
+  members: [],
   ledger: [],
   dishes: [],
   orders: [],

@@ -5,7 +5,7 @@ const config: UserConfigExport = {
     NODE_ENV: '"production"'
   },
   defineConstants: {
-    API_BASE_URL: '"https://api.youbenpu.com"'
+    API_BASE_URL: '"https://apiyoubenpu.maptrace.top"'
   },
   mini: {}
 }

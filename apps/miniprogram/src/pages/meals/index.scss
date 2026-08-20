@@ -43,6 +43,94 @@
   box-shadow: var(--shadow-card);
 }
 
+/* Pending orders use a compact, deliberate card layout. Without these rules
+ * Taro renders several Text nodes inline and lets the dish name drift beside
+ * the image, which is especially obvious for a single selected dish. */
+.meals-page .meal-focus-card--pending {
+  padding: var(--space-4);
+}
+
+.meals-page .meal-focus-card__head {
+  display: flex;
+  min-width: 0;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.meals-page .meal-focus-card__copy {
+  min-width: 0;
+  flex: 1;
+}
+
+.meals-page .meal-focus-card__eyebrow,
+.meals-page .meal-focus-card__title,
+.meals-page .meal-focus-card__meta {
+  display: block;
+}
+
+.meals-page .meal-focus-card__eyebrow {
+  color: var(--color-primary-text);
+  font-size: var(--text-xs);
+  font-weight: 700;
+}
+
+.meals-page .meal-focus-card--pending .meal-focus-card__title {
+  margin-top: 4rpx;
+  line-height: 1.35;
+}
+
+.meals-page .meal-focus-card--pending .meal-focus-card__meta {
+  margin-top: 4rpx;
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-xs);
+}
+
+.meals-page .meal-focus-card__dishes {
+  display: flex;
+  margin-top: var(--space-3);
+  gap: var(--space-2);
+  overflow: hidden;
+}
+
+.meals-page .meal-focus-dish {
+  width: 132rpx;
+  min-width: 132rpx;
+}
+
+.meals-page .meal-focus-dish__photo {
+  display: flex;
+  width: 132rpx;
+  height: 132rpx;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+  background: var(--color-muted);
+}
+
+.meals-page .meal-focus-dish__name {
+  display: block;
+  margin-top: 6rpx;
+  overflow: hidden;
+  color: var(--color-foreground);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meals-page .meal-focus-card__link {
+  display: flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--space-2);
+  color: var(--color-primary-text);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
 .meals-page .meal-focus-card--empty {
   display: flex;
   min-height: 326rpx;
@@ -203,14 +291,20 @@
 }
 
 .meal-preview-card__category {
+  position: absolute;
+  z-index: 1;
   top: 12rpx;
   left: 12rpx;
+  max-width: calc(100% - 24rpx);
   padding: 6rpx 14rpx;
+  overflow: hidden;
   border-radius: var(--radius-full);
   background: var(--color-overlay-surface);
   color: var(--color-foreground);
   font-size: var(--text-xs);
   font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .meal-preview-card__name {

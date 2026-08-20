@@ -5,6 +5,7 @@ import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
 import { PageShell } from '../../components/page-shell'
+import { getPortableImageUrl } from '../../utils/image-source'
 import illustMeal from '../../assets/images/illustrations/meal.svg'
 import { StateText } from '../../components/state-text'
 import { useStore } from '../../store'
@@ -56,8 +57,8 @@ export default function MealsPage() {
           <View className='meal-focus-card__dishes'>
             {pendingOrder.items.slice(0, 4).map((item) => (
               <View key={item.id} className='meal-focus-dish'>
-                {item.photo ? (
-                  <Image className='meal-focus-dish__photo' src={item.photo} mode='aspectFill' lazyLoad />
+                {getPortableImageUrl(item.photo) ? (
+                  <Image className='meal-focus-dish__photo' src={getPortableImageUrl(item.photo)} mode='aspectFill' lazyLoad />
                 ) : (
                   <View className='meal-focus-dish__photo meal-focus-dish__placeholder'>
                     <AppIcon icon={Utensils} size={18} color={palette.subtleForeground} />
@@ -129,8 +130,8 @@ export default function MealsPage() {
           <View className='meal-preview-grid'>
             {visibleDishes.map((dish) => (
               <Button key={dish.id} className='meal-preview-card tap' hoverClass='tap--pressed' onClick={openCreateOrder}>
-                {dish.photo ? (
-                  <Image className='meal-preview-card__photo' src={dish.photo} mode='aspectFill' lazyLoad />
+                {getPortableImageUrl(dish.photo) ? (
+                  <Image className='meal-preview-card__photo' src={getPortableImageUrl(dish.photo)} mode='aspectFill' lazyLoad />
                 ) : (
                   <View className='meal-preview-card__photo meal-preview-card__placeholder'>
                     <AppIcon icon={Utensils} size={26} color={palette.subtleForeground} />

@@ -89,7 +89,11 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	mux.Handle("DELETE /api/v1/categories/{id}", r.authFamily(http.HandlerFunc(r.wrapDeleteCategory)))
 
 	// Upload
+	mux.Handle("POST /api/v1/upload", r.authFamily(http.HandlerFunc(r.wrapUpload)))
 	mux.Handle("POST /api/v1/upload/presign", r.authFamily(http.HandlerFunc(r.wrapUploadPresign)))
+	// Uploaded images are public because mini-program Image requests cannot attach
+	// the user's Bearer token. Keys are generated randomly and validated by storage.
+	mux.HandleFunc("GET /uploads/{path...}", r.serveUpload)
 
 	return r.recoverPanic(r.requestLog(r.securityHeaders(r.cors(mux))))
 }
@@ -105,39 +109,66 @@ func (r *router) authFamily(next http.Handler) http.Handler {
 }
 
 // Wrapper functions that adapt handler signatures
-func (r *router) wrapCreateFamily(w http.ResponseWriter, req *http.Request)        { r.createFamily(w, req) }
-func (r *router) wrapJoinFamily(w http.ResponseWriter, req *http.Request)           { r.joinFamily(w, req) }
-func (r *router) wrapGetFamily(w http.ResponseWriter, req *http.Request)            { r.getFamily(w, req) }
-func (r *router) wrapRenameFamily(w http.ResponseWriter, req *http.Request)         { r.renameFamily(w, req) }
-func (r *router) wrapCreateInvitation(w http.ResponseWriter, req *http.Request)     { r.createInvitation(w, req) }
-func (r *router) wrapLeaveFamily(w http.ResponseWriter, req *http.Request)          { r.leaveFamily(w, req) }
-func (r *router) wrapUpdateMemberRole(w http.ResponseWriter, req *http.Request)     { r.updateMemberRole(w, req) }
-func (r *router) wrapRemoveMember(w http.ResponseWriter, req *http.Request)         { r.removeMember(w, req) }
-func (r *router) wrapListLedger(w http.ResponseWriter, req *http.Request)           { r.listLedger(w, req) }
-func (r *router) wrapCreateLedger(w http.ResponseWriter, req *http.Request)         { r.createLedger(w, req) }
-func (r *router) wrapUpdateLedger(w http.ResponseWriter, req *http.Request)         { r.updateLedger(w, req) }
-func (r *router) wrapDeleteLedger(w http.ResponseWriter, req *http.Request)         { r.deleteLedger(w, req) }
-func (r *router) wrapListInventory(w http.ResponseWriter, req *http.Request)        { r.listInventory(w, req) }
-func (r *router) wrapCreateInventory(w http.ResponseWriter, req *http.Request)      { r.createInventory(w, req) }
-func (r *router) wrapUpdateInventory(w http.ResponseWriter, req *http.Request)      { r.updateInventory(w, req) }
-func (r *router) wrapUpdateInventoryStatus(w http.ResponseWriter, req *http.Request) { r.updateInventoryStatus(w, req) }
-func (r *router) wrapDeleteInventory(w http.ResponseWriter, req *http.Request)      { r.deleteInventory(w, req) }
-func (r *router) wrapListDishes(w http.ResponseWriter, req *http.Request)           { r.listDishes(w, req) }
-func (r *router) wrapCreateDish(w http.ResponseWriter, req *http.Request)           { r.createDish(w, req) }
-func (r *router) wrapUpdateDish(w http.ResponseWriter, req *http.Request)           { r.updateDish(w, req) }
-func (r *router) wrapToggleDishAvailable(w http.ResponseWriter, req *http.Request)  { r.toggleDishAvailable(w, req) }
-func (r *router) wrapDeleteDish(w http.ResponseWriter, req *http.Request)           { r.deleteDish(w, req) }
-func (r *router) wrapListOrders(w http.ResponseWriter, req *http.Request)           { r.listOrders(w, req) }
-func (r *router) wrapCreateOrder(w http.ResponseWriter, req *http.Request)          { r.createOrder(w, req) }
-func (r *router) wrapUpdateOrderStatus(w http.ResponseWriter, req *http.Request)    { r.updateOrderStatus(w, req) }
-func (r *router) wrapDeleteOrder(w http.ResponseWriter, req *http.Request)          { r.deleteOrder(w, req) }
-func (r *router) wrapListLocations(w http.ResponseWriter, req *http.Request)        { r.listLocations(w, req) }
-func (r *router) wrapCreateLocation(w http.ResponseWriter, req *http.Request)       { r.createLocation(w, req) }
-func (r *router) wrapDeleteLocation(w http.ResponseWriter, req *http.Request)       { r.deleteLocation(w, req) }
-func (r *router) wrapListCategories(w http.ResponseWriter, req *http.Request)       { r.listCategories(w, req) }
-func (r *router) wrapCreateCategory(w http.ResponseWriter, req *http.Request)       { r.createCategory(w, req) }
-func (r *router) wrapDeleteCategory(w http.ResponseWriter, req *http.Request)       { r.deleteCategory(w, req) }
-func (r *router) wrapUploadPresign(w http.ResponseWriter, req *http.Request)        { r.uploadPresign(w, req) }
+func (r *router) wrapCreateFamily(w http.ResponseWriter, req *http.Request) { r.createFamily(w, req) }
+func (r *router) wrapJoinFamily(w http.ResponseWriter, req *http.Request)   { r.joinFamily(w, req) }
+func (r *router) wrapGetFamily(w http.ResponseWriter, req *http.Request)    { r.getFamily(w, req) }
+func (r *router) wrapRenameFamily(w http.ResponseWriter, req *http.Request) { r.renameFamily(w, req) }
+func (r *router) wrapCreateInvitation(w http.ResponseWriter, req *http.Request) {
+	r.createInvitation(w, req)
+}
+func (r *router) wrapLeaveFamily(w http.ResponseWriter, req *http.Request) { r.leaveFamily(w, req) }
+func (r *router) wrapUpdateMemberRole(w http.ResponseWriter, req *http.Request) {
+	r.updateMemberRole(w, req)
+}
+func (r *router) wrapRemoveMember(w http.ResponseWriter, req *http.Request)  { r.removeMember(w, req) }
+func (r *router) wrapListLedger(w http.ResponseWriter, req *http.Request)    { r.listLedger(w, req) }
+func (r *router) wrapCreateLedger(w http.ResponseWriter, req *http.Request)  { r.createLedger(w, req) }
+func (r *router) wrapUpdateLedger(w http.ResponseWriter, req *http.Request)  { r.updateLedger(w, req) }
+func (r *router) wrapDeleteLedger(w http.ResponseWriter, req *http.Request)  { r.deleteLedger(w, req) }
+func (r *router) wrapListInventory(w http.ResponseWriter, req *http.Request) { r.listInventory(w, req) }
+func (r *router) wrapCreateInventory(w http.ResponseWriter, req *http.Request) {
+	r.createInventory(w, req)
+}
+func (r *router) wrapUpdateInventory(w http.ResponseWriter, req *http.Request) {
+	r.updateInventory(w, req)
+}
+func (r *router) wrapUpdateInventoryStatus(w http.ResponseWriter, req *http.Request) {
+	r.updateInventoryStatus(w, req)
+}
+func (r *router) wrapDeleteInventory(w http.ResponseWriter, req *http.Request) {
+	r.deleteInventory(w, req)
+}
+func (r *router) wrapListDishes(w http.ResponseWriter, req *http.Request) { r.listDishes(w, req) }
+func (r *router) wrapCreateDish(w http.ResponseWriter, req *http.Request) { r.createDish(w, req) }
+func (r *router) wrapUpdateDish(w http.ResponseWriter, req *http.Request) { r.updateDish(w, req) }
+func (r *router) wrapToggleDishAvailable(w http.ResponseWriter, req *http.Request) {
+	r.toggleDishAvailable(w, req)
+}
+func (r *router) wrapDeleteDish(w http.ResponseWriter, req *http.Request)  { r.deleteDish(w, req) }
+func (r *router) wrapListOrders(w http.ResponseWriter, req *http.Request)  { r.listOrders(w, req) }
+func (r *router) wrapCreateOrder(w http.ResponseWriter, req *http.Request) { r.createOrder(w, req) }
+func (r *router) wrapUpdateOrderStatus(w http.ResponseWriter, req *http.Request) {
+	r.updateOrderStatus(w, req)
+}
+func (r *router) wrapDeleteOrder(w http.ResponseWriter, req *http.Request)   { r.deleteOrder(w, req) }
+func (r *router) wrapListLocations(w http.ResponseWriter, req *http.Request) { r.listLocations(w, req) }
+func (r *router) wrapCreateLocation(w http.ResponseWriter, req *http.Request) {
+	r.createLocation(w, req)
+}
+func (r *router) wrapDeleteLocation(w http.ResponseWriter, req *http.Request) {
+	r.deleteLocation(w, req)
+}
+func (r *router) wrapListCategories(w http.ResponseWriter, req *http.Request) {
+	r.listCategories(w, req)
+}
+func (r *router) wrapCreateCategory(w http.ResponseWriter, req *http.Request) {
+	r.createCategory(w, req)
+}
+func (r *router) wrapDeleteCategory(w http.ResponseWriter, req *http.Request) {
+	r.deleteCategory(w, req)
+}
+func (r *router) wrapUpload(w http.ResponseWriter, req *http.Request)        { r.upload(w, req) }
+func (r *router) wrapUploadPresign(w http.ResponseWriter, req *http.Request) { r.uploadPresign(w, req) }
 
 func (r *router) health(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]string{

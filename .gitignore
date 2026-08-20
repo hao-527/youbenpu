@@ -26,6 +26,11 @@ services/api/data/uploads/*
 .vscode/
 *.swp
 
+# AI-generated artifacts (not source code)
+design-system/
+semantic-review/
+demos/
+
 # Logs
 *.log
 npm-debug.log*

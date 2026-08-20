@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"strings"
 )
@@ -144,9 +143,9 @@ func (store *LocalStore) Delete(ctx context.Context, key string) error {
 }
 
 func (store *LocalStore) resolve(key string) (target string, cleanKey string, err error) {
-	cleanKey = strings.TrimPrefix(path.Clean("/"+strings.TrimSpace(key)), "/")
-	if cleanKey == "" || cleanKey == "." {
-		return "", "", fmt.Errorf("object key is required")
+	cleanKey, err = normalizeObjectKey(key)
+	if err != nil {
+		return "", "", err
 	}
 
 	target = filepath.Join(store.root, filepath.FromSlash(cleanKey))

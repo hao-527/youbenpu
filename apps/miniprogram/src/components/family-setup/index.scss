@@ -1,0 +1,75 @@
+.family-setup {
+  padding: 0 var(--page-gutter) var(--space-4);
+}
+
+/* ---------- Choose step ---------- */
+
+.family-setup__choose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.family-setup__lede {
+  display: block;
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.family-setup__choice {
+  display: flex;
+  min-height: var(--row-height-lg);
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  text-align: left;
+}
+
+.family-setup__choice-body {
+  min-width: 0;
+  flex: 1;
+}
+
+.family-setup__choice-title {
+  display: block;
+  color: var(--color-foreground);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.family-setup__choice-copy {
+  display: block;
+  margin-top: 4rpx;
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-xs);
+}
+
+/* ---------- Form steps ---------- */
+
+.family-setup__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.family-setup__submit {
+  margin-top: var(--space-2);
+}
+
+.family-setup__back {
+  display: flex;
+  min-height: var(--touch-target);
+  align-items: center;
+  justify-content: center;
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.family-setup__invite-input {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}

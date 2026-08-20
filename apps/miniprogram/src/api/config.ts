@@ -22,5 +22,6 @@ export const API = {
   ORDERS: `${API_BASE}/api/v1/orders`,
   LOCATIONS: `${API_BASE}/api/v1/locations`,
   CATEGORIES: `${API_BASE}/api/v1/categories`,
+  UPLOAD: `${API_BASE}/api/v1/upload`,
   UPLOAD_PRESIGN: `${API_BASE}/api/v1/upload/presign`,
 } as const

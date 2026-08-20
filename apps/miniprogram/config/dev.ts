@@ -5,7 +5,10 @@ const config: UserConfigExport = {
     NODE_ENV: '"development"'
   },
   defineConstants: {
-    API_BASE_URL: '"http://127.0.0.1:8080"'
+    // LAN address so 真机调试/预览 on a phone can reach the API running on this
+    // Mac. `127.0.0.1` only works inside the simulator. Update this whenever
+    // the machine changes network (check with `ipconfig getifaddr en0`).
+    API_BASE_URL: '"http://172.18.13.236:8080"'
   },
   mini: {}
 }

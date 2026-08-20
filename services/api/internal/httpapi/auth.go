@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"time"
 
@@ -24,8 +25,11 @@ const (
 // --- Login ---
 
 type loginRequest struct {
-	Code string `json:"code"`
+	Code        string `json:"code"`
+	DevIdentity string `json:"dev_identity"`
 }
+
+var demoIdentityPattern = regexp.MustCompile(`^[a-zA-Z0-9-]{16,96}$`)
 
 type loginResponse struct {
 	Token       string  `json:"token"`
@@ -44,7 +48,7 @@ func (r *router) login(response http.ResponseWriter, request *http.Request) {
 	}
 
 	// Exchange code for openid via WeChat API
-	openid, err := r.wxCode2Session(body.Code)
+	openid, err := r.wxCode2Session(body.Code, body.DevIdentity)
 	if err != nil {
 		r.logger.Error("wx code2session", "error", err)
 		writeError(response, http.StatusUnauthorized, "WX_AUTH_FAILED", "微信登录失败")
@@ -207,15 +211,21 @@ type wxSessionResponse struct {
 	ErrMsg     string `json:"errmsg"`
 }
 
-func (r *router) wxCode2Session(code string) (string, error) {
+func (r *router) wxCode2Session(code, devIdentity string) (string, error) {
 	url := fmt.Sprintf(
 		"https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
 		r.config.WXAppID, r.config.WXAppSecret, code,
 	)
 
-	// Development mode: if no appid configured, use code as mock openid
+	// Development mode has no real WeChat openid. Use the device-local demo
+	// identity sent by the client instead of the one-time login code, so a
+	// tester keeps the same account, family, and data after every restart.
 	if r.config.WXAppID == "" {
-		return "dev_openid_" + code, nil
+		identity := strings.TrimSpace(devIdentity)
+		if !demoIdentityPattern.MatchString(identity) {
+			return "", fmt.Errorf("missing or invalid development identity")
+		}
+		return "dev_openid_" + identity, nil
 	}
 
 	resp, err := http.Get(url)

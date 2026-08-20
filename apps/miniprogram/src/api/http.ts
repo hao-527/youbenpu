@@ -16,6 +16,10 @@ interface ApiError {
   message: string
 }
 
+interface ApiErrorEnvelope {
+  error?: ApiError
+}
+
 export class HttpError extends Error {
   code: string
   status: number
@@ -73,8 +77,10 @@ async function request<T>(method: Method, url: string, data?: unknown, options?:
       throw new HttpError(401, 'UNAUTHORIZED', '登录已过期')
     }
 
-    // Parse error response
-    const apiError = responseData as ApiError
+    // The Go API wraps errors as { error: { code, message } }. Keep support
+    // for a flat response as well so callers always see the real failure.
+    const payload = responseData as ApiErrorEnvelope
+    const apiError = payload?.error ?? (responseData as ApiError)
     throw new HttpError(
       statusCode,
       apiError?.code || 'UNKNOWN',

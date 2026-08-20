@@ -39,6 +39,11 @@ export default function DishFormPage() {
     if (selected) setPhoto(selected)
   }
 
+  const clearUnavailablePhoto = () => {
+    setPhoto('')
+    Taro.showToast({ title: '图片加载失败，请重新选择', icon: 'none' })
+  }
+
   const addCustomCategory = () => {
     ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
       title: '新增菜品分类',
@@ -59,7 +64,7 @@ export default function DishFormPage() {
     })
   }
 
-  const submit = () => {
+  const submit = async () => {
     const normalizedName = name.trim()
     if (!normalizedName) {
       Taro.showToast({ title: '请填写菜品名称', icon: 'none' })
@@ -93,7 +98,7 @@ export default function DishFormPage() {
       photo,
       available: editingDish?.available ?? true
     }
-    dispatch(editingDish ? { type: 'dish/update', dish } : { type: 'dish/add', dish })
+    await dispatch(editingDish ? { type: 'dish/update', dish } : { type: 'dish/add', dish })
     Taro.showToast({ title: editingDish ? '菜品已更新' : '菜品已添加', icon: 'success' })
     setTimeout(() => Taro.navigateBack(), 350)
   }
@@ -120,7 +125,7 @@ export default function DishFormPage() {
       <View className='photo-picker dish-form-photo'>
         <Button className='photo-picker__button tap' hoverClass='tap--pressed' aria-label={photo ? '更换菜品图片' : '添加菜品图片'} onClick={choosePhoto}>
           {photo ? (
-            <Image className='photo-picker__image' src={photo} mode='aspectFill' />
+            <Image className='photo-picker__image' src={photo} mode='aspectFill' onError={clearUnavailablePhoto} />
           ) : (
             <View className='photo-picker__placeholder'>
               <AppIcon icon={Camera} size={28} color={palette.primary} />

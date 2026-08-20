@@ -96,6 +96,34 @@
   font-weight: 500;
 }
 
+/* ---------- 未加入家庭引导 ---------- */
+
+.profile-empty {
+  padding: var(--space-5) var(--space-4);
+}
+
+.profile-empty__title {
+  display: block;
+  color: var(--color-foreground);
+  font-size: var(--text-lg);
+  font-weight: 700;
+}
+
+.profile-empty__copy {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+
+.profile-empty__actions {
+  display: flex;
+  flex-direction: column;
+  margin-top: var(--space-4);
+  gap: var(--space-3);
+}
+
 /* ---------- Footer ---------- */
 
 .profile-footer {
@@ -150,4 +178,102 @@
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
+}
+
+/* ---------- Custom invite modal ---------- */
+
+.invite-modal-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 100;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.invite-modal-overlay__bg {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(28, 25, 23, 0.4);
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { background-color: rgba(28, 25, 23, 0); }
+  to { background-color: rgba(28, 25, 23, 0.4); }
+}
+
+.invite-modal {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 75vh;
+  border-radius: var(--radius-sheet) var(--radius-sheet) 0 0;
+  background: var(--color-surface);
+  box-shadow: var(--shadow-md);
+  animation: slideUp 0.3s ease-out;
+  overflow-y: auto;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+.invite-modal__header {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  border-bottom: var(--hairline) solid var(--color-border);
+}
+
+.invite-modal__title {
+  color: var(--color-foreground);
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.invite-modal__close-btn {
+  width: 32rpx;
+  height: 32rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.invite-modal__close {
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-2xl);
+  font-weight: 400;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md);
+  transition: background-color var(--duration-fast);
+}
+
+.invite-modal__close-btn:active .invite-modal__close {
+  background-color: var(--color-muted);
+}
+
+.invite-modal__content {
+  flex: 1;
+  padding: var(--space-4) var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-4));
+  overflow-y: auto;
 }

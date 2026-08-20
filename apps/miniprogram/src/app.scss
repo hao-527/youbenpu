@@ -736,6 +736,7 @@ button::after {
   min-height: 180rpx;
   padding-top: var(--space-3);
   padding-bottom: var(--space-3);
+  align-items: flex-start;
   line-height: 1.55;
 }
 

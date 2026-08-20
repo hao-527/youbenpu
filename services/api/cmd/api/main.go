@@ -44,12 +44,17 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Object store (local filesystem for development)
-	objectStore, err := storage.NewLocalStore(cfg.UploadDirectory)
+	var objectStore storage.ObjectStore
+	if cfg.ObjectStore == "cos" {
+		objectStore, err = storage.NewCOSStore(cfg.COSBucket, cfg.COSRegion, cfg.COSSecretID, cfg.COSSecretKey)
+	} else {
+		objectStore, err = storage.NewLocalStore(cfg.UploadDirectory)
+	}
 	if err != nil {
-		logger.Error("initialize local object store", "error", err)
+		logger.Error("initialize object store", "driver", cfg.ObjectStore, "error", err)
 		os.Exit(1)
 	}
+	logger.Info("object store initialized", "driver", objectStore.Driver())
 
 	handler := httpapi.NewRouter(httpapi.Dependencies{
 		Config:      cfg,

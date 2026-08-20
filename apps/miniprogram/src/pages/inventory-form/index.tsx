@@ -48,6 +48,11 @@ export default function InventoryFormPage() {
     if (selected) setPhoto(selected)
   }
 
+  const clearUnavailablePhoto = () => {
+    setPhoto('')
+    Taro.showToast({ title: '图片加载失败，请重新选择', icon: 'none' })
+  }
+
   const addCustomCategory = () => {
     ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
       title: '新增物品分类',
@@ -88,7 +93,7 @@ export default function InventoryFormPage() {
     })
   }
 
-  const submit = () => {
+  const submit = async () => {
     const normalizedName = name.trim()
     const normalizedQuantity = quantity.trim()
     if (!normalizedName) {
@@ -118,7 +123,7 @@ export default function InventoryFormPage() {
       status: terminalStatus ?? expiry.status,
       photo
     }
-    dispatch(editingItem ? { type: 'inventory/update', item } : { type: 'inventory/add', item })
+    await dispatch(editingItem ? { type: 'inventory/update', item } : { type: 'inventory/add', item })
     Taro.showToast({ title: editingItem ? '物品已更新' : '物品已添加', icon: 'success' })
     setTimeout(() => Taro.navigateBack(), 350)
   }
@@ -145,7 +150,7 @@ export default function InventoryFormPage() {
       <View className='photo-picker'>
         <Button className='photo-picker__button tap' hoverClass='tap--pressed' aria-label={photo ? '更换物品图片' : '添加物品图片'} onClick={choosePhoto}>
           {photo ? (
-            <Image className='photo-picker__image' src={photo} mode='aspectFill' />
+            <Image className='photo-picker__image' src={photo} mode='aspectFill' onError={clearUnavailablePhoto} />
           ) : (
             <View className='photo-picker__placeholder'>
               <AppIcon icon={Camera} size={28} color={palette.primary} />

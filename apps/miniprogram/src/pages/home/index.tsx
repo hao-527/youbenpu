@@ -7,6 +7,7 @@ import { AppIcon } from '../../components/app-icon'
 import { Onboarding } from '../../components/onboarding'
 import { PageShell } from '../../components/page-shell'
 import { StateText } from '../../components/state-text'
+import { useFamilyGate } from '../../hooks/use-family-gate'
 import { useStore } from '../../store'
 import { palette } from '../../theme/palette'
 import { formatLocalDate, getInventoryExpiry, getNaturalMonthStart } from '../../utils/date'
@@ -23,6 +24,7 @@ import './index.scss'
 
 export default function HomePage() {
   const { familyName, ledger, inventory, orders, onboardingCompleted, settings } = useStore()
+  const { requireFamily, familyGate } = useFamilyGate()
 
   const pendingOrder = useMemo(() => settings.mealReminder ? orders.find((order) => order.status === 'pending') ?? null : null, [orders, settings.mealReminder])
   const attentionItems = useMemo(() => {
@@ -52,10 +54,16 @@ export default function HomePage() {
   const dateLabel = `${today.getMonth() + 1}月${today.getDate()}日`
 
   const featureActions = [
-    { key: 'ledger', label: '记一笔', copy: '记录家庭收支', icon: ReceiptText, illust: illustNote, url: '/pages/ledger-entry/index' },
-    { key: 'meals', label: pendingOrder ? '看点餐' : '今天吃什么', copy: pendingOrder ? '处理当前点餐单' : '不知道吃什么？来选一选', icon: Utensils, illust: illustMeal, url: pendingOrder ? '/pages/meal-orders/index' : '/pages/meal-create/index' },
-    { key: 'inventory', label: '家里有什么', copy: '管理物品与到期提醒', icon: PackagePlus, illust: illustStorage, url: '/pages/inventory-form/index' }
+    { key: 'ledger', label: '记一笔', copy: '记录家庭收支', icon: ReceiptText, illust: illustNote, url: '/pages/ledger-entry/index', reason: '记账需要先有一个家庭，账目会和家人共享。' },
+    { key: 'meals', label: pendingOrder ? '看点餐' : '今天吃什么', copy: pendingOrder ? '处理当前点餐单' : '不知道吃什么？来选一选', icon: Utensils, illust: illustMeal, url: pendingOrder ? '/pages/meal-orders/index' : '/pages/meal-create/index', reason: '点餐需要先有一个家庭，才能把菜单发给家人。' },
+    { key: 'inventory', label: '家里有什么', copy: '管理物品与到期提醒', icon: PackagePlus, illust: illustStorage, url: '/pages/inventory-form/index', reason: '物品管理需要先有一个家庭，家人才能一起查找。' }
   ] as const
+
+  /** Feature entries first check family membership, then navigate. */
+  const openFeature = (url: string, reason: string) => {
+    if (!requireFamily(reason)) return
+    Taro.navigateTo({ url })
+  }
 
   const pendingCount = pendingOrder ? pendingOrder.items.length : 0
   const taskCount = (pendingOrder ? 1 : 0) + attentionItems.length
@@ -66,8 +74,10 @@ export default function HomePage() {
 
       <View className='page-title'>
         <View>
-          <Text className='page-title__text'>{familyName}</Text>
-          <Text className='page-title__subtitle'>{dateLabel} · 家庭生活概览</Text>
+          <Text className='page-title__text'>{familyName || '生活有本谱'}</Text>
+          <Text className='page-title__subtitle'>
+            {familyName ? `${dateLabel} · 家庭生活概览` : `${dateLabel} · 创建家庭后即可与家人共享`}
+          </Text>
         </View>
       </View>
 
@@ -100,7 +110,7 @@ export default function HomePage() {
               className='home-feature-card surface-card tap'
               hoverClass='tap--pressed'
               aria-label={`${action.label}，${action.copy}`}
-              onClick={() => Taro.navigateTo({ url: action.url })}
+              onClick={() => openFeature(action.url, action.reason)}
             >
               <Image className='home-feature-card__illust' src={action.illust} mode='aspectFit' />
               <Text className='home-feature-card__title'>{action.label}</Text>
@@ -186,6 +196,8 @@ export default function HomePage() {
           </View>
         )}
       </View>
+
+      {familyGate}
     </PageShell>
   )
 }

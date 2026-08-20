@@ -4,8 +4,9 @@
 import Taro from '@tarojs/taro'
 
 import { API } from './config'
+import { getStableDemoIdentity } from './dev-identity'
 import { del, get, post, put } from './http'
-import { setToken, setUserInfo, type UserInfo } from './token'
+import { isLoggedIn, setToken, setUserInfo, type UserInfo } from './token'
 
 // ===== Auth =====
 
@@ -18,9 +19,33 @@ interface LoginResponse {
   is_new_user: boolean
 }
 
-export async function login(): Promise<LoginResponse & { userInfo: UserInfo }> {
+type LoginResult = LoginResponse & { userInfo: UserInfo }
+
+// Login begins during application startup, but family setup can be opened
+// before WeChat has returned its one-time code. Share one in-flight login so
+// protected actions wait for the token instead of sending an anonymous request.
+let loginInFlight: Promise<LoginResult> | null = null
+
+export async function ensureLoggedIn(): Promise<void> {
+  if (isLoggedIn()) return
+
+  if (!loginInFlight) {
+    loginInFlight = login().finally(() => {
+      loginInFlight = null
+    })
+  }
+
+  await loginInFlight
+}
+
+export async function login(): Promise<LoginResult> {
   const { code } = await Taro.login()
-  const data = await post<LoginResponse>(API.AUTH_LOGIN, { code }, { noAuth: true })
+  const data = await post<LoginResponse>(API.AUTH_LOGIN, {
+    code,
+    // The backend only uses this in its no-WX_APPID development fallback.
+    // In production it ignores this and resolves the real WeChat openid.
+    dev_identity: getStableDemoIdentity()
+  }, { noAuth: true })
 
   setToken(data.token)
   const userInfo: UserInfo = {

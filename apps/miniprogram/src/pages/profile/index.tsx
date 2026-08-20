@@ -1,15 +1,17 @@
 import { Button, Switch, Text, View } from '@tarojs/components'
-import Taro from '@tarojs/taro'
-import { Bell, ChevronRight, LogOut, MapPin, Tags, Users, Utensils } from 'lucide'
-import { useState } from 'react'
+import Taro, { useDidShow, useShareAppMessage } from '@tarojs/taro'
+import { Bell, ChevronRight, Home, LogOut, MapPin, Share2, Tags, UserPlus, Users, Utensils } from 'lucide'
+import { useRef, useState } from 'react'
 
 import { createInvitation, leaveFamily } from '../../api'
-import { clearToken, clearUserInfo } from '../../api/token'
+import { clearToken, clearUserInfo, hasFamily } from '../../api/token'
 import { ActionSheet } from '../../components/action-sheet'
 import { AppIcon } from '../../components/app-icon'
 import { PageShell } from '../../components/page-shell'
+import { useFamilyGate } from '../../hooks/use-family-gate'
 import { useDispatch, useStore } from '../../store'
 import { palette } from '../../theme/palette'
+import { getCurrentInviteCode, setCurrentInviteCode } from '../../utils/invite-state'
 
 import './index.scss'
 
@@ -18,6 +20,16 @@ export default function ProfilePage() {
   const dispatch = useDispatch()
   const currentMember = members.find((m) => m.id === currentMemberId) ?? members[0]
   const isAdmin = currentMember?.roleLabel === '家庭管理员'
+  const { joined, openFamilySetup, familyGate } = useFamilyGate()
+  const promptedRef = useRef(false)
+
+  // New users see the create/join sheet the first time they open 我的 in a
+  // session — not on app launch, so browsing is never blocked upfront.
+  useDidShow(() => {
+    if (hasFamily() || promptedRef.current) return
+    promptedRef.current = true
+    openFamilySetup()
+  })
 
   const [showInvite, setShowInvite] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
@@ -30,6 +42,7 @@ export default function ProfilePage() {
       const result = await createInvitation()
       setInviteCode(result.code)
       setInviteExpires(result.expires_at)
+      setCurrentInviteCode(result.code) // Set for share handler
       setShowInvite(true)
     } catch (error: any) {
       Taro.showToast({ title: error.message || '生成邀请码失败', icon: 'none' })
@@ -42,6 +55,21 @@ export default function ProfilePage() {
     Taro.setClipboardData({ data: inviteCode })
     Taro.showToast({ title: '已复制', icon: 'success' })
   }
+
+  // Page-level share configuration — triggered by <Button openType="share">
+  useShareAppMessage(() => {
+    const code = inviteCode || getCurrentInviteCode()
+    if (code) {
+      return {
+        title: '邀请你加入我的家庭 | 生活有本谱',
+        path: `/pages/family-manage/index?invite=${code}`,
+      }
+    }
+    return {
+      title: '生活有本谱 - 家庭日常记录工具',
+      path: '/pages/home/index',
+    }
+  })
 
   const handleLeaveFamily = () => {
     const memberCount = members.length
@@ -69,11 +97,56 @@ export default function ProfilePage() {
         clearToken()
         clearUserInfo()
         Taro.showToast({ title: '已退出', icon: 'success' })
-        setTimeout(() => Taro.redirectTo({ url: '/pages/auth/index' }), 500)
+        // Stay on 我的 and offer the create/join sheet again.
+        promptedRef.current = true
+        setTimeout(() => openFamilySetup('你已退出家庭，创建或加入一个新的家庭继续使用。'), 600)
       } catch (error: any) {
         Taro.showToast({ title: error.message || '退出失败', icon: 'none' })
       }
     })
+  }
+
+  // ---------- 未加入家庭：只展示引导，不展示家庭相关设置 ----------
+  if (!joined) {
+    return (
+      <PageShell>
+        <View className='page-title'>
+          <View>
+            <Text className='page-title__text'>我的</Text>
+            <Text className='page-title__subtitle'>生活有本谱 · 家庭记账、物品管理、一起点餐</Text>
+          </View>
+        </View>
+
+        <View className='profile-empty surface-card'>
+          <Text className='profile-empty__title'>还没有加入家庭</Text>
+          <Text className='profile-empty__copy'>
+            创建一个家庭，或用邀请码加入家人的家庭，就能一起记账、管理物品和点餐。
+          </Text>
+          <View className='profile-empty__actions'>
+            <Button
+              className='button button--primary tap'
+              hoverClass='tap--pressed'
+              onClick={() => openFamilySetup()}
+            >
+              <AppIcon icon={Home} size={16} color='#FFFFFF' />
+              <Text>创建家庭</Text>
+            </Button>
+            <Button
+              className='button button--outline tap'
+              hoverClass='tap--pressed'
+              onClick={() => openFamilySetup('输入邀请码，加入家人的家庭。')}
+            >
+              <AppIcon icon={UserPlus} size={16} color={palette.primary} />
+              <Text>加入家庭</Text>
+            </Button>
+          </View>
+        </View>
+
+        <Text className='profile-footer'>生活有本谱 v1.0.0</Text>
+
+        {familyGate}
+      </PageShell>
+    )
   }
 
   return (
@@ -208,22 +281,41 @@ export default function ProfilePage() {
       <Text className='profile-footer'>生活有本谱 v1.0.0</Text>
 
       {/* ---------- 邀请码弹窗 ---------- */}
-      <ActionSheet open={showInvite} title='邀请成员' onClose={() => setShowInvite(false)}>
-        <View className='profile-invite-sheet'>
-          <Text className='profile-invite-sheet__hint'>
-            将邀请码发给家人，对方在小程序中输入即可加入：
-          </Text>
-          <View className='profile-invite-sheet__code-box'>
-            <Text className='profile-invite-sheet__code'>{inviteCode}</Text>
-          </View>
-          <Text className='profile-invite-sheet__expires'>24 小时有效，仅可使用一次</Text>
-          <View className='profile-invite-sheet__actions'>
-            <Button className='button button--primary tap' hoverClass='tap--pressed' onClick={copyCode}>
-              <Text>复制邀请码</Text>
-            </Button>
+      {showInvite && (
+        <View className='invite-modal-overlay'>
+          <View className='invite-modal-overlay__bg' onClick={() => setShowInvite(false)} />
+          <View className='invite-modal'>
+            <View className='invite-modal__header'>
+              <Text className='invite-modal__title'>邀请成员</Text>
+              <Button className='invite-modal__close-btn' onClick={() => setShowInvite(false)}>
+                <Text className='invite-modal__close'>×</Text>
+              </Button>
+            </View>
+            
+            <View className='invite-modal__content'>
+              <Text className='profile-invite-sheet__hint'>
+                将邀请码发给家人，对方在小程序中输入即可加入：
+              </Text>
+              <View className='profile-invite-sheet__code-box'>
+                <Text className='profile-invite-sheet__code'>{inviteCode}</Text>
+              </View>
+              <Text className='profile-invite-sheet__expires'>24 小时有效，仅可使用一次</Text>
+              
+              <View className='profile-invite-sheet__actions'>
+                <Button className='button button--secondary tap' hoverClass='tap--pressed' openType='share'>
+                  <AppIcon icon={Share2} size={15} color={palette.primary} />
+                  <Text>分享邀请码</Text>
+                </Button>
+                <Button className='button button--primary tap' hoverClass='tap--pressed' onClick={copyCode}>
+                  <Text>复制邀请码</Text>
+                </Button>
+              </View>
+            </View>
           </View>
         </View>
-      </ActionSheet>
+      )}
+
+      {familyGate}
     </PageShell>
   )
 }

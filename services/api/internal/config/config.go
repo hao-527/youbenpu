@@ -16,6 +16,7 @@ const (
 type Config struct {
 	Environment     string
 	HTTPAddress     string
+	ObjectStore     string
 	UploadDirectory string
 	ShutdownTimeout time.Duration
 
@@ -44,6 +45,7 @@ func Load() (Config, error) {
 	cfg := Config{
 		Environment:     envOrDefault("APP_ENV", "development"),
 		HTTPAddress:     envOrDefault("HTTP_ADDRESS", defaultHTTPAddress),
+		ObjectStore:     strings.ToLower(envOrDefault("OBJECT_STORE", "local")),
 		UploadDirectory: envOrDefault("UPLOAD_DIR", defaultUploadDirectory),
 		ShutdownTimeout: defaultShutdownTimeout,
 
@@ -77,6 +79,12 @@ func Load() (Config, error) {
 	}
 	if cfg.ShutdownTimeout <= 0 {
 		return Config{}, fmt.Errorf("SHUTDOWN_TIMEOUT must be greater than zero")
+	}
+	if cfg.ObjectStore != "local" && cfg.ObjectStore != "cos" {
+		return Config{}, fmt.Errorf("OBJECT_STORE must be local or cos")
+	}
+	if cfg.ObjectStore == "cos" && (cfg.COSBucket == "" || cfg.COSRegion == "" || cfg.COSSecretID == "" || cfg.COSSecretKey == "") {
+		return Config{}, fmt.Errorf("COS_BUCKET, COS_REGION, COS_SECRET_ID and COS_SECRET_KEY are required when OBJECT_STORE=cos")
 	}
 
 	return cfg, nil

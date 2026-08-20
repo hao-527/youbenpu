@@ -1,15 +1,17 @@
 import Taro from '@tarojs/taro'
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from 'react'
 import type { Dispatch, PropsWithChildren } from 'react'
 
 import * as api from '../api'
-import { hasFamily, isLoggedIn } from '../api/token'
+import { getUserInfo, hasFamily, isLoggedIn } from '../api/token'
+import { getPortableImageUrl } from '../utils/image-source'
 import { initialState } from './initial-state'
 import { appReducer, type AppAction, type AppState } from './reducer'
 import { loadState, saveState } from './storage'
 
 const StateContext = createContext<AppState>(initialState)
 const DispatchContext = createContext<Dispatch<AppAction>>(() => {})
+const RefreshContext = createContext<() => Promise<void>>(async () => {})
 
 /**
  * Fetches all family data from the API and returns a partial state update.
@@ -22,13 +24,20 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
     const family = await api.getFamilyInfo()
     partial.familyId = family.id
     partial.familyName = family.name
-    partial.members = family.members.map((m) => ({
+    const members = family.members.map((m) => ({
       id: m.id,
       familyId: family.id,
       displayName: m.display_name,
       roleLabel: m.role === 'owner' ? '家庭管理员' as const : '家庭成员' as const,
       avatarText: m.avatar_text
     }))
+    partial.members = members
+
+    // Member IDs are user IDs in the family-info response. Use the logged-in
+    // identity so Profile represents the actual person rather than whichever
+    // family member happens to be first in the list.
+    const currentUserId = getUserInfo()?.userId
+    partial.currentMemberId = members.find((member) => member.id === currentUserId)?.id ?? members[0]?.id ?? ''
   } catch { /* use cached */ }
 
   try {
@@ -59,7 +68,7 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
       expiryDate: i.expiry_date ?? '',
       expiryLabel: '',
       status: i.status as any,
-      photo: i.photo_url ?? ''
+      photo: getPortableImageUrl(i.photo_url)
     }))
   } catch { /* use cached */ }
 
@@ -72,7 +81,7 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
       category: d.category,
       method: d.method,
       ingredients: d.ingredients,
-      photo: d.photo_url ?? '',
+      photo: getPortableImageUrl(d.photo_url),
       available: d.available
     }))
   } catch { /* use cached */ }
@@ -90,7 +99,7 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
         dishId: item.dish_id,
         name: item.dish_name,
         quantity: item.quantity,
-        photo: item.photo_url ?? ''
+        photo: getPortableImageUrl(item.photo_url)
       }))
     }))
   } catch { /* use cached */ }
@@ -111,34 +120,46 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
 
 export function StoreProvider({ children }: PropsWithChildren) {
   const [state, localDispatch] = useReducer(appReducer, initialState, (seed) => loadState(seed))
-  const [ready, setReady] = useState(false)
   const hydrated = useRef(false)
+  const stateRef = useRef(state)
+  stateRef.current = state
 
-  // Sync remote data on mount
+  /**
+   * Pulls the full family dataset from the API and replaces local state.
+   * No-op when the user has no family yet (nothing to fetch).
+   * Callable at any time — e.g. right after the user creates or joins a
+   * family from the family-setup sheet, so pages refresh without a restart.
+   */
+  const refresh = useCallback(async () => {
+    if (!isLoggedIn() || !hasFamily()) return
+    const remote = await fetchRemoteState()
+    const merged: AppState = { ...stateRef.current, ...remote, onboardingCompleted: true }
+    // Patch familyId into sub-items
+    if (remote.familyId) {
+      if (merged.ledger) merged.ledger = merged.ledger.map((e) => ({ ...e, familyId: remote.familyId! }))
+      if (merged.inventory) merged.inventory = merged.inventory.map((i) => ({ ...i, familyId: remote.familyId! }))
+      if (merged.dishes) merged.dishes = merged.dishes.map((d) => ({ ...d, familyId: remote.familyId! }))
+      if (merged.orders) merged.orders = merged.orders.map((o) => ({ ...o, familyId: remote.familyId! }))
+    }
+    localDispatch({ type: 'hydrate', state: merged })
+    saveState(merged)
+  }, [])
+
+  // Authenticate and refresh in the background. Pages render from cache (or
+  // the empty first-run state) immediately so a delayed real-device callback
+  // can never leave the entire tab page blank.
   useEffect(() => {
-    if (!isLoggedIn() || !hasFamily()) {
-      setReady(true)
-      return
+    const bootstrap = async () => {
+      try {
+        await api.ensureLoggedIn()
+        await refresh()
+      } catch {
+        // Offline failures keep cached content visible and can retry next launch.
+      }
     }
 
-    fetchRemoteState().then((remote) => {
-      // Merge remote into local state
-      const merged: AppState = { ...state, ...remote, onboardingCompleted: true }
-      // Patch familyId into sub-items
-      if (remote.familyId) {
-        if (merged.ledger) merged.ledger = merged.ledger.map((e) => ({ ...e, familyId: remote.familyId! }))
-        if (merged.inventory) merged.inventory = merged.inventory.map((i) => ({ ...i, familyId: remote.familyId! }))
-        if (merged.dishes) merged.dishes = merged.dishes.map((d) => ({ ...d, familyId: remote.familyId! }))
-        if (merged.orders) merged.orders = merged.orders.map((o) => ({ ...o, familyId: remote.familyId! }))
-      }
-      // Use HYDRATE action to set state
-      localDispatch({ type: 'hydrate' as any, state: merged } as any)
-      saveState(merged)
-      setReady(true)
-    }).catch(() => {
-      setReady(true) // proceed with cached data
-    })
-  }, [])
+    void bootstrap()
+  }, [refresh])
 
   // Save to local cache on state change
   useEffect(() => {
@@ -160,17 +181,20 @@ export function StoreProvider({ children }: PropsWithChildren) {
     localDispatch(action)
   }, [])
 
-  if (!ready) {
-    return null // or a loading indicator — pages won't render until data is ready
-  }
-
   return (
     <StateContext.Provider value={state}>
       <DispatchContext.Provider value={dispatch}>
-        {children}
+        <RefreshContext.Provider value={refresh}>
+          {children}
+        </RefreshContext.Provider>
       </DispatchContext.Provider>
     </StateContext.Provider>
   )
+}
+
+/** Re-fetches all family data from the API. */
+export function useRefreshStore(): () => Promise<void> {
+  return useContext(RefreshContext)
 }
 
 export function useStore(): AppState {
@@ -221,7 +245,7 @@ async function syncActionToAPI(action: AppAction): Promise<void> {
         category: action.dish.category,
         method: action.dish.method,
         ingredients: action.dish.ingredients,
-        photo_url: action.dish.photo || null
+        photo_url: getPortableImageUrl(action.dish.photo) || null
       })
       return
     case 'dish/update':
@@ -230,7 +254,7 @@ async function syncActionToAPI(action: AppAction): Promise<void> {
         category: action.dish.category,
         method: action.dish.method,
         ingredients: action.dish.ingredients,
-        photo_url: action.dish.photo || null
+        photo_url: getPortableImageUrl(action.dish.photo) || null
       })
       return
     case 'dish/delete':
@@ -245,7 +269,7 @@ async function syncActionToAPI(action: AppAction): Promise<void> {
         dish_id: item.dishId,
         dish_name: item.name,
         quantity: item.quantity,
-        photo_url: item.photo || null
+        photo_url: getPortableImageUrl(item.photo) || null
       })))
       return
     case 'order/complete':
@@ -266,7 +290,7 @@ async function syncActionToAPI(action: AppAction): Promise<void> {
         quantity_label: action.item.quantityLabel,
         expiry_date: action.item.expiryDate || null,
         status: action.item.status,
-        photo_url: action.item.photo || null
+        photo_url: getPortableImageUrl(action.item.photo) || null
       })
       return
     case 'inventory/update':
@@ -277,7 +301,7 @@ async function syncActionToAPI(action: AppAction): Promise<void> {
         quantity_label: action.item.quantityLabel,
         expiry_date: action.item.expiryDate || null,
         status: action.item.status,
-        photo_url: action.item.photo || null
+        photo_url: getPortableImageUrl(action.item.photo) || null
       })
       return
     case 'inventory/delete':

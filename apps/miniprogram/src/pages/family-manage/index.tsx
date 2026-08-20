@@ -1,8 +1,9 @@
 import { Button, Input, Text, View } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import Taro, { useRouter } from '@tarojs/taro'
 import { Home, MapPin, Pencil, Plus, ShieldCheck, Trash2, UserPlus, Users } from 'lucide'
 import { useEffect, useMemo, useState } from 'react'
 
+import { joinFamily } from '../../api'
 import { AppIcon } from '../../components/app-icon'
 import { ChipSelect } from '../../components/chip-select'
 import { PageHeader } from '../../components/page-header'
@@ -17,10 +18,13 @@ import './index.scss'
 const roleOptions: FamilyRole[] = ['家庭管理员', '家庭成员']
 
 export default function FamilyManagePage() {
+  const router = useRouter()
   const { currentMemberId, familyId, familyName, inventory, locations, members } = useStore()
   const dispatch = useDispatch()
   const [showRename, setShowRename] = useState(false)
   const [showAddMember, setShowAddMember] = useState(false)
+  const [showJoinWithInvite, setShowJoinWithInvite] = useState(false)
+  const [inviteCodeInput, setInviteCodeInput] = useState('')
   const [familyNameDraft, setFamilyNameDraft] = useState(familyName)
   const [memberNameDraft, setMemberNameDraft] = useState('')
   const [locationDraft, setLocationDraft] = useState('')
@@ -34,12 +38,20 @@ export default function FamilyManagePage() {
   ])), [inventory, locations])
 
   useEffect(() => {
-    if (Taro.getCurrentInstance().router?.params?.section !== 'locations') return
+    // Check if invite code was passed via query params (from share link)
+    const inviteCode = router?.query?.invite as string | undefined
+    if (inviteCode) {
+      setInviteCodeInput(inviteCode)
+      setShowJoinWithInvite(true)
+    }
+
+    // Scroll to locations section if specified
+    if (router?.params?.section !== 'locations') return
     const timer = setTimeout(() => {
       Taro.pageScrollTo({ selector: '#family-locations', duration: 0 })
     }, 80)
     return () => clearTimeout(timer)
-  }, [])
+  }, [router?.query?.invite, router?.params?.section])
 
   const openRename = () => {
     if (!isAdmin) return
@@ -167,6 +179,29 @@ export default function FamilyManagePage() {
       dispatch({ type: 'location/delete', name: location })
       Taro.showToast({ title: '位置已删除', icon: 'success' })
     })
+  }
+
+  const joinWithInviteCode = async () => {
+    const code = inviteCodeInput.trim()
+    if (!code) {
+      Taro.showToast({ title: '请输入邀请码', icon: 'none' })
+      return
+    }
+    if (code.length !== 6 && code.length !== 8) {
+      Taro.showToast({ title: '邀请码格式不正确', icon: 'none' })
+      return
+    }
+
+    try {
+      await joinFamily(code, currentMember?.displayName || '用户')
+      setShowJoinWithInvite(false)
+      setInviteCodeInput('')
+      Taro.showToast({ title: '加入家庭成功！', icon: 'success' })
+      // Refresh family data
+      Taro.reLaunch({ url: '/pages/family-manage/index' })
+    } catch (error: any) {
+      Taro.showToast({ title: error.message || '加入失败，请检查邀请码', icon: 'none' })
+    }
   }
 
   return (
