@@ -77,7 +77,7 @@ export default function LedgerEntryPage() {
   const [showDatePicker, setShowDatePicker] = useState(false)
   const [showPurposeSuggestions, setShowPurposeSuggestions] = useState(false)
 
-  const submit = () => {
+  const submit = async () => {
     const normalizedAmount = amount.trim()
     const normalizedPurpose = purpose.trim()
     if (!/^(0|[1-9]\d{0,7})(\.\d{1,2})?$/.test(normalizedAmount) || Number(normalizedAmount) <= 0) {
@@ -105,7 +105,8 @@ export default function LedgerEntryPage() {
       note: note.trim() || undefined,
       noteVisibility: visibility
     }
-    dispatch(editingEntry ? { type: 'ledger/update', entry } : { type: 'ledger/add', entry })
+    const succeeded = await dispatch(editingEntry ? { type: 'ledger/update', entry } : { type: 'ledger/add', entry })
+    if (!succeeded) return
     Taro.showToast({ title: editingEntry ? '记录已更新' : '已记一笔', icon: 'success' })
     setTimeout(() => Taro.navigateBack(), 350)
   }
@@ -117,9 +118,10 @@ export default function LedgerEntryPage() {
       content: '删除后无法恢复。',
       confirmText: '删除',
       confirmColor: palette.destructive
-    }).then((result) => {
+    }).then(async (result) => {
       if (!result.confirm) return
-      dispatch({ type: 'ledger/delete', id: editingEntry.id })
+      const succeeded = await dispatch({ type: 'ledger/delete', id: editingEntry.id })
+      if (!succeeded) return
       Taro.showToast({ title: '记录已删除', icon: 'success' })
       setTimeout(() => Taro.navigateBack(), 350)
     })

@@ -1,7 +1,10 @@
 package httpapi
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
+	"sort"
 	"strings"
 
 	"github.com/zhanghao527/youbenpu/services/api/internal/database"
@@ -215,7 +218,12 @@ func (r *router) updateInventoryStatus(response http.ResponseWriter, request *ht
 		return
 	}
 
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		r.logger.Error("read updated inventory status rows", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "更新失败")
+		return
+	}
 	if affected == 0 {
 		writeError(response, http.StatusNotFound, "NOT_FOUND", "物品不存在")
 		return
@@ -227,25 +235,107 @@ func (r *router) updateInventoryStatus(response http.ResponseWriter, request *ht
 // --- Delete Item (permanent) ---
 
 func (r *router) deleteInventory(response http.ResponseWriter, request *http.Request) {
-	familyID := getUserFamilyID(request.Context())
 	id := request.PathValue("id")
 	if id == "" {
 		writeError(response, http.StatusBadRequest, "MISSING_ID", "缺少物品 ID")
 		return
 	}
+	r.deleteInventoryItems(response, request, []string{id})
+}
 
-	result, err := r.db.Exec("DELETE FROM inventory_items WHERE id = ? AND family_id = ?", id, familyID)
+type deleteInventoryBatchRequest struct {
+	IDs []string `json:"ids"`
+}
+
+func (r *router) deleteInventoryBatch(response http.ResponseWriter, request *http.Request) {
+	var body deleteInventoryBatchRequest
+	if err := readJSON(request, &body); err != nil || len(body.IDs) == 0 || len(body.IDs) > 200 {
+		writeError(response, http.StatusBadRequest, "INVALID_REQUEST", "物品 ID 列表不能为空且最多 200 项")
+		return
+	}
+
+	ids := make([]string, 0, len(body.IDs))
+	seen := make(map[string]struct{}, len(body.IDs))
+	for _, rawID := range body.IDs {
+		id := strings.TrimSpace(rawID)
+		if id == "" {
+			writeError(response, http.StatusBadRequest, "INVALID_REQUEST", "物品 ID 不能为空")
+			return
+		}
+		if _, exists := seen[id]; exists {
+			continue
+		}
+		seen[id] = struct{}{}
+		ids = append(ids, id)
+	}
+	r.deleteInventoryItems(response, request, ids)
+}
+
+func (r *router) deleteInventoryItems(response http.ResponseWriter, request *http.Request, ids []string) {
+	familyID := getUserFamilyID(request.Context())
+	userID := getUserID(request.Context())
+	sort.Strings(ids)
+
+	tx, err := r.db.BeginTx(request.Context(), nil)
 	if err != nil {
-		r.logger.Error("delete inventory item", "error", err)
+		r.logger.Error("begin batch inventory delete", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
+		return
+	}
+	defer tx.Rollback()
+
+	if _, err := r.lockFamilyMember(request.Context(), tx, familyID, userID); errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusForbidden, "FORBIDDEN", "你已不在该家庭中")
+		return
+	} else if err != nil {
+		r.logger.Error("revalidate family membership for batch inventory delete", "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
 		return
 	}
 
-	affected, _ := result.RowsAffected()
-	if affected == 0 {
-		writeError(response, http.StatusNotFound, "NOT_FOUND", "物品不存在")
-		return
+	terminalStatuses := map[string]bool{"finished": true, "discarded": true, "deleted": true}
+	for _, id := range ids {
+		var status string
+		err := tx.QueryRowContext(request.Context(),
+			"SELECT status FROM inventory_items WHERE id = ? AND family_id = ? FOR UPDATE", id, familyID,
+		).Scan(&status)
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(response, http.StatusNotFound, "NOT_FOUND", "物品不存在，未执行任何删除")
+			return
+		}
+		if err != nil {
+			r.logger.Error("lock inventory item for batch delete", "id", id, "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
+			return
+		}
+		if !terminalStatuses[status] {
+			writeError(response, http.StatusConflict, "STATUS_CHANGED", "有物品已恢复或不在回收站，未执行任何删除")
+			return
+		}
 	}
 
-	writeJSON(response, http.StatusOK, map[string]string{"message": "已删除"})
+	for _, id := range ids {
+		result, err := tx.ExecContext(request.Context(),
+			"DELETE FROM inventory_items WHERE id = ? AND family_id = ?", id, familyID)
+		if err != nil {
+			r.logger.Error("batch delete inventory item", "id", id, "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
+			return
+		}
+		if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+			r.logger.Error("read batch deleted inventory rows", "id", id, "affected", affected, "error", err)
+			writeError(response, http.StatusConflict, "STATUS_CHANGED", "物品状态已变化，未执行任何删除")
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		r.logger.Error("commit batch inventory delete", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
+		return
+	}
+	writeJSON(response, http.StatusOK, map[string]any{
+		"message":       "已删除",
+		"deleted_count": len(ids),
+	})
 }

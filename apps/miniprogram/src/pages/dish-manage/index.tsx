@@ -41,9 +41,10 @@ export default function DishManagePage() {
       content: '删除后，新增或编辑菜品时不再出现这个分类。',
       confirmText: '删除',
       confirmColor: palette.destructive
-    }).then((result) => {
+    }).then(async (result) => {
       if (!result.confirm) return
-      dispatch({ type: 'category/removeDish', name: category })
+      const succeeded = await dispatch({ type: 'category/removeDish', name: category })
+      if (!succeeded) return
       if (activeCategory === category) setActiveCategory('全部')
       Taro.showToast({ title: '分类已删除', icon: 'success' })
     })

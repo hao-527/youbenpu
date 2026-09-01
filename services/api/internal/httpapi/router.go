@@ -1,6 +1,7 @@
 package httpapi
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
@@ -13,11 +14,17 @@ import (
 	"github.com/zhanghao527/youbenpu/services/api/internal/storage"
 )
 
+type BuildInfo struct {
+	Version string
+	Commit  string
+}
+
 type Dependencies struct {
 	Config      config.Config
 	Logger      *slog.Logger
 	DB          *sql.DB
 	ObjectStore storage.ObjectStore
+	BuildInfo   BuildInfo
 }
 
 type router struct {
@@ -25,6 +32,7 @@ type router struct {
 	logger      *slog.Logger
 	db          *sql.DB
 	objectStore storage.ObjectStore
+	buildInfo   BuildInfo
 }
 
 func NewRouter(dependencies Dependencies) http.Handler {
@@ -33,12 +41,14 @@ func NewRouter(dependencies Dependencies) http.Handler {
 		logger:      dependencies.Logger,
 		db:          dependencies.DB,
 		objectStore: dependencies.ObjectStore,
+		buildInfo:   dependencies.BuildInfo,
 	}
 
 	mux := http.NewServeMux()
 
 	// Public routes
 	mux.HandleFunc("GET /healthz", r.health)
+	mux.HandleFunc("GET /readyz", r.ready)
 	mux.HandleFunc("GET /api/v1/meta", r.meta)
 	mux.HandleFunc("POST /api/v1/auth/login", r.login)
 
@@ -63,6 +73,7 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	// Inventory
 	mux.Handle("GET /api/v1/inventory", r.authFamily(http.HandlerFunc(r.wrapListInventory)))
 	mux.Handle("POST /api/v1/inventory", r.authFamily(http.HandlerFunc(r.wrapCreateInventory)))
+	mux.Handle("DELETE /api/v1/inventory/batch", r.authFamily(http.HandlerFunc(r.wrapDeleteInventoryBatch)))
 	mux.Handle("PUT /api/v1/inventory/{id}", r.authFamily(http.HandlerFunc(r.wrapUpdateInventory)))
 	mux.Handle("PUT /api/v1/inventory/{id}/status", r.authFamily(http.HandlerFunc(r.wrapUpdateInventoryStatus)))
 	mux.Handle("DELETE /api/v1/inventory/{id}", r.authFamily(http.HandlerFunc(r.wrapDeleteInventory)))
@@ -138,6 +149,9 @@ func (r *router) wrapUpdateInventoryStatus(w http.ResponseWriter, req *http.Requ
 func (r *router) wrapDeleteInventory(w http.ResponseWriter, req *http.Request) {
 	r.deleteInventory(w, req)
 }
+func (r *router) wrapDeleteInventoryBatch(w http.ResponseWriter, req *http.Request) {
+	r.deleteInventoryBatch(w, req)
+}
 func (r *router) wrapListDishes(w http.ResponseWriter, req *http.Request) { r.listDishes(w, req) }
 func (r *router) wrapCreateDish(w http.ResponseWriter, req *http.Request) { r.createDish(w, req) }
 func (r *router) wrapUpdateDish(w http.ResponseWriter, req *http.Request) { r.updateDish(w, req) }
@@ -177,11 +191,28 @@ func (r *router) health(response http.ResponseWriter, _ *http.Request) {
 	})
 }
 
+func (r *router) ready(response http.ResponseWriter, request *http.Request) {
+	ctx, cancel := context.WithTimeout(request.Context(), 2*time.Second)
+	defer cancel()
+
+	if err := r.db.PingContext(ctx); err != nil {
+		r.logger.Error("readiness check failed", "error", err)
+		writeError(response, http.StatusServiceUnavailable, "DB_UNAVAILABLE", "服务暂未就绪")
+		return
+	}
+	writeJSON(response, http.StatusOK, map[string]string{
+		"status":  "ready",
+		"service": "youbenpu-api",
+	})
+}
+
 func (r *router) meta(response http.ResponseWriter, _ *http.Request) {
 	writeJSON(response, http.StatusOK, map[string]string{
 		"name":        "生活有本谱",
 		"api_version": "v1",
 		"environment": r.config.Environment,
+		"version":     r.buildInfo.Version,
+		"commit":      r.buildInfo.Commit,
 	})
 }
 

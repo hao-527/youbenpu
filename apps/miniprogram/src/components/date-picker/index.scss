@@ -125,3 +125,8 @@
   opacity: 0.3;
   pointer-events: none;
 }
+
+.dp-shortcut,
+.dp-nav__btn {
+  border-radius: var(--radius-sm);
+}

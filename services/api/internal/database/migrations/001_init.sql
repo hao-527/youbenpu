@@ -126,10 +126,4 @@ CREATE TABLE IF NOT EXISTS custom_categories (
     CONSTRAINT fk_categories_family FOREIGN KEY (family_id) REFERENCES families(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- Schema version tracking
-CREATE TABLE IF NOT EXISTS schema_migrations (
-    version     INT NOT NULL PRIMARY KEY,
-    applied_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-INSERT IGNORE INTO schema_migrations (version) VALUES (1);
+-- Schema version tracking is managed by the Go migration runner.

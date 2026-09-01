@@ -1,19 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
-  <!-- Background circle -->
-  <circle cx="60" cy="60" r="52" fill="#FFF8F0"/>
-  <!-- Wallet body -->
-  <rect x="28" y="38" width="58" height="44" rx="8" fill="#FDDCB5" stroke="#E8530E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Wallet flap -->
-  <path d="M28 52C28 52 28 38 36 38H80C84.4 38 86 40 86 44V52H28Z" fill="#F5A86C" stroke="#E8530E" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- Wallet clasp -->
-  <rect x="52" y="46" width="20" height="14" rx="7" fill="#FFF8F0" stroke="#E8530E" stroke-width="2" stroke-linecap="round"/>
-  <!-- Coin 1 -->
-  <circle cx="38" cy="32" r="9" fill="#FFD97A" stroke="#D4880A" stroke-width="2"/>
-  <text x="38" y="36" font-size="10" font-weight="700" fill="#D4880A" text-anchor="middle" font-family="sans-serif">¥</text>
-  <!-- Coin 2 (smaller, behind) -->
-  <circle cx="50" cy="28" r="7" fill="#FFE8A3" stroke="#D4880A" stroke-width="1.5"/>
-  <text x="50" y="31.5" font-size="8" font-weight="700" fill="#D4880A" text-anchor="middle" font-family="sans-serif">¥</text>
-  <!-- Decorative sparkle -->
-  <path d="M82 30L84 26L86 30L84 34Z" fill="#E8530E" opacity="0.6"/>
-  <path d="M90 38L91.5 35L93 38L91.5 41Z" fill="#F5A86C" opacity="0.7"/>
+  <rect x="27" y="40" width="62" height="45" rx="7" fill="#F3DEC9" stroke="#B84C2A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M27 53V47C27 42.6 30.6 39 35 39H82C86.4 39 89 42 89 46V53H27Z" fill="#DFA279" stroke="#B84C2A" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect x="55" y="48" width="22" height="14" rx="5" fill="#FFFDF9" stroke="#B84C2A" stroke-width="2"/>
+  <circle cx="39" cy="33" r="9" fill="#E5BE68" stroke="#9A6D18" stroke-width="2"/>
+  <path d="M35 33H43M39 29V37" stroke="#9A6D18" stroke-width="1.6" stroke-linecap="round"/>
+  <circle cx="52" cy="28" r="7" fill="#F1D994" stroke="#9A6D18" stroke-width="1.5"/>
 </svg>

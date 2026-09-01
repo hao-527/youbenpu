@@ -49,7 +49,7 @@ export default function DishFormPage() {
       title: '新增菜品分类',
       editable: true,
       placeholderText: '输入分类名称（10字内）'
-    }).then((result) => {
+    }).then(async (result) => {
       if (!result.confirm || !result.content) return
       const newName = result.content.trim().slice(0, 10)
       if (!newName) return
@@ -58,7 +58,8 @@ export default function DishFormPage() {
         setShowCategoryPicker(false)
         return
       }
-      dispatch({ type: 'category/addDish', name: newName })
+      const succeeded = await dispatch({ type: 'category/addDish', name: newName })
+      if (!succeeded) return
       setCategory(newName)
       setShowCategoryPicker(false)
     })
@@ -98,7 +99,8 @@ export default function DishFormPage() {
       photo,
       available: editingDish?.available ?? true
     }
-    await dispatch(editingDish ? { type: 'dish/update', dish } : { type: 'dish/add', dish })
+    const succeeded = await dispatch(editingDish ? { type: 'dish/update', dish } : { type: 'dish/add', dish })
+    if (!succeeded) return
     Taro.showToast({ title: editingDish ? '菜品已更新' : '菜品已添加', icon: 'success' })
     setTimeout(() => Taro.navigateBack(), 350)
   }

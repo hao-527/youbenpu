@@ -1,167 +1,135 @@
 # 生活有本谱
 
-## 小程序简介
+“生活有本谱”是面向家庭成员的微信小程序，把家庭账本、家庭点餐、物品库存与家庭协作集中在同一个家庭空间。
 
-“生活有本谱”是一款面向家庭成员的日常生活管理小程序，将家庭记账、家庭点餐、物品库存和到期提醒集中到同一个家庭空间中。
+## 当前能力
 
-家庭成员加入同一个家庭后，可以共同查看和管理日常信息，减少账目分散、吃饭难决定、物品过期以及家庭信息不同步等问题。
+- **家庭与身份**：微信登录、JWT、创建/加入/退出家庭、邀请码、成员角色与家庭管理。
+- **家庭账本**：收入/支出记录、备注可见范围、成员和时间维度展示。
+- **家庭点餐**：菜品与自定义分类、点餐单提交/完成/取消；数据库保证每个家庭最多一张待完成点餐单。
+- **物品管理**：库存、位置、自定义分类、到期状态、归档、恢复与永久删除。
+- **图片存储**：本地文件或腾讯云 COS，通过统一对象存储接口切换。
+- **生产能力**：MySQL 迁移、结构化日志、请求 ID、安全响应头、存活/就绪探针、优雅退出、构建版本追踪。
 
-## 核心功能
+## 技术栈
 
-### 1. 家庭账本
-
-- 记录家庭支出金额、分类、时间和备注。
-- 支持餐饮、交通、日用、居家、医疗、教育、娱乐和其他分类。
-- 查看本月支出、月度支出和逐笔账目明细。
-- 账目支持餐饮、交通、日用、居家、医疗、教育、娱乐等分类。
-- 按家庭成员或支出分类筛选账目。
-- 统计每位家庭成员的支出金额。
-- 账目备注默认仅自己可见，也可以主动共享给家人。
-
-### 2. 家庭点餐
-
-- 建立家庭私人菜单，维护家里经常制作的菜品。
-- 设置菜品是否可以点选，并记录菜品分类、食材和做法。
-- 家庭成员可以选择菜品和份数并提交点餐单。
-- 查看点餐记录以及待完成、已完成、已取消等状态。
-- 完成点餐后可以手动记录实际支出，并与该点餐单关联，系统不会自动猜测消费金额。
-- 同一时间只保留一张待完成点餐单，避免重复提交。
-
-### 3. 家庭物品管理
-
-- 记录食品、药品、日用品、化妆品、证件等家庭物品。
-- 记录物品名称、分类、数量、存放位置和到期日期。
-- 按分类、位置、名称或临期时间查看和筛选物品。
-- 查看临期和已经过期的物品。
-- 按冰箱冷藏、冰箱冷冻、橱柜、药箱、浴室等位置管理物品。
-- 将物品标记为已用完或已丢弃，可随时恢复。
-- 修改物品的存放位置。
-- 临期和过期物品会进入首页待办，帮助家庭及时处理。
-
-### 4. 家庭协作
-
-- 创建家庭并邀请其他成员加入。
-- 查看家庭成员及其角色。
-- 多位家庭成员共同使用账本、点餐和物品管理功能。
-- 管理邀请码、提醒设置、共享范围和隐私设置。
-- 对退出家庭、解散家庭和注销账户等高风险操作进行二次确认。
-
-## 主要页面
-
-- **首页**：查看家庭账目、待完成点餐单、临期物品等重要信息。
-- **账本**：记录支出并查看家庭账目统计和明细。
-- **吃饭**：管理菜单、提交点餐单和查看点餐记录。
-- **物品**：管理家庭库存、存放位置和到期状态。
-- **我的**：管理家庭成员、提醒、隐私和个人数据。
-
-## 重要业务规则
-
-- 账本、点餐和物品数据都归属于同一个家庭。
-- 金额应使用整数分保存，避免小数计算误差。
-- 点餐单不包含实际消费金额，也不会自动生成账目。
-- 账目备注默认私密，必须由记录人主动选择共享。
-- 家庭成员只能查看自己有权限访问的数据。
-- 物品状态包括正常、临期、已过期、已用完和已丢弃。
-
-## 当前实现
-
-项目已完成可运行的初版 UI 与可扩展工程骨架：
-
-- **微信小程序**：`apps/miniprogram`，使用 Taro 4.2.1、React 18.3.1、TypeScript 5.9.3 和 Sass。
-- **页面**：首页、账本、吃饭、物品、我的，共 5 个原生底部 Tab；当前使用本地 mock 数据展示核心流程与状态。
-- **设计系统**：`design-system/default/MASTER.md`，采用列表优先的高信息密度风格。不使用卡片容器、阴影和大面积彩色色块，层级由字重与分隔线表达；保留语义 Token、暗色变量、44px 最小触控区和低动效策略。
-- **物品页**：两列图片网格，与电商列表的浏览方式一致，图片在上、名称与状态在下。
-- **状态表达**：使用「圆点 + 文字」，不依赖颜色单独传达含义。
-- **图标**：统一使用 Lucide 矢量图标适配器，不使用 emoji 充当结构图标。
-- **后端 API**：`services/api`，使用 Go 1.24 标准库 HTTP，包含配置、JSON 日志、请求 ID、安全响应头、panic 恢复和优雅退出。
-- **对象存储**：业务层依赖 `ObjectStore` 接口；当前 `LocalStore` 保存到本地目录，后续可新增腾讯云 COS 适配器而无需改动业务模型。
-- **Linux 部署**：提供多阶段 `services/api/Dockerfile`，并已通过 Linux/amd64 交叉构建。
-
-当前尚未接入真实微信身份、数据库、服务端业务接口或腾讯云 COS。前端操作主要用于确认信息架构、视觉样式和交互边界，不代表数据已经持久化。
+- 小程序：Taro 4.2.1、React 18.3.1、TypeScript 5.9.3、Sass
+- API：Go 1.24、标准库 HTTP、MySQL 5.7+、JWT、腾讯云 COS
+- 工程：npm workspaces、GitHub Actions、Docker 多阶段构建
 
 ## 项目结构
 
 ```text
 .
-├── apps/miniprogram/                 # Taro 微信小程序
-│   ├── src/assets/images/inventory/  # 物品图片，替换同名文件即可换成实拍图
-│   ├── src/components/               # 通用展示组件与图标适配器
-│   └── src/pages/                    # home/ledger/meals/inventory/profile
-├── design-system/default/MASTER.md   # ui-ux-pro-max 生成的设计系统
-└── services/api/                     # Go API
-    ├── cmd/api/                       # 服务入口
-    ├── internal/domain/               # 家庭、账本、点餐、物品领域模型
-    ├── internal/httpapi/              # 路由与 HTTP 中间件
-    ├── internal/storage/              # 本地存储与对象存储抽象
-    └── data/uploads/                  # 本地上传目录（内容不纳入 Git）
+├── apps/miniprogram/                     # Taro 微信小程序
+├── services/api/
+│   ├── cmd/api/                           # API 入口
+│   ├── internal/config/                   # 环境配置与生产校验
+│   ├── internal/database/migrations/      # MySQL 迁移
+│   ├── internal/httpapi/                  # 路由、业务 handler、中间件
+│   ├── internal/storage/                  # Local/COS 对象存储
+│   ├── .env.example                       # 无敏感值的配置模板
+│   └── Dockerfile
+├── scripts/                               # 数据库备份与恢复脚本
+├── docs/operations.md                     # 发布、迁移、回滚与安全手册
+└── .github/workflows/ci.yml               # 前后端持续集成
 ```
 
 ## 本地开发
 
 ### 环境要求
 
-- Node.js `>=18.20.0`，npm `>=10.0.0`
-- Go `1.24.x`
+- Node.js 20 LTS 或更高版本（最低兼容 18.20）
+- npm 10+
+- Go 1.24.x
+- MySQL 5.7+
 - 微信开发者工具
 
-Taro 4.2.1 在 Node 18 下仍可完成本项目构建，但会提示未来停止支持 Node 20 以下版本。建议新环境直接使用 Node 20 LTS 或更高版本。为兼容当前 Node 18 环境，Sass 已精确锁定为 `1.93.3`。
-
-### 微信小程序
-
-在仓库根目录执行：
+### 小程序
 
 ```bash
-npm install
+npm ci
 npm run typecheck
 npm run build:weapp
 ```
 
-构建产物位于 `apps/miniprogram/dist`，可用微信开发者工具导入。开发监听模式：
+开发监听：
 
 ```bash
 npm run dev:weapp
 ```
 
-### Go API
+构建产物位于 `apps/miniprogram/dist`，用微信开发者工具导入。
+
+### API
 
 ```bash
+cp services/api/.env.example services/api/.env
+# 创建数据库并按本地环境修改 .env，然后导出变量
 cd services/api
+set -a; source .env; set +a
 go run ./cmd/api
 ```
 
-默认监听 `:8080`：
+本地开发允许使用开发 JWT 默认值；`APP_ENV=production` 时必须配置不少于 32 字节的随机 `JWT_SECRET`，并提供 `WX_APPID` 与 `WX_APP_SECRET`，否则服务拒绝启动。
+
+探针和版本：
 
 ```bash
 curl http://127.0.0.1:8080/healthz
+curl http://127.0.0.1:8080/readyz
 curl http://127.0.0.1:8080/api/v1/meta
 ```
 
-可用环境变量：
+## 主要环境变量
 
-| 变量 | 默认值 | 用途 |
+| 变量 | 开发默认值 | 说明 |
 |---|---|---|
-| `APP_ENV` | `development` | 运行环境标识 |
-| `HTTP_ADDRESS` | `:8080` | HTTP 监听地址 |
-| `UPLOAD_DIR` | `./data/uploads` | 本地对象存储目录 |
+| `APP_ENV` | `development` | `development` / `test` / `production` |
+| `HTTP_ADDRESS` | `:8080` | 监听地址；同机 Nginx 生产环境建议绑定 `127.0.0.1` |
+| `DB_HOST` / `DB_PORT` | `127.0.0.1` / `3306` | MySQL 地址 |
+| `DB_USER` / `DB_PASSWORD` / `DB_NAME` | `root` / 空 / `youbenpu` | 数据库凭证与库名 |
+| `WX_APPID` / `WX_APP_SECRET` | 空 | 微信小程序凭证；生产必填 |
+| `JWT_SECRET` | 开发占位值 | 生产必须为 32+ 字节随机值 |
+| `OBJECT_STORE` | `local` | `local` 或 `cos` |
+| `UPLOAD_DIR` | `./data/uploads` | 本地上传目录 |
+| `COS_*` | 见模板 | `OBJECT_STORE=cos` 时全部必填 |
 | `SHUTDOWN_TIMEOUT` | `10s` | 优雅退出超时 |
 
-### Linux Docker 部署骨架
+完整模板见 `services/api/.env.example`。
 
-在仓库根目录执行：
+## 质量检查
+
+CI 与本地应执行相同的核心命令：
 
 ```bash
-docker build -t youbenpu-api:local services/api
-docker run --rm -p 8080:8080 \
-  -v youbenpu-uploads:/data/uploads \
-  youbenpu-api:local
+npm run typecheck
+npm run build:weapp
+cd services/api
+go test ./...
+go vet ./...
+go build ./cmd/api
 ```
 
-生产接入数据库、鉴权和 COS 前，不应把当前骨架直接作为完整业务服务暴露到公网。
+当前 Go 包尚无自动化测试用例，`go test` 主要承担编译校验；新增业务逻辑时应同步补充测试。
 
-## 已完成验证
+## Docker 构建
 
-- `npm run typecheck`
-- `npm run build:weapp`
-- `go vet ./...`
-- macOS 本机构建与 `linux/amd64` 交叉构建
-- `GET /healthz` 与 `GET /api/v1/meta` 进程级冒烟检查
+```bash
+docker build services/api \
+  --build-arg VERSION="$(git describe --tags --always)" \
+  --build-arg COMMIT="$(git rev-parse --short=12 HEAD)" \
+  -t youbenpu-api:"$(git rev-parse --short=12 HEAD)"
+```
+
+容器以 non-root 用户运行。生产运行时仍需注入数据库、微信、JWT 和对象存储配置，不能依赖开发默认值。
+
+## 部署与运维
+
+数据库迁移会在 API 启动时执行。首次部署迁移 002 前必须检查历史数据中是否存在同一家庭多张待完成点餐单。备份、发布顺序、版本核对、恢复、回滚和服务器最低安全基线见：
+
+- [API 部署与运维手册](docs/operations.md)
+- [数据库备份脚本](scripts/backup-mysql.sh)
+- [数据库恢复脚本](scripts/restore-mysql.sh)
+
+高风险生产操作（防火墙、SSH、MySQL 监听、systemd 用户、系统升级）必须在维护窗口单独确认并保留回滚通道，不应由应用发布脚本自动执行。

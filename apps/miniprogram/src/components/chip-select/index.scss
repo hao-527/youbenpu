@@ -35,3 +35,7 @@
   background: var(--color-tint-primary);
   color: var(--color-primary-text);
 }
+
+.chip-select__item {
+  border-radius: var(--radius-sm);
+}

@@ -277,3 +277,21 @@
   padding: var(--space-4) var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-4));
   overflow-y: auto;
 }
+
+.profile-header {
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: none;
+}
+
+.profile-invite-sheet__code-box {
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}
+
+.invite-modal {
+  border: var(--hairline) solid var(--color-border);
+  border-bottom: 0;
+  box-shadow: none;
+}

@@ -58,7 +58,7 @@ export default function InventoryFormPage() {
       title: '新增物品分类',
       editable: true,
       placeholderText: '输入分类名称（10字内）'
-    }).then((result) => {
+    }).then(async (result) => {
       if (!result.confirm || !result.content) return
       const newName = result.content.trim().slice(0, 10)
       if (!newName) return
@@ -67,7 +67,8 @@ export default function InventoryFormPage() {
         setShowCategoryPicker(false)
         return
       }
-      dispatch({ type: 'category/addInventory', name: newName })
+      const succeeded = await dispatch({ type: 'category/addInventory', name: newName })
+      if (!succeeded) return
       setCategory(newName)
       setShowCategoryPicker(false)
     })
@@ -78,7 +79,7 @@ export default function InventoryFormPage() {
       title: '新增存放位置',
       editable: true,
       placeholderText: '例如：冰箱冷藏、阳台柜'
-    }).then((result) => {
+    }).then(async (result) => {
       if (!result.confirm || !result.content) return
       const newLocation = result.content.trim().slice(0, 20)
       if (!newLocation) return
@@ -87,7 +88,8 @@ export default function InventoryFormPage() {
         setShowLocationPicker(false)
         return
       }
-      dispatch({ type: 'location/add', name: newLocation })
+      const succeeded = await dispatch({ type: 'location/add', name: newLocation })
+      if (!succeeded) return
       setLocation(newLocation)
       setShowLocationPicker(false)
     })
@@ -123,7 +125,8 @@ export default function InventoryFormPage() {
       status: terminalStatus ?? expiry.status,
       photo
     }
-    await dispatch(editingItem ? { type: 'inventory/update', item } : { type: 'inventory/add', item })
+    const succeeded = await dispatch(editingItem ? { type: 'inventory/update', item } : { type: 'inventory/add', item })
+    if (!succeeded) return
     Taro.showToast({ title: editingItem ? '物品已更新' : '物品已添加', icon: 'success' })
     setTimeout(() => Taro.navigateBack(), 350)
   }

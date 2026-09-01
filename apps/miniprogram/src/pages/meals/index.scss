@@ -139,7 +139,7 @@
   justify-content: center;
   padding: var(--space-5) var(--space-5) var(--space-5);
   border: var(--hairline) solid rgba(232, 83, 14, 0.1);
-  background: linear-gradient(145deg, var(--color-surface) 0%, var(--color-tint-primary) 100%);
+  background: var(--color-surface);
   text-align: center;
 }
 
@@ -399,4 +399,72 @@
     padding: 0 6rpx;
     font-size: var(--text-2xs);
   }
+}
+
+/* Replace promotional-card styling with a practical kitchen-board rhythm. */
+.meals-page .content-action,
+.meals-section-action {
+  border-radius: var(--radius-sm);
+}
+
+.meals-page .meal-focus-card {
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: none;
+}
+
+.meals-page .meal-focus-card--empty {
+  border-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.meals-page .meal-focus-card__button {
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+.meals-page .section__meta {
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.meals-page .tabs {
+  border-bottom: var(--hairline) solid var(--color-border);
+}
+
+.meals-page .tabs__track {
+  gap: var(--space-4);
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.meals-page .tabs__item {
+  min-height: var(--touch-target);
+  margin-bottom: calc(-1 * var(--hairline));
+  padding: 0 4rpx;
+  border: 0;
+  border-bottom: 5rpx solid transparent;
+  border-radius: 0;
+  background: transparent;
+  line-height: var(--touch-target);
+}
+
+.meals-page .tabs__item--active {
+  border-bottom-color: var(--color-primary);
+  background: transparent;
+  color: var(--color-primary-text);
+}
+
+.meals-page .empty-state {
+  border-radius: var(--radius-card);
+}
+
+.meal-preview-card,
+.meal-preview-card__photo {
+  border-radius: var(--radius-md);
+}
+
+.meal-preview-card__category {
+  border-radius: var(--radius-xs);
 }

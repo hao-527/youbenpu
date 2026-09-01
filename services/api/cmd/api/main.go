@@ -16,6 +16,11 @@ import (
 	"github.com/zhanghao527/youbenpu/services/api/internal/storage"
 )
 
+var (
+	version = "dev"
+	commit  = "unknown"
+)
+
 func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{Level: slog.LevelInfo}))
 
@@ -61,6 +66,10 @@ func main() {
 		Logger:      logger,
 		DB:          db,
 		ObjectStore: objectStore,
+		BuildInfo: httpapi.BuildInfo{
+			Version: version,
+			Commit:  commit,
+		},
 	})
 
 	server := &http.Server{
@@ -80,7 +89,12 @@ func main() {
 		serverErrors <- server.ListenAndServe()
 	}()
 
-	logger.Info("api listening", "address", cfg.HTTPAddress, "environment", cfg.Environment)
+	logger.Info("api listening",
+		"address", cfg.HTTPAddress,
+		"environment", cfg.Environment,
+		"version", version,
+		"commit", commit,
+	)
 	select {
 	case err := <-serverErrors:
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {

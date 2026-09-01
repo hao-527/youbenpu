@@ -17,17 +17,16 @@ export default defineAppConfig({
   ],
   window: {
     navigationStyle: 'custom',
-    // Matches --color-background (warm neutral-50); a cool gray flashed
-    // against the warm page background during navigation.
-    backgroundColor: '#FAF7F5',
+    // Matches the paper-like application background during navigation.
+    backgroundColor: '#F7F4EE',
     backgroundTextStyle: 'dark',
     pageOrientation: 'portrait'
   },
   tabBar: {
-    // Warm neutral-500, mirroring --color-subtle-foreground.
-    color: '#776E67',
+    // Mirrors --color-subtle-foreground in the paper palette.
+    color: '#746A5F',
     selectedColor: '#E8530E',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#FFFDF9',
     borderStyle: 'white',
     list: [
       { pagePath: 'pages/home/index', text: '首页', iconPath: 'assets/tabbar/home.png', selectedIconPath: 'assets/tabbar/home-active.png' },

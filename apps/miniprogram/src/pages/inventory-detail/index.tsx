@@ -50,16 +50,18 @@ export default function InventoryDetailPage() {
       content: '物品会移入归档区，之后仍可恢复。',
       confirmText: label,
       confirmColor: status === 'discarded' ? palette.destructive : palette.primary
-    }).then((result) => {
+    }).then(async (result) => {
       if (!result.confirm) return
-      dispatch({ type: 'inventory/markStatus', id: item.id, status })
+      const succeeded = await dispatch({ type: 'inventory/markStatus', id: item.id, status })
+      if (!succeeded) return
       Taro.showToast({ title: `已标记为${label}`, icon: 'success' })
       setTimeout(() => Taro.navigateBack(), 350)
     })
   }
 
-  const restore = () => {
-    dispatch({ type: 'inventory/markStatus', id: item.id, status: expiry.status })
+  const restore = async () => {
+    const succeeded = await dispatch({ type: 'inventory/markStatus', id: item.id, status: expiry.status })
+    if (!succeeded) return
     Taro.showToast({ title: '物品已恢复', icon: 'success' })
     setTimeout(() => Taro.navigateBack(), 350)
   }
@@ -70,9 +72,10 @@ export default function InventoryDetailPage() {
       content: '删除后无法恢复。若只是暂时不用，建议标记为用完或丢弃。',
       confirmText: '永久删除',
       confirmColor: palette.destructive
-    }).then((result) => {
+    }).then(async (result) => {
       if (!result.confirm) return
-      dispatch({ type: 'inventory/permanentDelete', id: item.id })
+      const succeeded = await dispatch({ type: 'inventory/permanentDelete', id: item.id })
+      if (!succeeded) return
       Taro.showToast({ title: '物品已删除', icon: 'success' })
       setTimeout(() => Taro.navigateBack(), 350)
     })

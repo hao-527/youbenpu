@@ -155,7 +155,7 @@
 
 .inventory-empty {
   margin-top: var(--space-2);
-  background: linear-gradient(145deg, var(--color-surface) 0%, var(--color-tint-primary) 100%);
+  background: var(--color-surface);
 }
 
 .inventory-empty__illust {
@@ -184,4 +184,15 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+}
+
+/* Inventory is a utility list, not a promotional surface. */
+.inventory-results-bar__clear,
+.inventory-row__category {
+  border-radius: var(--radius-xs);
+}
+
+.inventory-empty {
+  border: var(--hairline) solid var(--color-border);
+  background: var(--color-surface);
 }

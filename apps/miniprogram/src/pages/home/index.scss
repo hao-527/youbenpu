@@ -8,7 +8,7 @@
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-4);
-  background: linear-gradient(150deg, var(--color-tint-primary) 0%, var(--color-surface) 62%);
+  background: var(--color-surface);
 }
 
 .home-overview__info {
@@ -113,7 +113,7 @@
   padding: var(--space-3) var(--space-2);
   text-align: center;
   /* Warm tint background instead of pure white */
-  background: linear-gradient(180deg, var(--color-tint-warm) 0%, var(--color-surface) 100%);
+  background: var(--color-surface);
 }
 
 .home-feature-card__illust {
@@ -361,4 +361,47 @@
   .home-row-chevron {
     display: none;
   }
+}
+
+/* Quiet household-ledger treatment: hierarchy comes from rules and type. */
+.home-overview {
+  border-left: 6rpx solid var(--color-primary);
+  background: var(--color-surface);
+}
+
+.home-feature-grid {
+  gap: 0;
+  overflow: hidden;
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.home-feature-card {
+  border: 0;
+  border-radius: 0;
+  background: var(--color-surface);
+  box-shadow: none;
+}
+
+.home-feature-card + .home-feature-card {
+  border-left: var(--hairline) solid var(--color-border);
+}
+
+.home-task-list {
+  gap: 0;
+  overflow: hidden;
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-card);
+  background: var(--color-surface);
+}
+
+.home-task-card {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.home-task-card + .home-task-card {
+  border-top: var(--hairline) solid var(--color-border);
 }

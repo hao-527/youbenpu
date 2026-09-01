@@ -166,6 +166,10 @@ export function deleteInventoryItem(id: string) {
   return del<{ message: string }>(`${API.INVENTORY}/${id}`)
 }
 
+export function deleteInventoryItems(ids: string[]) {
+  return del<{ message: string; deleted_count: number }>(API.INVENTORY_BATCH_DELETE, { ids })
+}
+
 // ===== Dishes =====
 
 export interface DishDTO {

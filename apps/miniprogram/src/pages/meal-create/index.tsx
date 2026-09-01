@@ -44,7 +44,7 @@ export default function MealCreatePage() {
     })
   }
 
-  const submitOrder = () => {
+  const submitOrder = async () => {
     if (submittingRef.current || pendingOrder) return
 
     const items = availableDishes.flatMap((dish) => {
@@ -71,7 +71,11 @@ export default function MealCreatePage() {
     }
 
     submittingRef.current = true
-    dispatch({ type: 'order/create', order })
+    const succeeded = await dispatch({ type: 'order/create', order })
+    if (!succeeded) {
+      submittingRef.current = false
+      return
+    }
     Taro.showToast({ title: '点餐单已提交', icon: 'success', duration: 900 })
     setTimeout(() => Taro.redirectTo({ url: '/pages/meal-orders/index' }), 450)
   }

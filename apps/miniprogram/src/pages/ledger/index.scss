@@ -394,3 +394,15 @@
     max-width: 38%;
   }
 }
+
+/* Paper-ledger details: controls are labels, not floating pills. */
+.month-nav__label,
+.ledger-overview__month {
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.ledger-overview {
+  border-left: 6rpx solid var(--color-primary);
+}

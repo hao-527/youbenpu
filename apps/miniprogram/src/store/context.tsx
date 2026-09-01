@@ -1,6 +1,6 @@
 import Taro from '@tarojs/taro'
 import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from 'react'
-import type { Dispatch, PropsWithChildren } from 'react'
+import type { PropsWithChildren } from 'react'
 
 import * as api from '../api'
 import { getUserInfo, hasFamily, isLoggedIn } from '../api/token'
@@ -9,8 +9,10 @@ import { initialState } from './initial-state'
 import { appReducer, type AppAction, type AppState } from './reducer'
 import { loadState, saveState } from './storage'
 
+export type AppDispatch = (action: AppAction) => Promise<boolean>
+
 const StateContext = createContext<AppState>(initialState)
-const DispatchContext = createContext<Dispatch<AppAction>>(() => {})
+const DispatchContext = createContext<AppDispatch>(async () => false)
 const RefreshContext = createContext<() => Promise<void>>(async () => {})
 
 /**
@@ -133,7 +135,7 @@ export function StoreProvider({ children }: PropsWithChildren) {
   const refresh = useCallback(async () => {
     if (!isLoggedIn() || !hasFamily()) return
     const remote = await fetchRemoteState()
-    const merged: AppState = { ...stateRef.current, ...remote, onboardingCompleted: true }
+    const merged: AppState = { ...stateRef.current, ...remote, onboardingCompleted: stateRef.current.onboardingCompleted }
     // Patch familyId into sub-items
     if (remote.familyId) {
       if (merged.ledger) merged.ledger = merged.ledger.map((e) => ({ ...e, familyId: remote.familyId! }))
@@ -170,15 +172,17 @@ export function StoreProvider({ children }: PropsWithChildren) {
     saveState(state)
   }, [state])
 
-  // Enhanced dispatch: calls API then updates local state
-  const dispatch: Dispatch<AppAction> = useCallback(async (action: AppAction) => {
+  // Remote-first dispatch. The API may replace client-generated IDs with the
+  // canonical server ID before the reducer updates local state.
+  const dispatch: AppDispatch = useCallback(async (action: AppAction) => {
     try {
-      await syncActionToAPI(action)
+      const syncedAction = await syncActionToAPI(action)
+      localDispatch(syncedAction)
+      return true
     } catch (error: any) {
       Taro.showToast({ title: error.message || '操作失败', icon: 'none' })
-      return // Don't update local state if API failed
+      return false
     }
-    localDispatch(action)
   }, [])
 
   return (
@@ -201,18 +205,19 @@ export function useStore(): AppState {
   return useContext(StateContext)
 }
 
-export function useDispatch(): Dispatch<AppAction> {
+export function useDispatch(): AppDispatch {
   return useContext(DispatchContext)
 }
 
 /**
- * Maps local dispatch actions to API calls.
- * Actions that don't need remote sync just resolve immediately.
+ * Maps local actions to API calls and returns the canonical action that should
+ * be committed to local state. Create operations replace temporary client IDs
+ * with the IDs assigned by the server.
  */
-async function syncActionToAPI(action: AppAction): Promise<void> {
+async function syncActionToAPI(action: AppAction): Promise<AppAction> {
   switch (action.type) {
-    case 'ledger/add':
-      await api.createLedgerEntry({
+    case 'ledger/add': {
+      const created = await api.createLedgerEntry({
         type: action.entry.type,
         amount_cents: action.entry.amountCents,
         purpose: action.entry.purpose,
@@ -222,7 +227,8 @@ async function syncActionToAPI(action: AppAction): Promise<void> {
         note: action.entry.note ?? null,
         note_visibility: action.entry.noteVisibility
       })
-      return
+      return { ...action, entry: { ...action.entry, id: created.id } }
+    }
     case 'ledger/update':
       await api.updateLedgerEntry(action.entry.id, {
         type: action.entry.type,
@@ -234,20 +240,21 @@ async function syncActionToAPI(action: AppAction): Promise<void> {
         note: action.entry.note ?? null,
         note_visibility: action.entry.noteVisibility
       })
-      return
+      return action
     case 'ledger/delete':
       await api.deleteLedgerEntry(action.id)
-      return
+      return action
 
-    case 'dish/add':
-      await api.createDish({
+    case 'dish/add': {
+      const created = await api.createDish({
         name: action.dish.name,
         category: action.dish.category,
         method: action.dish.method,
         ingredients: action.dish.ingredients,
         photo_url: getPortableImageUrl(action.dish.photo) || null
       })
-      return
+      return { ...action, dish: { ...action.dish, id: created.id } }
+    }
     case 'dish/update':
       await api.updateDish(action.dish.id, {
         name: action.dish.name,
@@ -256,34 +263,35 @@ async function syncActionToAPI(action: AppAction): Promise<void> {
         ingredients: action.dish.ingredients,
         photo_url: getPortableImageUrl(action.dish.photo) || null
       })
-      return
+      return action
     case 'dish/delete':
       await api.deleteDish(action.id)
-      return
+      return action
     case 'dish/toggleAvailable':
       await api.toggleDishAvailable(action.id)
-      return
+      return action
 
-    case 'order/create':
-      await api.createOrder(action.order.items.map((item) => ({
+    case 'order/create': {
+      const created = await api.createOrder(action.order.items.map((item) => ({
         dish_id: item.dishId,
         dish_name: item.name,
         quantity: item.quantity,
         photo_url: getPortableImageUrl(item.photo) || null
       })))
-      return
+      return { ...action, order: { ...action.order, id: created.id } }
+    }
     case 'order/complete':
       await api.updateOrderStatus(action.id, 'completed')
-      return
+      return action
     case 'order/cancel':
       await api.updateOrderStatus(action.id, 'cancelled')
-      return
+      return action
     case 'order/delete':
       await api.deleteOrder(action.id)
-      return
+      return action
 
-    case 'inventory/add':
-      await api.createInventoryItem({
+    case 'inventory/add': {
+      const created = await api.createInventoryItem({
         name: action.item.name,
         category: action.item.category,
         location: action.item.location,
@@ -292,7 +300,8 @@ async function syncActionToAPI(action: AppAction): Promise<void> {
         status: action.item.status,
         photo_url: getPortableImageUrl(action.item.photo) || null
       })
-      return
+      return { ...action, item: { ...action.item, id: created.id } }
+    }
     case 'inventory/update':
       await api.updateInventoryItem(action.item.id, {
         name: action.item.name,
@@ -303,62 +312,67 @@ async function syncActionToAPI(action: AppAction): Promise<void> {
         status: action.item.status,
         photo_url: getPortableImageUrl(action.item.photo) || null
       })
-      return
+      return action
     case 'inventory/delete':
       await api.updateInventoryStatus(action.id, 'deleted')
-      return
+      return action
     case 'inventory/permanentDelete':
       await api.deleteInventoryItem(action.id)
-      return
+      return action
     case 'inventory/permanentDeleteAll':
-      // No single API for this; the local reducer handles it.
-      // In practice, the manage page deletes one by one.
-      return
+      await api.deleteInventoryItems(action.ids)
+      return action
     case 'inventory/markStatus':
       await api.updateInventoryStatus(action.id, action.status)
-      return
+      return action
 
     case 'location/add':
       await api.createLocation(action.name)
-      return
-    case 'location/delete':
-      // Need to find the location ID — for now just let the local reducer handle.
-      // The API delete uses ID but local uses name. We'll need to refactor later
-      // or accept this gap (locations are fetched fresh on next load).
-      return
+      return action
+    case 'location/delete': {
+      const locations = await api.listLocations()
+      const location = locations.find((item) => item.name === action.name)
+      if (!location) throw new Error('位置不存在或已被删除')
+      await api.deleteLocation(location.id)
+      return action
+    }
 
     case 'family/rename':
       await api.renameFamily(action.name)
-      return
-    case 'member/add':
-      // Members are added via invitation flow, not direct dispatch
-      return
+      return action
     case 'member/remove':
       await api.removeMember(action.id)
-      return
+      return action
     case 'member/updateRole':
       await api.updateMemberRole(action.id, action.roleLabel === '家庭管理员' ? 'owner' : 'member')
-      return
+      return action
 
     case 'category/addDish':
       await api.createCategory('dish', action.name)
-      return
-    case 'category/removeDish':
-      // Need category ID — same gap as locations. Will sync on next fetch.
-      return
+      return action
+    case 'category/removeDish': {
+      const categories = await api.listCategories('dish')
+      const category = categories.find((item) => item.name === action.name)
+      if (!category) throw new Error('分类不存在或已被删除')
+      await api.deleteCategory(category.id)
+      return action
+    }
     case 'category/addInventory':
       await api.createCategory('inventory', action.name)
-      return
-    case 'category/removeInventory':
-      return
+      return action
+    case 'category/removeInventory': {
+      const categories = await api.listCategories('inventory')
+      const category = categories.find((item) => item.name === action.name)
+      if (!category) throw new Error('分类不存在或已被删除')
+      await api.deleteCategory(category.id)
+      return action
+    }
 
-    // Local-only actions (no API needed)
+    // Local-only actions.
     case 'settings/toggleExpiryReminder':
     case 'settings/toggleMealReminder':
     case 'onboarding/complete':
-      return
-
-    default:
-      return
+    case 'hydrate':
+      return action
   }
 }

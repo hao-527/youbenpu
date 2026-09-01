@@ -1,11 +1,16 @@
 FROM golang:1.24.3-alpine3.21 AS build
 
+ARG VERSION=dev
+ARG COMMIT=unknown
+
 WORKDIR /src
 COPY go.mod ./
 RUN go mod download
 COPY . .
 RUN mkdir -p /out/data/uploads \
-    && CGO_ENABLED=0 GOOS=linux go build -trimpath -ldflags="-s -w" -o /out/youbenpu-api ./cmd/api
+    && CGO_ENABLED=0 GOOS=linux go build -trimpath \
+        -ldflags="-s -w -X main.version=${VERSION} -X main.commit=${COMMIT}" \
+        -o /out/youbenpu-api ./cmd/api
 
 FROM gcr.io/distroless/static-debian12:nonroot
 

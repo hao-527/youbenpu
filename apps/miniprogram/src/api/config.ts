@@ -18,6 +18,7 @@ export const API = {
   FAMILY_MEMBER_REMOVE: `${API_BASE}/api/v1/family/member`,
   LEDGER: `${API_BASE}/api/v1/ledger`,
   INVENTORY: `${API_BASE}/api/v1/inventory`,
+  INVENTORY_BATCH_DELETE: `${API_BASE}/api/v1/inventory/batch`,
   DISHES: `${API_BASE}/api/v1/dishes`,
   ORDERS: `${API_BASE}/api/v1/orders`,
   LOCATIONS: `${API_BASE}/api/v1/locations`,

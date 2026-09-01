@@ -127,3 +127,14 @@
   color: var(--color-disabled-foreground);
   font-size: var(--text-xs);
 }
+
+.onboarding__card {
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: none;
+}
+
+.onboarding__icon {
+  border-radius: var(--radius-md);
+  background: var(--color-surface-sunken);
+}

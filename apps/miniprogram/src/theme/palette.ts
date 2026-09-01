@@ -20,17 +20,17 @@ export const palette = {
   primarySurface: '#C9440A',
   primaryLight: '#FFF1EB',
   onPrimary: '#FFFFFF',
-  foreground: '#1C1917',
-  muted: '#F5F1EE',
-  mutedForeground: '#57504B',
-  subtleForeground: '#776E67',
-  /** Decorative separators only — 1.4:1 on white, never use for glyphs. */
-  border: '#EAE4DF',
+  foreground: '#29241F',
+  muted: '#EFEBE3',
+  mutedForeground: '#514941',
+  subtleForeground: '#746A5F',
+  /** Decorative separators only — never use for glyphs. */
+  border: '#DED7CC',
   /** Disabled controls, where the 3:1 minimum does not apply. */
-  disabledForeground: '#A39890',
+  disabledForeground: '#9B9082',
   accent: '#E8530E',
   destructive: '#DC2626',
   /** Deepened from #059669 (3.77:1) so income amounts clear 4.5:1. */
   success: '#047F5A',
-  background: '#FAF7F5'
+  background: '#F7F4EE'
 } as const

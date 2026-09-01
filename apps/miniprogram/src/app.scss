@@ -866,16 +866,14 @@ button::after {
   align-items: center;
   gap: var(--space-3);
   padding: var(--space-3) var(--page-gutter) calc(env(safe-area-inset-bottom) + var(--space-3));
-  border-top: var(--hairline) solid rgba(255, 255, 255, 0.2);
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: saturate(180%) blur(20px);
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: var(--hairline) solid var(--color-border);
+  background: var(--color-surface);
 }
 
 @media (prefers-color-scheme: dark) {
   .fixed-action-bar {
-    border-top-color: rgba(255, 255, 255, 0.06);
-    background: rgba(31, 28, 26, 0.85);
+    border-top-color: var(--color-border);
+    background: var(--color-surface);
   }
 }
 
@@ -1015,4 +1013,160 @@ button::after {
     padding-right: var(--space-2);
     padding-left: var(--space-2);
   }
+}
+
+/* ========== Practical household visual refresh ==========
+ * A quieter "household ledger / pantry label" layer: paper-like surfaces,
+ * hairline structure and restrained shapes replace floating/glowing cards.
+ */
+page {
+  --neutral-50: #f7f4ee;
+  --neutral-100: #efebe3;
+  --neutral-200: #ded7cc;
+  --neutral-300: #c8beaf;
+  --neutral-400: #9b9082;
+  --neutral-500: #746a5f;
+  --neutral-600: #514941;
+  --neutral-900: #29241f;
+  --white: #fffdf9;
+  --radius-card: 14rpx;
+  --radius-xl: 18rpx;
+  --radius-sheet: 22rpx;
+  --shadow-sm: none;
+  --shadow-card: none;
+  --shadow-bar: none;
+  --shadow-cta: none;
+}
+
+.surface-card {
+  border: var(--hairline) solid var(--color-border);
+  box-shadow: none;
+}
+
+.fab {
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+.icon-bubble,
+.icon-bubble--xs,
+.icon-bubble--sm,
+.icon-bubble--md,
+.icon-bubble--lg {
+  border-radius: var(--radius-md);
+}
+
+.icon-bubble {
+  background: transparent;
+}
+
+.icon-bubble--primary {
+  background: var(--color-tint-primary);
+}
+
+.icon-bubble--green {
+  background: var(--color-tint-green);
+}
+
+.category-chip {
+  border-radius: var(--radius-sm);
+}
+
+.category-chip--active {
+  border-color: var(--color-primary);
+  background: var(--color-tint-primary);
+  color: var(--color-primary-text);
+}
+
+.segmented-control {
+  gap: 0;
+  padding: 0;
+  border: var(--hairline) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.segmented-control__item {
+  border-radius: var(--radius-sm);
+}
+
+.segmented-control__item--active {
+  background: var(--color-tint-primary);
+  box-shadow: none;
+}
+
+.content-action {
+  border: var(--hairline) solid var(--color-border);
+  box-shadow: none;
+}
+
+.icon-action,
+.page-back {
+  border-radius: var(--radius-md);
+}
+
+.page-back {
+  border: var(--hairline) solid var(--color-border);
+  background: transparent;
+  box-shadow: none;
+}
+
+.photo-picker {
+  border: var(--hairline) solid var(--color-border);
+  box-shadow: none;
+}
+
+.photo-picker__placeholder {
+  background: var(--color-surface-sunken);
+  color: var(--color-muted-foreground);
+}
+
+.photo-picker__change {
+  border-radius: var(--radius-md);
+}
+
+.empty-state__icon,
+.empty-state__icon--primary {
+  border-radius: var(--radius-md);
+  background: transparent;
+}
+
+.fixed-action-bar {
+  border-top-color: var(--color-border);
+  background: var(--color-surface);
+}
+
+.form-sheet {
+  box-shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  page {
+    --shadow-sm: none;
+    --shadow-card: none;
+    --shadow-bar: none;
+    --shadow-cta: none;
+  }
+
+  .fixed-action-bar {
+    background: var(--color-surface);
+  }
+}
+
+/* Keep the dormant dark theme valid even though the light paper palette is
+ * declared in the late visual-refresh layer above. */
+@media (prefers-color-scheme: dark) {
+  page {
+    --neutral-50: #12100f;
+    --neutral-100: #1f1c1a;
+    --neutral-200: #332e2b;
+    --neutral-300: #4d4641;
+    --neutral-400: #8a807a;
+    --neutral-500: #a89e97;
+    --neutral-600: #c9c1bb;
+    --neutral-900: #f7f4f2;
+  }
+}
+
+.segmented-control__item {
+  min-height: var(--touch-target);
 }

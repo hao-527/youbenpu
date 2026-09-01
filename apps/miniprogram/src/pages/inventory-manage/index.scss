@@ -208,3 +208,9 @@
   font-size: var(--text-sm);
   font-weight: 700;
 }
+
+.im-split {
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: none;
+}

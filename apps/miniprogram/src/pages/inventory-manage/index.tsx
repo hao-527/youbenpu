@@ -69,20 +69,21 @@ export default function InventoryManagePage() {
       content: '删除后，新增或编辑物品时不再出现这个分类。',
       confirmText: '删除',
       confirmColor: palette.destructive
-    }).then((result) => {
+    }).then(async (result) => {
       if (!result.confirm) return
-      dispatch({ type: 'category/removeInventory', name: category })
+      const succeeded = await dispatch({ type: 'category/removeInventory', name: category })
+      if (!succeeded) return
       if (activeCategory === category) setActiveCategory('全部')
       Taro.showToast({ title: '分类已删除', icon: 'success' })
     })
   }
 
-  const restore = (id: string) => {
+  const restore = async (id: string) => {
     const item = inventory.find((i) => i.id === id)
     if (!item) return
     const expiry = getInventoryExpiry(item.expiryDate)
-    dispatch({ type: 'inventory/markStatus', id, status: expiry.status })
-    Taro.showToast({ title: '已恢复', icon: 'success' })
+    const succeeded = await dispatch({ type: 'inventory/markStatus', id, status: expiry.status })
+    if (succeeded) Taro.showToast({ title: '已恢复', icon: 'success' })
   }
 
   const permanentDelete = (id: string, name: string) => {
@@ -91,8 +92,8 @@ export default function InventoryManagePage() {
       content: '删除后无法恢复。',
       confirmText: '永久删除',
       confirmColor: palette.destructive
-    }).then((result) => {
-      if (result.confirm) dispatch({ type: 'inventory/permanentDelete', id })
+    }).then(async (result) => {
+      if (result.confirm) await dispatch({ type: 'inventory/permanentDelete', id })
     })
   }
 
@@ -103,11 +104,10 @@ export default function InventoryManagePage() {
       content: `将永久删除 ${trashItems.length} 个物品，无法恢复。`,
       confirmText: '全部删除',
       confirmColor: palette.destructive
-    }).then((result) => {
-      if (result.confirm) {
-        dispatch({ type: 'inventory/permanentDeleteAll' })
-        Taro.showToast({ title: '已全部清除', icon: 'success' })
-      }
+    }).then(async (result) => {
+      if (!result.confirm) return
+      const succeeded = await dispatch({ type: 'inventory/permanentDeleteAll', ids: trashItems.map((item) => item.id) })
+      if (succeeded) Taro.showToast({ title: '已全部清除', icon: 'success' })
     })
   }
 

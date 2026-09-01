@@ -278,3 +278,13 @@
     font-size: var(--text-xs);
   }
 }
+
+.family-member-row__current {
+  border-radius: var(--radius-xs);
+}
+
+.family-permission-note,
+.family-sheet__intro {
+  border: var(--hairline) solid var(--color-border);
+  background: var(--color-surface-sunken);
+}

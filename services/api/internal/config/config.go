@@ -11,6 +11,7 @@ const (
 	defaultHTTPAddress     = ":8080"
 	defaultUploadDirectory = "./data/uploads"
 	defaultShutdownTimeout = 10 * time.Second
+	defaultJWTSecret       = "youbenpu-dev-secret-change-me"
 )
 
 type Config struct {
@@ -43,7 +44,7 @@ type Config struct {
 
 func Load() (Config, error) {
 	cfg := Config{
-		Environment:     envOrDefault("APP_ENV", "development"),
+		Environment:     strings.ToLower(envOrDefault("APP_ENV", "development")),
 		HTTPAddress:     envOrDefault("HTTP_ADDRESS", defaultHTTPAddress),
 		ObjectStore:     strings.ToLower(envOrDefault("OBJECT_STORE", "local")),
 		UploadDirectory: envOrDefault("UPLOAD_DIR", defaultUploadDirectory),
@@ -58,7 +59,7 @@ func Load() (Config, error) {
 		WXAppID:     envOrDefault("WX_APPID", ""),
 		WXAppSecret: envOrDefault("WX_APP_SECRET", ""),
 
-		JWTSecret: envOrDefault("JWT_SECRET", "youbenpu-dev-secret-change-me"),
+		JWTSecret: envOrDefault("JWT_SECRET", defaultJWTSecret),
 
 		COSBucket:    envOrDefault("COS_BUCKET", "shenghuoyoubenpu-1410259056"),
 		COSRegion:    envOrDefault("COS_REGION", "ap-beijing"),
@@ -74,6 +75,9 @@ func Load() (Config, error) {
 		cfg.ShutdownTimeout = duration
 	}
 
+	if cfg.Environment != "development" && cfg.Environment != "test" && cfg.Environment != "production" {
+		return Config{}, fmt.Errorf("APP_ENV must be development, test or production")
+	}
 	if !strings.HasPrefix(cfg.HTTPAddress, ":") && !strings.Contains(cfg.HTTPAddress, ":") {
 		return Config{}, fmt.Errorf("HTTP_ADDRESS must be in host:port or :port form")
 	}
@@ -85,6 +89,17 @@ func Load() (Config, error) {
 	}
 	if cfg.ObjectStore == "cos" && (cfg.COSBucket == "" || cfg.COSRegion == "" || cfg.COSSecretID == "" || cfg.COSSecretKey == "") {
 		return Config{}, fmt.Errorf("COS_BUCKET, COS_REGION, COS_SECRET_ID and COS_SECRET_KEY are required when OBJECT_STORE=cos")
+	}
+	if (cfg.WXAppID == "") != (cfg.WXAppSecret == "") {
+		return Config{}, fmt.Errorf("WX_APPID and WX_APP_SECRET must be configured together")
+	}
+	if cfg.Environment == "production" {
+		if cfg.JWTSecret == defaultJWTSecret || len([]byte(cfg.JWTSecret)) < 32 {
+			return Config{}, fmt.Errorf("JWT_SECRET must be a strong value of at least 32 bytes in production")
+		}
+		if cfg.WXAppID == "" || cfg.WXAppSecret == "" {
+			return Config{}, fmt.Errorf("WX_APPID and WX_APP_SECRET are required in production")
+		}
 	}
 
 	return cfg, nil

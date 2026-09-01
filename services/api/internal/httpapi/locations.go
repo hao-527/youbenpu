@@ -1,6 +1,8 @@
 package httpapi
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -66,14 +68,18 @@ func (r *router) createLocation(response http.ResponseWriter, request *http.Requ
 	}
 
 	id := database.NewID()
-	_, err := r.db.Exec("INSERT INTO locations (id, family_id, name) VALUES (?, ?, ?)", id, familyID, body.Name)
+	result, err := r.db.Exec("INSERT INTO locations (id, family_id, name) VALUES (?, ?, ?)", id, familyID, body.Name)
 	if err != nil {
-		// Likely duplicate
 		if strings.Contains(err.Error(), "Duplicate") {
 			writeError(response, http.StatusConflict, "DUPLICATE", "该位置已存在")
 			return
 		}
 		r.logger.Error("create location", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建失败")
+		return
+	}
+	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+		r.logger.Error("read created location rows", "affected", affected, "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建失败")
 		return
 	}
@@ -91,25 +97,48 @@ func (r *router) deleteLocation(response http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	// Check if any active inventory items use this location
 	var locationName string
 	err := r.db.QueryRow("SELECT name FROM locations WHERE id = ? AND family_id = ?", id, familyID).Scan(&locationName)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
 		writeError(response, http.StatusNotFound, "NOT_FOUND", "位置不存在")
+		return
+	}
+	if err != nil {
+		r.logger.Error("find location", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
 		return
 	}
 
 	var usageCount int
-	r.db.QueryRow(`SELECT COUNT(*) FROM inventory_items
+	if err := r.db.QueryRow(`SELECT COUNT(*) FROM inventory_items
 		WHERE family_id = ? AND location = ? AND status NOT IN ('finished','discarded','deleted')`,
-		familyID, locationName).Scan(&usageCount)
+		familyID, locationName).Scan(&usageCount); err != nil {
+		r.logger.Error("check location usage", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
+	}
 
 	if usageCount > 0 {
 		writeError(response, http.StatusConflict, "IN_USE", "还有物品存放在该位置，无法删除")
 		return
 	}
 
-	r.db.Exec("DELETE FROM locations WHERE id = ? AND family_id = ?", id, familyID)
+	result, err := r.db.Exec("DELETE FROM locations WHERE id = ? AND family_id = ?", id, familyID)
+	if err != nil {
+		r.logger.Error("delete location", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
+		return
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		r.logger.Error("read deleted location rows", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
+		return
+	}
+	if affected == 0 {
+		writeError(response, http.StatusNotFound, "NOT_FOUND", "位置不存在")
+		return
+	}
 	writeJSON(response, http.StatusOK, map[string]string{"message": "已删除"})
 }
 
@@ -189,7 +218,7 @@ func (r *router) createCategory(response http.ResponseWriter, request *http.Requ
 	}
 
 	id := database.NewID()
-	_, err := r.db.Exec("INSERT INTO custom_categories (id, family_id, domain, name) VALUES (?, ?, ?, ?)",
+	result, err := r.db.Exec("INSERT INTO custom_categories (id, family_id, domain, name) VALUES (?, ?, ?, ?)",
 		id, familyID, body.Domain, body.Name)
 	if err != nil {
 		if strings.Contains(err.Error(), "Duplicate") {
@@ -197,6 +226,11 @@ func (r *router) createCategory(response http.ResponseWriter, request *http.Requ
 			return
 		}
 		r.logger.Error("create category", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建失败")
+		return
+	}
+	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+		r.logger.Error("read created category rows", "affected", affected, "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建失败")
 		return
 	}
@@ -214,21 +248,29 @@ func (r *router) deleteCategory(response http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	// Get category info
 	var domain, name string
 	err := r.db.QueryRow("SELECT domain, name FROM custom_categories WHERE id = ? AND family_id = ?", id, familyID).Scan(&domain, &name)
-	if err != nil {
+	if errors.Is(err, sql.ErrNoRows) {
 		writeError(response, http.StatusNotFound, "NOT_FOUND", "分类不存在")
 		return
 	}
+	if err != nil {
+		r.logger.Error("find category", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
+	}
 
-	// Check usage
 	var usageCount int
 	if domain == "dish" {
-		r.db.QueryRow("SELECT COUNT(*) FROM dishes WHERE family_id = ? AND category = ?", familyID, name).Scan(&usageCount)
+		err = r.db.QueryRow("SELECT COUNT(*) FROM dishes WHERE family_id = ? AND category = ?", familyID, name).Scan(&usageCount)
 	} else {
-		r.db.QueryRow(`SELECT COUNT(*) FROM inventory_items WHERE family_id = ? AND category = ? AND status != 'deleted'`,
+		err = r.db.QueryRow(`SELECT COUNT(*) FROM inventory_items WHERE family_id = ? AND category = ? AND status != 'deleted'`,
 			familyID, name).Scan(&usageCount)
+	}
+	if err != nil {
+		r.logger.Error("check category usage", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
 	}
 
 	if usageCount > 0 {
@@ -236,6 +278,21 @@ func (r *router) deleteCategory(response http.ResponseWriter, request *http.Requ
 		return
 	}
 
-	r.db.Exec("DELETE FROM custom_categories WHERE id = ? AND family_id = ?", id, familyID)
+	result, err := r.db.Exec("DELETE FROM custom_categories WHERE id = ? AND family_id = ?", id, familyID)
+	if err != nil {
+		r.logger.Error("delete category", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
+		return
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		r.logger.Error("read deleted category rows", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
+		return
+	}
+	if affected == 0 {
+		writeError(response, http.StatusNotFound, "NOT_FOUND", "分类不存在")
+		return
+	}
 	writeJSON(response, http.StatusOK, map[string]string{"message": "已删除"})
 }

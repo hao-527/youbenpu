@@ -1,8 +1,12 @@
 package httpapi
 
 import (
+	"database/sql"
+	"errors"
 	"net/http"
 	"time"
+
+	mysql "github.com/go-sql-driver/mysql"
 
 	"github.com/zhanghao527/youbenpu/services/api/internal/database"
 )
@@ -102,17 +106,28 @@ func (r *router) createOrder(response http.ResponseWriter, request *http.Request
 		return
 	}
 
-	// Check no pending order exists
+	// A fast pre-check keeps the common conflict response friendly. The unique
+	// generated-column index added by migration 002 remains the concurrency-safe
+	// source of truth.
 	var pendingCount int
-	r.db.QueryRow("SELECT COUNT(*) FROM meal_orders WHERE family_id = ? AND status = 'pending'", familyID).Scan(&pendingCount)
+	if err := r.db.QueryRow("SELECT COUNT(*) FROM meal_orders WHERE family_id = ? AND status = 'pending'", familyID).Scan(&pendingCount); err != nil {
+		r.logger.Error("check pending orders", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
+		return
+	}
 	if pendingCount > 0 {
 		writeError(response, http.StatusConflict, "PENDING_EXISTS", "已有一张待完成点餐单，请先处理")
 		return
 	}
 
-	// Get requester name
 	var requesterName string
-	r.db.QueryRow("SELECT display_name FROM users WHERE id = ?", userID).Scan(&requesterName)
+	if err := r.db.QueryRow("SELECT display_name FROM users WHERE id = ?", userID).Scan(&requesterName); err != nil {
+		if !errors.Is(err, sql.ErrNoRows) {
+			r.logger.Error("get order requester", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
+			return
+		}
+	}
 	if requesterName == "" {
 		requesterName = "我"
 	}
@@ -130,6 +145,11 @@ func (r *router) createOrder(response http.ResponseWriter, request *http.Request
 	_, err = tx.Exec(`INSERT INTO meal_orders (id, family_id, requester_id, requester_name, status, submitted_at)
 		VALUES (?, ?, ?, ?, 'pending', ?)`, orderID, familyID, userID, requesterName, submittedAt)
 	if err != nil {
+		var mysqlError *mysql.MySQLError
+		if errors.As(err, &mysqlError) && mysqlError.Number == 1062 {
+			writeError(response, http.StatusConflict, "PENDING_EXISTS", "已有一张待完成点餐单，请先处理")
+			return
+		}
 		r.logger.Error("create order", "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建失败")
 		return

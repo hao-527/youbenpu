@@ -41,12 +41,11 @@ export type AppAction =
   | { type: 'inventory/update'; item: InventoryItem }
   | { type: 'inventory/delete'; id: string }
   | { type: 'inventory/permanentDelete'; id: string }
-  | { type: 'inventory/permanentDeleteAll' }
+  | { type: 'inventory/permanentDeleteAll'; ids: string[] }
   | { type: 'inventory/markStatus'; id: string; status: InventoryItem['status'] }
   | { type: 'location/add'; name: string }
   | { type: 'location/delete'; name: string }
   | { type: 'family/rename'; name: string }
-  | { type: 'member/add'; member: FamilyMember }
   | { type: 'member/remove'; id: string }
   | { type: 'member/updateRole'; id: string; roleLabel: FamilyRole }
   | { type: 'category/addDish'; name: string }
@@ -106,8 +105,10 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       return { ...state, inventory: state.inventory.map((item) => item.id === action.id ? { ...item, status: 'deleted' as const } : item) }
     case 'inventory/permanentDelete':
       return { ...state, inventory: state.inventory.filter((item) => item.id !== action.id) }
-    case 'inventory/permanentDeleteAll':
-      return { ...state, inventory: state.inventory.filter((item) => item.status !== 'finished' && item.status !== 'discarded' && item.status !== 'deleted') }
+    case 'inventory/permanentDeleteAll': {
+      const ids = new Set(action.ids)
+      return { ...state, inventory: state.inventory.filter((item) => !ids.has(item.id)) }
+    }
     case 'inventory/markStatus':
       return { ...state, inventory: state.inventory.map((item) => item.id === action.id ? { ...item, status: action.status } : item) }
 
@@ -124,12 +125,6 @@ export function appReducer(state: AppState, action: AppAction): AppState {
       if (!currentMemberIsAdmin(state)) return state
       const name = action.name.trim()
       return name ? { ...state, familyName: name } : state
-    }
-    case 'member/add': {
-      if (!currentMemberIsAdmin(state)) return state
-      const name = action.member.displayName.trim()
-      if (!name || state.members.some((member) => member.displayName.trim().toLowerCase() === name.toLowerCase())) return state
-      return { ...state, members: [...state.members, { ...action.member, displayName: name }] }
     }
     case 'member/remove': {
       if (!currentMemberIsAdmin(state)) return state

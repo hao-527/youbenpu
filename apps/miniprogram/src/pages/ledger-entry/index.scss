@@ -211,3 +211,44 @@
     height: 76rpx;
   }
 }
+
+/* Ledger-entry should feel like a paper form, not a finance-app hero. */
+.ledger-entry-type-switch,
+.ledger-entry-type-switch .segmented-control__item {
+  border-radius: var(--radius-sm);
+}
+
+.ledger-entry-amount {
+  border: var(--hairline) solid var(--color-border);
+  border-left: 6rpx solid var(--color-primary);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.ledger-entry-amount--income {
+  border-left-color: var(--color-success);
+  background: var(--color-surface);
+}
+
+.fixed-action-bar {
+  background: var(--color-surface);
+}
+
+.fixed-action-bar .button {
+  border-radius: var(--radius-md);
+  box-shadow: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  .fixed-action-bar {
+    background: var(--color-surface);
+  }
+}
+
+.ledger-entry-type-switch .segmented-control__item {
+  min-height: var(--touch-target);
+}
+
+.ledger-entry-purpose__suggestions {
+  box-shadow: none;
+}

@@ -62,3 +62,17 @@
   opacity: 0.3;
   pointer-events: none;
 }
+
+.mp-nav__btn {
+  border-radius: var(--radius-sm);
+}
+
+.mp-cell {
+  border: var(--hairline) solid var(--color-border);
+  background: var(--color-surface);
+}
+
+.mp-cell--selected {
+  border-color: var(--color-primary-surface);
+  background: var(--color-primary-surface);
+}

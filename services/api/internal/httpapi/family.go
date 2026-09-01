@@ -1,11 +1,14 @@
 package httpapi
 
 import (
+	"context"
 	"crypto/rand"
 	"database/sql"
 	"encoding/hex"
+	"errors"
 	"math/big"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/zhanghao527/youbenpu/services/api/internal/database"
@@ -32,6 +35,7 @@ func (r *router) createFamily(response http.ResponseWriter, request *http.Reques
 		return
 	}
 
+	body.Name = strings.TrimSpace(body.Name)
 	if body.Name == "" {
 		body.Name = "我们家"
 	}
@@ -39,6 +43,7 @@ func (r *router) createFamily(response http.ResponseWriter, request *http.Reques
 		writeError(response, http.StatusBadRequest, "NAME_TOO_LONG", "家庭名称最多 20 个字")
 		return
 	}
+	body.DisplayName = strings.TrimSpace(body.DisplayName)
 	if body.DisplayName == "" {
 		body.DisplayName = "我"
 	}
@@ -47,34 +52,44 @@ func (r *router) createFamily(response http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	// Check user doesn't already have a family
-	var existingFamilyID sql.NullString
-	r.db.QueryRow("SELECT family_id FROM users WHERE id = ?", userID).Scan(&existingFamilyID)
-	if existingFamilyID.Valid {
-		writeError(response, http.StatusConflict, "ALREADY_IN_FAMILY", "你已经在一个家庭中了")
-		return
-	}
-
 	familyID := database.NewID()
 	avatarText := string([]rune(body.DisplayName)[:1])
-
-	tx, err := r.db.Begin()
+	tx, err := r.db.BeginTx(request.Context(), nil)
 	if err != nil {
-		r.logger.Error("begin tx", "error", err)
+		r.logger.Error("begin create family", "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
 		return
 	}
 	defer tx.Rollback()
 
-	_, err = tx.Exec("INSERT INTO families (id, name) VALUES (?, ?)", familyID, body.Name)
+	var existingFamilyID sql.NullString
+	err = tx.QueryRowContext(request.Context(),
+		"SELECT family_id FROM users WHERE id = ? FOR UPDATE", userID,
+	).Scan(&existingFamilyID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusUnauthorized, "USER_NOT_FOUND", "用户不存在")
+		return
+	}
 	if err != nil {
+		r.logger.Error("check user family before create", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
+		return
+	}
+	if existingFamilyID.Valid {
+		writeError(response, http.StatusConflict, "ALREADY_IN_FAMILY", "你已经在一个家庭中了")
+		return
+	}
+
+	if _, err = tx.ExecContext(request.Context(),
+		"INSERT INTO families (id, name) VALUES (?, ?)", familyID, body.Name,
+	); err != nil {
 		r.logger.Error("insert family", "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建家庭失败")
 		return
 	}
 
-	_, err = tx.Exec(
-		"UPDATE users SET family_id = ?, role = 'owner', display_name = ?, avatar_text = ? WHERE id = ?",
+	result, err := tx.ExecContext(request.Context(),
+		"UPDATE users SET family_id = ?, role = 'owner', display_name = ?, avatar_text = ? WHERE id = ? AND family_id IS NULL",
 		familyID, body.DisplayName, avatarText, userID,
 	)
 	if err != nil {
@@ -82,20 +97,29 @@ func (r *router) createFamily(response http.ResponseWriter, request *http.Reques
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "绑定家庭失败")
 		return
 	}
-
-	// Add default locations
-	defaultLocations := []string{"冰箱冷藏", "冰箱冷冻", "橱柜", "药箱", "浴室"}
-	for _, loc := range defaultLocations {
-		_, _ = tx.Exec("INSERT INTO locations (id, family_id, name) VALUES (?, ?, ?)",
-			database.NewID(), familyID, loc)
-	}
-
-	if err := tx.Commit(); err != nil {
-		r.logger.Error("commit tx", "error", err)
-		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
+	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+		r.logger.Error("read bound family rows", "affected", affected, "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "绑定家庭失败")
 		return
 	}
 
+	defaultLocations := []string{"冰箱冷藏", "冰箱冷冻", "橱柜", "药箱", "浴室"}
+	for _, location := range defaultLocations {
+		if _, err := tx.ExecContext(request.Context(),
+			"INSERT INTO locations (id, family_id, name) VALUES (?, ?, ?)",
+			database.NewID(), familyID, location,
+		); err != nil {
+			r.logger.Error("insert default location", "location", location, "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建默认位置失败")
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		r.logger.Error("commit create family", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
+		return
+	}
 	writeJSON(response, http.StatusCreated, familyResponse{ID: familyID, Name: body.Name})
 }
 
@@ -157,13 +181,13 @@ func (r *router) renameFamily(response http.ResponseWriter, request *http.Reques
 	familyID := getUserFamilyID(request.Context())
 	userID := getUserID(request.Context())
 
-	if !r.isOwner(userID) {
-		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能修改家庭名称")
+	var body renameFamilyRequest
+	if err := readJSON(request, &body); err != nil {
+		writeError(response, http.StatusBadRequest, "INVALID_REQUEST", "请填写新名称")
 		return
 	}
-
-	var body renameFamilyRequest
-	if err := readJSON(request, &body); err != nil || body.Name == "" {
+	body.Name = strings.TrimSpace(body.Name)
+	if body.Name == "" {
 		writeError(response, http.StatusBadRequest, "INVALID_REQUEST", "请填写新名称")
 		return
 	}
@@ -172,7 +196,45 @@ func (r *router) renameFamily(response http.ResponseWriter, request *http.Reques
 		return
 	}
 
-	r.db.Exec("UPDATE families SET name = ? WHERE id = ?", body.Name, familyID)
+	tx, err := r.db.BeginTx(request.Context(), nil)
+	if err != nil {
+		r.logger.Error("begin rename family", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "修改失败")
+		return
+	}
+	defer tx.Rollback()
+
+	role, err := r.lockFamilyMember(request.Context(), tx, familyID, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能修改家庭名称")
+		return
+	}
+	if err != nil {
+		r.logger.Error("lock family for rename", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "修改失败")
+		return
+	}
+	if role != "owner" {
+		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能修改家庭名称")
+		return
+	}
+
+	result, err := tx.ExecContext(request.Context(), "UPDATE families SET name = ? WHERE id = ?", body.Name, familyID)
+	if err != nil {
+		r.logger.Error("rename family", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "修改失败")
+		return
+	}
+	if affected, err := result.RowsAffected(); err != nil || affected > 1 {
+		r.logger.Error("read renamed family rows", "affected", affected, "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "修改失败")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		r.logger.Error("commit rename family", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "修改失败")
+		return
+	}
 	writeJSON(response, http.StatusOK, map[string]string{"name": body.Name})
 }
 
@@ -186,22 +248,43 @@ type inviteResponse struct {
 func (r *router) createInvitation(response http.ResponseWriter, request *http.Request) {
 	familyID := getUserFamilyID(request.Context())
 	userID := getUserID(request.Context())
-
-	if !r.isOwner(userID) {
-		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能邀请成员")
-		return
-	}
-
 	code := generateInviteCode()
 	expiresAt := time.Now().Add(24 * time.Hour)
 	id := database.NewID()
 
-	_, err := r.db.Exec(
+	tx, err := r.db.BeginTx(request.Context(), nil)
+	if err != nil {
+		r.logger.Error("begin create invitation", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建邀请码失败")
+		return
+	}
+	defer tx.Rollback()
+
+	role, err := r.lockFamilyMember(request.Context(), tx, familyID, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能邀请成员")
+		return
+	}
+	if err != nil {
+		r.logger.Error("lock family for invitation", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建邀请码失败")
+		return
+	}
+	if role != "owner" {
+		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能邀请成员")
+		return
+	}
+
+	if _, err := tx.ExecContext(request.Context(),
 		"INSERT INTO invitations (id, family_id, code, expires_at) VALUES (?, ?, ?, ?)",
 		id, familyID, code, expiresAt,
-	)
-	if err != nil {
+	); err != nil {
 		r.logger.Error("create invitation", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建邀请码失败")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		r.logger.Error("commit invitation", "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建邀请码失败")
 		return
 	}
@@ -222,19 +305,17 @@ type joinFamilyRequest struct {
 func (r *router) joinFamily(response http.ResponseWriter, request *http.Request) {
 	userID := getUserID(request.Context())
 
-	// Check user doesn't already have a family
-	var existingFamilyID sql.NullString
-	r.db.QueryRow("SELECT family_id FROM users WHERE id = ?", userID).Scan(&existingFamilyID)
-	if existingFamilyID.Valid {
-		writeError(response, http.StatusConflict, "ALREADY_IN_FAMILY", "你已经在一个家庭中了，需要先退出当前家庭")
-		return
-	}
-
 	var body joinFamilyRequest
-	if err := readJSON(request, &body); err != nil || body.Code == "" {
+	if err := readJSON(request, &body); err != nil {
 		writeError(response, http.StatusBadRequest, "INVALID_REQUEST", "邀请码不能为空")
 		return
 	}
+	body.Code = strings.TrimSpace(body.Code)
+	if body.Code == "" {
+		writeError(response, http.StatusBadRequest, "INVALID_REQUEST", "邀请码不能为空")
+		return
+	}
+	body.DisplayName = strings.TrimSpace(body.DisplayName)
 	if body.DisplayName == "" {
 		body.DisplayName = "新成员"
 	}
@@ -243,15 +324,69 @@ func (r *router) joinFamily(response http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	// Find valid invitation
+	// Discover the target family before the transaction, then revalidate every
+	// authoritative value under locks ordered family -> user -> invitation.
+	var candidateFamilyID string
+	err := r.db.QueryRowContext(request.Context(),
+		"SELECT family_id FROM invitations WHERE code = ?", body.Code,
+	).Scan(&candidateFamilyID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusNotFound, "INVALID_CODE", "邀请码无效")
+		return
+	}
+	if err != nil {
+		r.logger.Error("discover invitation family", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
+	}
+
+	tx, err := r.db.BeginTx(request.Context(), nil)
+	if err != nil {
+		r.logger.Error("begin join family", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
+		return
+	}
+	defer tx.Rollback()
+
+	var lockedFamilyID string
+	err = tx.QueryRowContext(request.Context(),
+		"SELECT id FROM families WHERE id = ? FOR UPDATE", candidateFamilyID,
+	).Scan(&lockedFamilyID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusNotFound, "INVALID_CODE", "邀请码无效")
+		return
+	}
+	if err != nil {
+		r.logger.Error("lock family for join", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
+	}
+
+	var existingFamilyID sql.NullString
+	err = tx.QueryRowContext(request.Context(),
+		"SELECT family_id FROM users WHERE id = ? FOR UPDATE", userID,
+	).Scan(&existingFamilyID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusUnauthorized, "USER_NOT_FOUND", "用户不存在")
+		return
+	}
+	if err != nil {
+		r.logger.Error("check user family before join", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
+	}
+	if existingFamilyID.Valid {
+		writeError(response, http.StatusConflict, "ALREADY_IN_FAMILY", "你已经在一个家庭中了，需要先退出当前家庭")
+		return
+	}
+
 	var invID, familyID string
 	var expiresAt time.Time
 	var usedBy sql.NullString
-	err := r.db.QueryRow(
-		"SELECT id, family_id, expires_at, used_by FROM invitations WHERE code = ?", body.Code,
+	err = tx.QueryRowContext(request.Context(),
+		"SELECT id, family_id, expires_at, used_by FROM invitations WHERE code = ? FOR UPDATE", body.Code,
 	).Scan(&invID, &familyID, &expiresAt, &usedBy)
-
-	if err == sql.ErrNoRows {
+	if errors.Is(err, sql.ErrNoRows) {
 		writeError(response, http.StatusNotFound, "INVALID_CODE", "邀请码无效")
 		return
 	}
@@ -260,7 +395,10 @@ func (r *router) joinFamily(response http.ResponseWriter, request *http.Request)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
 		return
 	}
-
+	if familyID != candidateFamilyID {
+		writeError(response, http.StatusNotFound, "INVALID_CODE", "邀请码无效")
+		return
+	}
 	if usedBy.Valid {
 		writeError(response, http.StatusGone, "CODE_USED", "该邀请码已被使用")
 		return
@@ -270,32 +408,41 @@ func (r *router) joinFamily(response http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	// Join family
 	avatarText := string([]rune(body.DisplayName)[:1])
-
-	tx, err := r.db.Begin()
-	if err != nil {
-		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
-		return
-	}
-	defer tx.Rollback()
-
-	_, err = tx.Exec(
-		"UPDATE users SET family_id = ?, role = 'member', display_name = ?, avatar_text = ? WHERE id = ?",
+	result, err := tx.ExecContext(request.Context(),
+		"UPDATE users SET family_id = ?, role = 'member', display_name = ?, avatar_text = ? WHERE id = ? AND family_id IS NULL",
 		familyID, body.DisplayName, avatarText, userID,
 	)
 	if err != nil {
+		r.logger.Error("join family", "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "加入家庭失败")
 		return
 	}
-
-	_, _ = tx.Exec("UPDATE invitations SET used_by = ? WHERE id = ?", userID, invID)
-
-	if err := tx.Commit(); err != nil {
-		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
+	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+		r.logger.Error("read joined family rows", "affected", affected, "error", err)
+		writeError(response, http.StatusConflict, "ALREADY_IN_FAMILY", "用户家庭状态已变化，请重试")
 		return
 	}
 
+	result, err = tx.ExecContext(request.Context(),
+		"UPDATE invitations SET used_by = ? WHERE id = ? AND used_by IS NULL", userID, invID,
+	)
+	if err != nil {
+		r.logger.Error("mark invitation used", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "加入家庭失败")
+		return
+	}
+	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+		r.logger.Error("read used invitation rows", "affected", affected, "error", err)
+		writeError(response, http.StatusGone, "CODE_USED", "该邀请码已被使用")
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		r.logger.Error("commit join family", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
+		return
+	}
 	writeJSON(response, http.StatusOK, map[string]string{"family_id": familyID, "message": "已加入家庭"})
 }
 
@@ -309,30 +456,88 @@ func (r *router) leaveFamily(response http.ResponseWriter, request *http.Request
 	userID := getUserID(request.Context())
 	familyID := getUserFamilyID(request.Context())
 
-	// Check if user is the only owner
+	tx, err := r.db.BeginTx(request.Context(), nil)
+	if err != nil {
+		r.logger.Error("begin leave family", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "退出家庭失败")
+		return
+	}
+	defer tx.Rollback()
+
+	userRole, err := r.lockFamilyMember(request.Context(), tx, familyID, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusNotFound, "NOT_FOUND", "家庭或成员不存在")
+		return
+	}
+	if err != nil {
+		r.logger.Error("lock family for leave", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "退出家庭失败")
+		return
+	}
+
 	var ownerCount int
-	r.db.QueryRow("SELECT COUNT(*) FROM users WHERE family_id = ? AND role = 'owner'", familyID).Scan(&ownerCount)
+	if err := tx.QueryRowContext(request.Context(),
+		"SELECT COUNT(*) FROM users WHERE family_id = ? AND role = 'owner'", familyID,
+	).Scan(&ownerCount); err != nil {
+		r.logger.Error("count family owners for leave", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "退出家庭失败")
+		return
+	}
 
-	var userRole string
-	r.db.QueryRow("SELECT role FROM users WHERE id = ?", userID).Scan(&userRole)
-
+	disband := false
 	if userRole == "owner" && ownerCount <= 1 {
-		// Check if there are other members
 		var memberCount int
-		r.db.QueryRow("SELECT COUNT(*) FROM users WHERE family_id = ?", familyID).Scan(&memberCount)
+		if err := tx.QueryRowContext(request.Context(),
+			"SELECT COUNT(*) FROM users WHERE family_id = ?", familyID,
+		).Scan(&memberCount); err != nil {
+			r.logger.Error("count family members for leave", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "退出家庭失败")
+			return
+		}
 		if memberCount > 1 {
 			writeError(response, http.StatusConflict, "LAST_OWNER", "你是唯一管理员，请先将管理员转交给其他成员")
 			return
 		}
-		// Last person leaving — delete the family
-		r.db.Exec("UPDATE users SET family_id = NULL, role = 'member' WHERE id = ?", userID)
-		r.db.Exec("DELETE FROM families WHERE id = ?", familyID)
-		writeJSON(response, http.StatusOK, map[string]string{"message": "已退出并解散家庭"})
+		disband = true
+	}
+
+	result, err := tx.ExecContext(request.Context(),
+		"UPDATE users SET family_id = NULL, role = 'member' WHERE id = ? AND family_id = ?", userID, familyID)
+	if err != nil {
+		r.logger.Error("leave family", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "退出家庭失败")
+		return
+	}
+	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+		r.logger.Error("read left family rows", "affected", affected, "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "退出家庭失败")
 		return
 	}
 
-	r.db.Exec("UPDATE users SET family_id = NULL, role = 'member' WHERE id = ?", userID)
-	writeJSON(response, http.StatusOK, map[string]string{"message": "已退出家庭"})
+	if disband {
+		result, err = tx.ExecContext(request.Context(), "DELETE FROM families WHERE id = ?", familyID)
+		if err != nil {
+			r.logger.Error("disband family", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "解散家庭失败")
+			return
+		}
+		if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+			r.logger.Error("read disbanded family rows", "affected", affected, "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "解散家庭失败")
+			return
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		r.logger.Error("commit leave family", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "退出家庭失败")
+		return
+	}
+	message := "已退出家庭"
+	if disband {
+		message = "已退出并解散家庭"
+	}
+	writeJSON(response, http.StatusOK, map[string]string{"message": message})
 }
 
 // --- Update Member Role ---
@@ -346,11 +551,6 @@ func (r *router) updateMemberRole(response http.ResponseWriter, request *http.Re
 	familyID := getUserFamilyID(request.Context())
 	userID := getUserID(request.Context())
 
-	if !r.isOwner(userID) {
-		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能修改角色")
-		return
-	}
-
 	var body updateRoleRequest
 	if err := readJSON(request, &body); err != nil || body.MemberID == "" {
 		writeError(response, http.StatusBadRequest, "INVALID_REQUEST", "缺少成员 ID")
@@ -361,27 +561,85 @@ func (r *router) updateMemberRole(response http.ResponseWriter, request *http.Re
 		return
 	}
 
-	// Verify target belongs to same family
-	var targetFamilyID sql.NullString
-	r.db.QueryRow("SELECT family_id FROM users WHERE id = ?", body.MemberID).Scan(&targetFamilyID)
-	if !targetFamilyID.Valid || targetFamilyID.String != familyID {
-		writeError(response, http.StatusNotFound, "NOT_FOUND", "成员不在当前家庭中")
+	tx, err := r.db.BeginTx(request.Context(), nil)
+	if err != nil {
+		r.logger.Error("begin update member role", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "角色更新失败")
+		return
+	}
+	defer tx.Rollback()
+
+	actorRole, err := r.lockFamilyMember(request.Context(), tx, familyID, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能修改角色")
+		return
+	}
+	if err != nil {
+		r.logger.Error("lock family for member role update", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "角色更新失败")
+		return
+	}
+	if actorRole != "owner" {
+		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能修改角色")
 		return
 	}
 
-	// Prevent demoting last owner
-	if body.Role == "member" {
+	var targetRole string
+	err = tx.QueryRowContext(request.Context(),
+		"SELECT role FROM users WHERE id = ? AND family_id = ? FOR UPDATE", body.MemberID, familyID,
+	).Scan(&targetRole)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusNotFound, "NOT_FOUND", "成员不在当前家庭中")
+		return
+	}
+	if err != nil {
+		r.logger.Error("find member for role update", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "角色更新失败")
+		return
+	}
+
+	if targetRole == body.Role {
+		if err := tx.Commit(); err != nil {
+			r.logger.Error("commit unchanged member role", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "角色更新失败")
+			return
+		}
+		writeJSON(response, http.StatusOK, map[string]string{"message": "角色已更新"})
+		return
+	}
+
+	if body.Role == "member" && targetRole == "owner" {
 		var ownerCount int
-		r.db.QueryRow("SELECT COUNT(*) FROM users WHERE family_id = ? AND role = 'owner'", familyID).Scan(&ownerCount)
-		var targetRole string
-		r.db.QueryRow("SELECT role FROM users WHERE id = ?", body.MemberID).Scan(&targetRole)
-		if targetRole == "owner" && ownerCount <= 1 {
+		if err := tx.QueryRowContext(request.Context(),
+			"SELECT COUNT(*) FROM users WHERE family_id = ? AND role = 'owner'", familyID,
+		).Scan(&ownerCount); err != nil {
+			r.logger.Error("count family owners for role update", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "角色更新失败")
+			return
+		}
+		if ownerCount <= 1 {
 			writeError(response, http.StatusConflict, "LAST_OWNER", "家庭至少需要一位管理员")
 			return
 		}
 	}
 
-	r.db.Exec("UPDATE users SET role = ? WHERE id = ?", body.Role, body.MemberID)
+	result, err := tx.ExecContext(request.Context(),
+		"UPDATE users SET role = ? WHERE id = ? AND family_id = ?", body.Role, body.MemberID, familyID)
+	if err != nil {
+		r.logger.Error("update member role", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "角色更新失败")
+		return
+	}
+	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+		r.logger.Error("read updated member role rows", "affected", affected, "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "角色更新失败")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		r.logger.Error("commit member role update", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "角色更新失败")
+		return
+	}
 	writeJSON(response, http.StatusOK, map[string]string{"message": "角色已更新"})
 }
 
@@ -395,39 +653,92 @@ func (r *router) removeMember(response http.ResponseWriter, request *http.Reques
 	familyID := getUserFamilyID(request.Context())
 	userID := getUserID(request.Context())
 
-	if !r.isOwner(userID) {
-		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能移除成员")
-		return
-	}
-
 	var body removeMemberRequest
 	if err := readJSON(request, &body); err != nil || body.MemberID == "" {
 		writeError(response, http.StatusBadRequest, "INVALID_REQUEST", "缺少成员 ID")
 		return
 	}
-
 	if body.MemberID == userID {
 		writeError(response, http.StatusBadRequest, "CANNOT_REMOVE_SELF", "不能移除自己，请使用退出家庭功能")
 		return
 	}
 
-	var targetFamilyID sql.NullString
-	r.db.QueryRow("SELECT family_id FROM users WHERE id = ?", body.MemberID).Scan(&targetFamilyID)
-	if !targetFamilyID.Valid || targetFamilyID.String != familyID {
-		writeError(response, http.StatusNotFound, "NOT_FOUND", "成员不在当前家庭中")
+	tx, err := r.db.BeginTx(request.Context(), nil)
+	if err != nil {
+		r.logger.Error("begin remove member", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "移除成员失败")
+		return
+	}
+	defer tx.Rollback()
+
+	actorRole, err := r.lockFamilyMember(request.Context(), tx, familyID, userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能移除成员")
+		return
+	}
+	if err != nil {
+		r.logger.Error("lock family for member removal", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "移除成员失败")
+		return
+	}
+	if actorRole != "owner" {
+		writeError(response, http.StatusForbidden, "FORBIDDEN", "只有管理员才能移除成员")
 		return
 	}
 
-	r.db.Exec("UPDATE users SET family_id = NULL, role = 'member' WHERE id = ?", body.MemberID)
+	var targetRole string
+	err = tx.QueryRowContext(request.Context(),
+		"SELECT role FROM users WHERE id = ? AND family_id = ? FOR UPDATE", body.MemberID, familyID,
+	).Scan(&targetRole)
+	if errors.Is(err, sql.ErrNoRows) {
+		writeError(response, http.StatusNotFound, "NOT_FOUND", "成员不在当前家庭中")
+		return
+	}
+	if err != nil {
+		r.logger.Error("find member for removal", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "移除成员失败")
+		return
+	}
+
+	result, err := tx.ExecContext(request.Context(),
+		"UPDATE users SET family_id = NULL, role = 'member' WHERE id = ? AND family_id = ?", body.MemberID, familyID)
+	if err != nil {
+		r.logger.Error("remove member", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "移除成员失败")
+		return
+	}
+	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+		r.logger.Error("read removed member rows", "affected", affected, "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "移除成员失败")
+		return
+	}
+	if err := tx.Commit(); err != nil {
+		r.logger.Error("commit member removal", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "移除成员失败")
+		return
+	}
 	writeJSON(response, http.StatusOK, map[string]string{"message": "成员已移除"})
 }
 
 // --- Helpers ---
 
-func (r *router) isOwner(userID string) bool {
+// lockFamilyMember serializes membership mutations per family and then
+// revalidates the actor's membership inside the same transaction.
+func (r *router) lockFamilyMember(ctx context.Context, tx *sql.Tx, familyID, userID string) (string, error) {
+	var lockedFamilyID string
+	if err := tx.QueryRowContext(ctx,
+		"SELECT id FROM families WHERE id = ? FOR UPDATE", familyID,
+	).Scan(&lockedFamilyID); err != nil {
+		return "", err
+	}
+
 	var role string
-	err := r.db.QueryRow("SELECT role FROM users WHERE id = ?", userID).Scan(&role)
-	return err == nil && role == "owner"
+	if err := tx.QueryRowContext(ctx,
+		"SELECT role FROM users WHERE id = ? AND family_id = ? FOR UPDATE", userID, familyID,
+	).Scan(&role); err != nil {
+		return "", err
+	}
+	return role, nil
 }
 
 func generateInviteCode() string {

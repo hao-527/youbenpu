@@ -74,3 +74,10 @@
     border-bottom: 0;
   }
 }
+
+/* Opaque, bounded sheet instead of a floating soft-glow panel. */
+.asheet {
+  border: var(--hairline) solid var(--color-border);
+  border-bottom: 0;
+  box-shadow: none;
+}
