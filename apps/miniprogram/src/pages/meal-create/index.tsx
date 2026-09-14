@@ -6,8 +6,10 @@ import { useMemo, useRef, useState } from 'react'
 import { AppIcon } from '../../components/app-icon'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
+import { useAppShare } from '../../hooks/use-app-share'
 import { useDispatch, useStore } from '../../store'
 import { uid } from '../../store/uid'
+import { navigate } from '../../utils/navigation'
 import { palette } from '../../theme/palette'
 import type { DishCategory, MealOrder } from '../../types/domain'
 import { dishCategories } from '../../types/domain'
@@ -18,6 +20,7 @@ import './index.scss'
 export default function MealCreatePage() {
   const { dishes, orders, familyId, currentMemberId, members, customDishCategories } = useStore()
   const dispatch = useDispatch()
+  useAppShare({ title: '来看看我们家的菜单 | 生活有本谱', path: '/pages/meals/index' })
   const submittingRef = useRef(false)
   const categories: Array<'全部' | DishCategory> = ['全部', ...dishCategories, ...customDishCategories]
   const [activeCategory, setActiveCategory] = useState<(typeof categories)[number]>('全部')
@@ -129,7 +132,7 @@ export default function MealCreatePage() {
           </View>
           <Text className='empty-state__title'>还没有可点的菜</Text>
           <Text className='empty-state__copy'>先添加菜品或将暂停菜品重新上架。</Text>
-          <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}>
+          <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/dish-manage/index')}>
             去管理菜品
           </Button>
         </View>

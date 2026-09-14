@@ -1,17 +1,20 @@
 import { Button, Switch, Text, View } from '@tarojs/components'
-import Taro, { useDidShow, useShareAppMessage } from '@tarojs/taro'
+import Taro, { useDidShow } from '@tarojs/taro'
 import { Bell, ChevronRight, Home, LogOut, MapPin, Share2, Tags, UserPlus, Users, Utensils } from 'lucide'
 import { useRef, useState } from 'react'
 
 import { createInvitation, leaveFamily } from '../../api'
-import { clearToken, clearUserInfo, hasFamily } from '../../api/token'
+import { clearSession, hasFamily } from '../../api/token'
 import { ActionSheet } from '../../components/action-sheet'
 import { AppIcon } from '../../components/app-icon'
+import { FamilySwitcher } from '../../components/family-switcher'
 import { PageShell } from '../../components/page-shell'
+import { useAppShare } from '../../hooks/use-app-share'
 import { useFamilyGate } from '../../hooks/use-family-gate'
-import { useDispatch, useStore } from '../../store'
+import { useDispatch, useMaybeRefreshStore, useStore } from '../../store'
 import { palette } from '../../theme/palette'
-import { getCurrentInviteCode, setCurrentInviteCode } from '../../utils/invite-state'
+import { setCurrentInviteCode } from '../../utils/invite-state'
+import { navigate } from '../../utils/navigation'
 
 import './index.scss'
 
@@ -22,10 +25,13 @@ export default function ProfilePage() {
   const isAdmin = currentMember?.roleLabel === '家庭管理员'
   const { joined, openFamilySetup, familyGate } = useFamilyGate()
   const promptedRef = useRef(false)
+  const maybeRefresh = useMaybeRefreshStore()
 
   // New users see the create/join sheet the first time they open 我的 in a
   // session — not on app launch, so browsing is never blocked upfront.
+  // Also pull fresh family data on show so edits from other members appear.
   useDidShow(() => {
+    void maybeRefresh()
     if (hasFamily() || promptedRef.current) return
     promptedRef.current = true
     openFamilySetup()
@@ -56,20 +62,11 @@ export default function ProfilePage() {
     Taro.showToast({ title: '已复制', icon: 'success' })
   }
 
-  // Page-level share configuration — triggered by <Button openType="share">
-  useShareAppMessage(() => {
-    const code = inviteCode || getCurrentInviteCode()
-    if (code) {
-      return {
-        title: '邀请你加入我的家庭 | 生活有本谱',
-        path: `/pages/family-manage/index?invite=${code}`,
-      }
-    }
-    return {
-      title: '生活有本谱 - 家庭日常记录工具',
-      path: '/pages/home/index',
-    }
-  })
+  // Page-level share — invite-aware. When an invite code has been generated
+  // (setCurrentInviteCode below) the share forwards a join link; otherwise it
+  // shares the app entry. Same handler powers both the WeChat menu and the
+  // <Button openType="share"> inside the invite modal.
+  useAppShare()
 
   const handleLeaveFamily = () => {
     const memberCount = members.length
@@ -94,8 +91,7 @@ export default function ProfilePage() {
       if (!result.confirm) return
       try {
         await leaveFamily()
-        clearToken()
-        clearUserInfo()
+        clearSession()
         Taro.showToast({ title: '已退出', icon: 'success' })
         // Stay on 我的 and offer the create/join sheet again.
         promptedRef.current = true
@@ -155,7 +151,7 @@ export default function ProfilePage() {
       <Button
         className='profile-header tap tap-row'
         hoverClass='tap--pressed'
-        onClick={() => Taro.navigateTo({ url: '/pages/family-manage/index' })}
+        onClick={() => navigate('/pages/family-manage/index')}
       >
         <View className='profile-header__avatar'>
           {currentMember?.avatarText || '我'}
@@ -171,6 +167,9 @@ export default function ProfilePage() {
         <AppIcon icon={ChevronRight} size={18} color={palette.disabledForeground} />
       </Button>
 
+      {/* ---------- 我的家庭：切换 / 新建 ---------- */}
+      <FamilySwitcher onCreateNew={() => openFamilySetup('创建一个新的家庭，和不同的成员共享不同的数据。')} />
+
       {/* ---------- 功能入口 ---------- */}
       <View className='section'>
         <View className='section__head'>
@@ -180,7 +179,7 @@ export default function ProfilePage() {
           <Button
             className='profile-menu__item tap tap-row'
             hoverClass='tap--pressed'
-            onClick={() => Taro.navigateTo({ url: '/pages/family-manage/index' })}
+            onClick={() => navigate('/pages/family-manage/index')}
           >
             <View className='icon-bubble icon-bubble--xs icon-bubble--primary'>
               <AppIcon icon={Users} size={15} color={palette.primary} />
@@ -210,7 +209,7 @@ export default function ProfilePage() {
           <Button
             className='profile-menu__item tap tap-row'
             hoverClass='tap--pressed'
-            onClick={() => Taro.navigateTo({ url: '/pages/family-manage/index?section=locations' })}
+            onClick={() => navigate('/pages/family-manage/index?section=locations')}
           >
             <View className='icon-bubble icon-bubble--xs icon-bubble--primary'>
               <AppIcon icon={MapPin} size={15} color={palette.primary} />
@@ -222,7 +221,7 @@ export default function ProfilePage() {
           <Button
             className='profile-menu__item tap tap-row'
             hoverClass='tap--pressed'
-            onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}
+            onClick={() => navigate('/pages/dish-manage/index')}
           >
             <View className='icon-bubble icon-bubble--xs icon-bubble--primary'>
               <AppIcon icon={Tags} size={15} color={palette.primary} />

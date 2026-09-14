@@ -8,9 +8,11 @@ import { AppIcon } from '../../components/app-icon'
 import { ChipSelect } from '../../components/chip-select'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
-import { useDispatch, useStore } from '../../store'
+import { useAppShare } from '../../hooks/use-app-share'
+import { useDispatch, useRefreshStore, useStore } from '../../store'
 import { palette } from '../../theme/palette'
 import type { FamilyMember, FamilyRole } from '../../types/domain'
+import { setPendingInvite } from '../../utils/pending-invite'
 
 import './index.scss'
 
@@ -20,6 +22,7 @@ export default function FamilyManagePage() {
   const router = useRouter()
   const { currentMemberId, familyName, inventory, locations, members } = useStore()
   const dispatch = useDispatch()
+  const refresh = useRefreshStore()
   const [showRename, setShowRename] = useState(false)
   const [showJoinWithInvite, setShowJoinWithInvite] = useState(false)
   const [inviteCodeInput, setInviteCodeInput] = useState('')
@@ -34,12 +37,20 @@ export default function FamilyManagePage() {
     inventory.filter((item) => item.location === location && item.status !== 'finished' && item.status !== 'discarded' && item.status !== 'deleted').length
   ])), [inventory, locations])
 
+  // Enable native 转发/朋友圈 on this page. The default invite-aware share is
+  // used, so tapping the WeChat menu forwards a join link when a code exists.
+  useAppShare()
+
   useEffect(() => {
-    // Invite codes from share links are regular Taro route params.
+    // Invite codes from share links are regular Taro route params. Park the
+    // code as well so the family-setup sheet (opened for users who are not yet
+    // in a family) can pre-fill it too — one承接 path for scan and share.
     const inviteCode = router?.params?.invite
     if (inviteCode) {
-      setInviteCodeInput(inviteCode)
+      const normalized = decodeURIComponent(inviteCode).toUpperCase()
+      setInviteCodeInput(normalized)
       setShowJoinWithInvite(true)
+      setPendingInvite(normalized)
     }
 
     // Scroll to locations section if specified
@@ -181,11 +192,13 @@ export default function FamilyManagePage() {
 
     try {
       await joinFamily(code, currentMember?.displayName || '用户')
+      // A full refresh replaces local state with the newly joined family. It
+      // must succeed before we tell the user they're in — otherwise the page
+      // would show the previous (or empty) family data.
+      await refresh()
       setShowJoinWithInvite(false)
       setInviteCodeInput('')
       Taro.showToast({ title: '加入家庭成功！', icon: 'success' })
-      // Refresh family data
-      Taro.reLaunch({ url: '/pages/family-manage/index' })
     } catch (error: any) {
       Taro.showToast({ title: error.message || '加入失败，请检查邀请码', icon: 'none' })
     }

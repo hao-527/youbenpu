@@ -7,7 +7,9 @@ import { AppIcon } from '../../components/app-icon'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { StateText, type StateTone } from '../../components/state-text'
+import { useAppShare } from '../../hooks/use-app-share'
 import { useDispatch, useStore } from '../../store'
+import { navigate } from '../../utils/navigation'
 import { palette } from '../../theme/palette'
 import type { MealOrder, MealOrderStatus } from '../../types/domain'
 
@@ -49,6 +51,7 @@ function DishList({ order, compact = false }: { order: MealOrder; compact?: bool
 export default function MealOrdersPage() {
   const { orders } = useStore()
   const dispatch = useDispatch()
+  useAppShare({ title: '看看我们家的点餐记录 | 生活有本谱', path: '/pages/meals/index' })
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all')
 
   const pendingOrder = useMemo(() => orders.find((order) => order.status === 'pending') ?? null, [orders])
@@ -119,7 +122,7 @@ export default function MealOrdersPage() {
               <Text className='orders-no-current__title'>没有待完成的点餐单</Text>
               <Text className='orders-no-current__meta'>选几道菜，告诉家里今天吃什么</Text>
             </View>
-            <Button className='content-action content-action--primary tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-create/index' })}>开始点餐</Button>
+            <Button className='content-action content-action--primary tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/meal-create/index')}>开始点餐</Button>
           </View>
         )}
       </View>

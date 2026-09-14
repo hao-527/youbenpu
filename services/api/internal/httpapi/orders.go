@@ -45,9 +45,16 @@ func (r *router) listOrders(response http.ResponseWriter, request *http.Request)
 	for rows.Next() {
 		var o orderResponse
 		if err := rows.Scan(&o.ID, &o.RequesterName, &o.Status, &o.SubmittedAt); err != nil {
-			continue
+			r.logger.Error("scan order", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+			return
 		}
 		orders = append(orders, o)
+	}
+	if err := rows.Err(); err != nil {
+		r.logger.Error("iterate orders", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
 	}
 
 	// Load items for each order
@@ -57,14 +64,25 @@ func (r *router) listOrders(response http.ResponseWriter, request *http.Request)
 			orders[i].ID,
 		)
 		if err != nil {
-			continue
+			r.logger.Error("list order items", "error", err, "order_id", orders[i].ID)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+			return
 		}
 		for itemRows.Next() {
 			var item orderItemResponse
 			if err := itemRows.Scan(&item.ID, &item.DishID, &item.DishName, &item.Quantity, &item.PhotoURL); err != nil {
-				continue
+				itemRows.Close()
+				r.logger.Error("scan order item", "error", err, "order_id", orders[i].ID)
+				writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+				return
 			}
 			orders[i].Items = append(orders[i].Items, item)
+		}
+		if err := itemRows.Err(); err != nil {
+			itemRows.Close()
+			r.logger.Error("iterate order items", "error", err, "order_id", orders[i].ID)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+			return
 		}
 		itemRows.Close()
 		if orders[i].Items == nil {
@@ -100,9 +118,8 @@ func (r *router) createOrder(response http.ResponseWriter, request *http.Request
 		writeError(response, http.StatusBadRequest, "INVALID_REQUEST", "请求格式错误")
 		return
 	}
-
-	if len(body.Items) == 0 {
-		writeError(response, http.StatusBadRequest, "NO_ITEMS", "至少选择一道菜")
+	if validation := validateOrderItems(body.Items); validation != nil {
+		writeError(response, http.StatusBadRequest, validation.code, validation.message)
 		return
 	}
 
@@ -142,6 +159,35 @@ func (r *router) createOrder(response http.ResponseWriter, request *http.Request
 	}
 	defer tx.Rollback()
 
+	// Dish names and photos are presentation snapshots, not trusted input. Read
+	// them from the current family's available dishes inside the transaction so
+	// another family's dish can never be ordered by forging the request body.
+	type dishSnapshot struct {
+		id       string
+		name     string
+		photoURL *string
+		quantity int
+	}
+	snapshots := make([]dishSnapshot, 0, len(body.Items))
+	for _, item := range body.Items {
+		var snapshot dishSnapshot
+		snapshot.id = item.DishID
+		snapshot.quantity = item.Quantity
+		err := tx.QueryRow(`SELECT id, name, photo_url
+			FROM dishes WHERE id = ? AND family_id = ? AND available = 1`,
+			item.DishID, familyID).Scan(&snapshot.id, &snapshot.name, &snapshot.photoURL)
+		if errors.Is(err, sql.ErrNoRows) {
+			writeError(response, http.StatusBadRequest, "INVALID_DISH", "菜品不存在或当前不可点")
+			return
+		}
+		if err != nil {
+			r.logger.Error("validate order dish", "error", err, "dish_id", item.DishID)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "校验菜品失败")
+			return
+		}
+		snapshots = append(snapshots, snapshot)
+	}
+
 	_, err = tx.Exec(`INSERT INTO meal_orders (id, family_id, requester_id, requester_name, status, submitted_at)
 		VALUES (?, ?, ?, ?, 'pending', ?)`, orderID, familyID, userID, requesterName, submittedAt)
 	if err != nil {
@@ -155,13 +201,10 @@ func (r *router) createOrder(response http.ResponseWriter, request *http.Request
 		return
 	}
 
-	for _, item := range body.Items {
-		if item.DishName == "" || item.Quantity <= 0 {
-			continue
-		}
+	for _, snapshot := range snapshots {
 		itemID := database.NewID()
 		_, err = tx.Exec(`INSERT INTO meal_order_items (id, order_id, dish_id, dish_name, quantity, photo_url)
-			VALUES (?, ?, ?, ?, ?, ?)`, itemID, orderID, item.DishID, item.DishName, item.Quantity, item.PhotoURL)
+			VALUES (?, ?, ?, ?, ?, ?)`, itemID, orderID, snapshot.id, snapshot.name, snapshot.quantity, snapshot.photoURL)
 		if err != nil {
 			r.logger.Error("create order item", "error", err)
 			writeError(response, http.StatusInternalServerError, "DB_ERROR", "创建失败")

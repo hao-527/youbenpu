@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -35,6 +36,10 @@ type Config struct {
 	// JWT
 	JWTSecret string
 
+	// Development-only login fallback. It is disabled in production regardless
+	// of the environment variable so a client cannot forge an identity there.
+	EnableDevLogin bool
+
 	// Tencent COS
 	COSBucket    string
 	COSRegion    string
@@ -60,6 +65,10 @@ func Load() (Config, error) {
 		WXAppSecret: envOrDefault("WX_APP_SECRET", ""),
 
 		JWTSecret: envOrDefault("JWT_SECRET", defaultJWTSecret),
+
+		// Preserve the local development workflow while making the capability
+		// explicit in Config and impossible in production.
+		EnableDevLogin: envBoolOrDefault("ENABLE_DEV_LOGIN", strings.ToLower(envOrDefault("APP_ENV", "development")) != "production"),
 
 		COSBucket:    envOrDefault("COS_BUCKET", "shenghuoyoubenpu-1410259056"),
 		COSRegion:    envOrDefault("COS_REGION", "ap-beijing"),
@@ -94,6 +103,9 @@ func Load() (Config, error) {
 		return Config{}, fmt.Errorf("WX_APPID and WX_APP_SECRET must be configured together")
 	}
 	if cfg.Environment == "production" {
+		if cfg.EnableDevLogin {
+			return Config{}, fmt.Errorf("ENABLE_DEV_LOGIN must be false in production")
+		}
 		if cfg.JWTSecret == defaultJWTSecret || len([]byte(cfg.JWTSecret)) < 32 {
 			return Config{}, fmt.Errorf("JWT_SECRET must be a strong value of at least 32 bytes in production")
 		}
@@ -110,4 +122,16 @@ func envOrDefault(key, fallback string) string {
 		return value
 	}
 	return fallback
+}
+
+func envBoolOrDefault(key string, fallback bool) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }

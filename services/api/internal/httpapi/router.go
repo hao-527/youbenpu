@@ -55,6 +55,9 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	// Auth required (no family needed)
 	mux.Handle("POST /api/v1/family", r.auth(http.HandlerFunc(r.wrapCreateFamily)))
 	mux.Handle("POST /api/v1/family/join", r.auth(http.HandlerFunc(r.wrapJoinFamily)))
+	mux.Handle("GET /api/v1/families", r.auth(http.HandlerFunc(r.wrapListMyFamilies)))
+	mux.Handle("PUT /api/v1/families/active", r.auth(http.HandlerFunc(r.wrapSwitchActiveFamily)))
+	mux.Handle("GET /api/v1/invitations/{code}", r.auth(http.HandlerFunc(r.wrapGetInvitationInfo)))
 
 	// Auth + Family required
 	mux.Handle("GET /api/v1/family/info", r.authFamily(http.HandlerFunc(r.wrapGetFamily)))
@@ -122,6 +125,15 @@ func (r *router) authFamily(next http.Handler) http.Handler {
 // Wrapper functions that adapt handler signatures
 func (r *router) wrapCreateFamily(w http.ResponseWriter, req *http.Request) { r.createFamily(w, req) }
 func (r *router) wrapJoinFamily(w http.ResponseWriter, req *http.Request)   { r.joinFamily(w, req) }
+func (r *router) wrapListMyFamilies(w http.ResponseWriter, req *http.Request) {
+	r.listMyFamilies(w, req)
+}
+func (r *router) wrapSwitchActiveFamily(w http.ResponseWriter, req *http.Request) {
+	r.switchActiveFamily(w, req)
+}
+func (r *router) wrapGetInvitationInfo(w http.ResponseWriter, req *http.Request) {
+	r.getInvitationInfo(w, req)
+}
 func (r *router) wrapGetFamily(w http.ResponseWriter, req *http.Request)    { r.getFamily(w, req) }
 func (r *router) wrapRenameFamily(w http.ResponseWriter, req *http.Request) { r.renameFamily(w, req) }
 func (r *router) wrapCreateInvitation(w http.ResponseWriter, req *http.Request) {
@@ -192,6 +204,12 @@ func (r *router) health(response http.ResponseWriter, _ *http.Request) {
 }
 
 func (r *router) ready(response http.ResponseWriter, request *http.Request) {
+	if r.db == nil {
+		r.logger.Error("readiness check failed", "error", "database is not configured")
+		writeError(response, http.StatusServiceUnavailable, "DB_UNAVAILABLE", "服务暂未就绪")
+		return
+	}
+
 	ctx, cancel := context.WithTimeout(request.Context(), 2*time.Second)
 	defer cancel()
 

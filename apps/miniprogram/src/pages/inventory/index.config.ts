@@ -1,4 +1,6 @@
 export default definePageConfig({
   navigationBarTitleText: '家庭物品',
-  enablePullDownRefresh: false
+  enablePullDownRefresh: false,
+  enableShareAppMessage: true,
+  enableShareTimeline: true
 })

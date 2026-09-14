@@ -1,9 +1,9 @@
 import { Button, Text, View } from '@tarojs/components'
-import Taro from '@tarojs/taro'
 import { ChevronLeft } from 'lucide'
 import type { ReactNode } from 'react'
 
 import { palette } from '../../theme/palette'
+import { goBack as safeGoBack } from '../../utils/navigation'
 import { AppIcon } from '../app-icon'
 
 interface PageHeaderProps {
@@ -14,7 +14,7 @@ interface PageHeaderProps {
 }
 
 export function PageHeader({ title, subtitle, end, onBack }: PageHeaderProps) {
-  const goBack = onBack ?? (() => Taro.navigateBack())
+  const goBack = onBack ?? (() => safeGoBack())
 
   return (
     <View className='subpage-header'>

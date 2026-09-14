@@ -40,6 +40,19 @@ export function clearUserInfo(): void {
   Taro.removeStorageSync(USER_KEY)
 }
 
+const sessionClearListeners = new Set<() => void>()
+
+export function onSessionCleared(listener: () => void): () => void {
+  sessionClearListeners.add(listener)
+  return () => sessionClearListeners.delete(listener)
+}
+
+export function clearSession(): void {
+  clearToken()
+  clearUserInfo()
+  sessionClearListeners.forEach((listener) => listener())
+}
+
 export function isLoggedIn(): boolean {
   return !!getToken()
 }

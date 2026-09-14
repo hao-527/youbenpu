@@ -6,7 +6,7 @@ import Taro from '@tarojs/taro'
 import { API } from './config'
 import { getStableDemoIdentity } from './dev-identity'
 import { del, get, post, put } from './http'
-import { isLoggedIn, setToken, setUserInfo, type UserInfo } from './token'
+import { isLoggedIn, getUserInfo, setToken, setUserInfo, type UserInfo } from './token'
 
 // ===== Auth =====
 
@@ -87,8 +87,61 @@ export function createInvitation() {
   return post<{ code: string; expires_at: string }>(API.FAMILY_INVITE)
 }
 
-export function joinFamily(code: string, displayName: string) {
-  return post<{ family_id: string; message: string }>(API.FAMILY_JOIN, { code, display_name: displayName })
+export interface MyFamily {
+  id: string
+  name: string
+  role: string
+  is_active: boolean
+}
+
+/** Lists every family the current user belongs to, flagging the active one. */
+export function listMyFamilies() {
+  return get<MyFamily[]>(API.FAMILIES)
+}
+
+/** Switches the active (currently viewed) family. */
+export async function switchActiveFamily(familyId: string) {
+  const result = await put<{ family_id: string; message: string }>(API.FAMILY_ACTIVE, { family_id: familyId })
+  const existing = getUserInfo()
+  if (existing) setUserInfo({ ...existing, familyId: result.family_id })
+  return result
+}
+
+export interface InvitationInfo {
+  family_id: string
+  family_name: string
+  valid: boolean
+  reason?: string
+}
+
+/** Previews an invitation (family name + validity) before joining. */
+export function getInvitationInfo(code: string) {
+  return get<InvitationInfo>(`${API.INVITATIONS}/${encodeURIComponent(code)}`)
+}
+
+export async function joinFamily(code: string, displayName: string, mergeFromFamilyId?: string) {
+  const result = await post<{ family_id: string; message: string }>(API.FAMILY_JOIN, {
+    code,
+    display_name: displayName,
+    // When set, the backend copies this source family's data into the joined
+    // family (private ledger notes excluded). Omitted for a plain join.
+    merge_from_family_id: mergeFromFamilyId ?? ''
+  })
+
+  // The join endpoint changes the server-side family immediately. Keep the
+  // local identity in sync before any page refresh so StoreProvider.refresh()
+  // does not short-circuit on the stale familyId value.
+  const existing = getUserInfo()
+  if (existing) {
+    setUserInfo({
+      ...existing,
+      familyId: result.family_id,
+      displayName: displayName.trim() || existing.displayName,
+      role: 'member'
+    })
+  }
+
+  return result
 }
 
 export function leaveFamily() {

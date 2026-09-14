@@ -31,9 +31,16 @@ func (r *router) listLocations(response http.ResponseWriter, request *http.Reque
 	for rows.Next() {
 		var l locationResponse
 		if err := rows.Scan(&l.ID, &l.Name); err != nil {
-			continue
+			r.logger.Error("scan location", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+			return
 		}
 		locations = append(locations, l)
+	}
+	if err := rows.Err(); err != nil {
+		r.logger.Error("iterate locations", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
 	}
 
 	if locations == nil {
@@ -154,6 +161,11 @@ func (r *router) listCategories(response http.ResponseWriter, request *http.Requ
 	familyID := getUserFamilyID(request.Context())
 	domain := request.URL.Query().Get("domain") // "dish" or "inventory" or empty for all
 
+	if domain != "" && domain != "dish" && domain != "inventory" {
+		writeError(response, http.StatusBadRequest, "INVALID_DOMAIN", "domain 必须为 dish 或 inventory")
+		return
+	}
+
 	var query string
 	var args []any
 	if domain != "" {
@@ -176,9 +188,16 @@ func (r *router) listCategories(response http.ResponseWriter, request *http.Requ
 	for rows.Next() {
 		var c categoryResponse
 		if err := rows.Scan(&c.ID, &c.Domain, &c.Name); err != nil {
-			continue
+			r.logger.Error("scan category", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+			return
 		}
 		categories = append(categories, c)
+	}
+	if err := rows.Err(); err != nil {
+		r.logger.Error("iterate categories", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
 	}
 
 	if categories == nil {

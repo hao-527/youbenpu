@@ -34,10 +34,24 @@ func (r *router) listInventory(response http.ResponseWriter, request *http.Reque
 
 	if statusFilter != "" {
 		statuses := strings.Split(statusFilter, ",")
-		placeholders := make([]string, len(statuses))
-		for i, s := range statuses {
-			placeholders[i] = "?"
-			args = append(args, strings.TrimSpace(s))
+		placeholders := make([]string, 0, len(statuses))
+		seenStatuses := make(map[string]struct{}, len(statuses))
+		for _, rawStatus := range statuses {
+			status := strings.TrimSpace(rawStatus)
+			if _, ok := validInventoryStatuses[status]; !ok {
+				writeError(response, http.StatusBadRequest, "INVALID_STATUS", "无效的状态筛选值")
+				return
+			}
+			if _, seen := seenStatuses[status]; seen {
+				continue
+			}
+			seenStatuses[status] = struct{}{}
+			placeholders = append(placeholders, "?")
+			args = append(args, status)
+		}
+		if len(placeholders) == 0 {
+			writeError(response, http.StatusBadRequest, "INVALID_STATUS", "无效的状态筛选值")
+			return
 		}
 		query = `SELECT id, name, category, location, quantity_label, expiry_date, status, photo_url
 			FROM inventory_items WHERE family_id = ? AND status IN (` + strings.Join(placeholders, ",") + `)
@@ -63,9 +77,16 @@ func (r *router) listInventory(response http.ResponseWriter, request *http.Reque
 		var item inventoryItemResponse
 		if err := rows.Scan(&item.ID, &item.Name, &item.Category, &item.Location,
 			&item.QuantityLabel, &item.ExpiryDate, &item.Status, &item.PhotoURL); err != nil {
-			continue
+			r.logger.Error("scan inventory item", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+			return
 		}
 		items = append(items, item)
+	}
+	if err := rows.Err(); err != nil {
+		r.logger.Error("iterate inventory", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
 	}
 
 	if items == nil {
@@ -95,23 +116,9 @@ func (r *router) createInventory(response http.ResponseWriter, request *http.Req
 		return
 	}
 
-	body.Name = strings.TrimSpace(body.Name)
-	if body.Name == "" {
-		writeError(response, http.StatusBadRequest, "MISSING_NAME", "物品名称不能为空")
+	if validation := validateInventoryRequest(&body); validation != nil {
+		writeError(response, http.StatusBadRequest, validation.code, validation.message)
 		return
-	}
-	if body.Location == "" {
-		writeError(response, http.StatusBadRequest, "MISSING_LOCATION", "存放位置不能为空")
-		return
-	}
-	if body.Category == "" {
-		body.Category = "日用品"
-	}
-	if body.QuantityLabel == "" {
-		body.QuantityLabel = "1 件"
-	}
-	if body.Status == "" {
-		body.Status = "normal"
 	}
 
 	id := database.NewID()
@@ -154,17 +161,12 @@ func (r *router) updateInventory(response http.ResponseWriter, request *http.Req
 		return
 	}
 
-	body.Name = strings.TrimSpace(body.Name)
-	if body.Name == "" {
-		writeError(response, http.StatusBadRequest, "MISSING_NAME", "物品名称不能为空")
-		return
-	}
-	if body.Location == "" {
-		writeError(response, http.StatusBadRequest, "MISSING_LOCATION", "存放位置不能为空")
+	if validation := validateInventoryRequest(&body); validation != nil {
+		writeError(response, http.StatusBadRequest, validation.code, validation.message)
 		return
 	}
 
-	_, err = r.db.Exec(`UPDATE inventory_items SET
+	result, err := r.db.Exec(`UPDATE inventory_items SET
 		name = ?, category = ?, location = ?, quantity_label = ?,
 		expiry_date = ?, status = ?, photo_url = ?
 		WHERE id = ? AND family_id = ?`,
@@ -175,6 +177,11 @@ func (r *router) updateInventory(response http.ResponseWriter, request *http.Req
 	if err != nil {
 		r.logger.Error("update inventory item", "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "更新失败")
+		return
+	}
+	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+		r.logger.Error("read updated inventory rows", "affected", affected, "error", err)
+		writeError(response, http.StatusConflict, "STALE_RECORD", "物品已发生变化，请刷新后重试")
 		return
 	}
 
@@ -201,11 +208,8 @@ func (r *router) updateInventoryStatus(response http.ResponseWriter, request *ht
 		return
 	}
 
-	validStatuses := map[string]bool{
-		"normal": true, "expiring": true, "expired": true,
-		"finished": true, "discarded": true, "deleted": true,
-	}
-	if !validStatuses[body.Status] {
+	body.Status = strings.TrimSpace(body.Status)
+	if _, ok := validInventoryStatuses[body.Status]; !ok {
 		writeError(response, http.StatusBadRequest, "INVALID_STATUS", "无效的状态值")
 		return
 	}

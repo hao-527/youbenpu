@@ -7,7 +7,9 @@ import { AppIcon } from '../../components/app-icon'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { StateText } from '../../components/state-text'
+import { useAppShare } from '../../hooks/use-app-share'
 import { useDispatch, useStore } from '../../store'
+import { navigate } from '../../utils/navigation'
 import { palette } from '../../theme/palette'
 import type { DishCategory } from '../../types/domain'
 import { dishCategories } from '../../types/domain'
@@ -17,6 +19,7 @@ import './index.scss'
 export default function DishManagePage() {
   const { dishes, orders, customDishCategories } = useStore()
   const dispatch = useDispatch()
+  useAppShare({ title: '看看我们家的菜单 | 生活有本谱', path: '/pages/meals/index' })
   const categories: Array<'全部' | DishCategory> = ['全部', ...dishCategories, ...customDishCategories]
   const [activeCategory, setActiveCategory] = useState<(typeof categories)[number]>('全部')
 
@@ -105,7 +108,7 @@ export default function DishManagePage() {
           </View>
           <Text className='empty-state__title'>这个分类还没有菜品</Text>
           <Text className='empty-state__copy'>添加一道家常菜，点餐时就能直接选择。</Text>
-          <Button className='button button--primary empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-form/index' })}>
+          <Button className='button button--primary empty-state__action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/dish-form/index')}>
             添加菜品
           </Button>
         </View>
@@ -119,7 +122,7 @@ export default function DishManagePage() {
                   className='dish-manage-row__main tap'
                   hoverClass='tap--pressed'
                   aria-label={`编辑${dish.name}`}
-                  onClick={() => Taro.navigateTo({ url: `/pages/dish-form/index?id=${dish.id}` })}
+                  onClick={() => navigate(`/pages/dish-form/index?id=${dish.id}`)}
                 >
                   {dish.photo ? (
                     <Image className='dish-manage-row__photo' src={dish.photo} mode='aspectFill' lazyLoad />

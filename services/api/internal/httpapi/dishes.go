@@ -38,16 +38,27 @@ func (r *router) listDishes(response http.ResponseWriter, request *http.Request)
 		var ingredientsJSON []byte
 		var photoURL *string
 		if err := rows.Scan(&d.ID, &d.Name, &d.Category, &d.Method, &ingredientsJSON, &photoURL, &d.Available); err != nil {
-			continue
+			r.logger.Error("scan dish", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+			return
 		}
 		d.PhotoURL = photoURL
 		if ingredientsJSON != nil {
-			json.Unmarshal(ingredientsJSON, &d.Ingredients)
+			if err := json.Unmarshal(ingredientsJSON, &d.Ingredients); err != nil {
+				r.logger.Error("decode dish ingredients", "error", err, "dish_id", d.ID)
+				writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+				return
+			}
 		}
 		if d.Ingredients == nil {
 			d.Ingredients = []string{}
 		}
 		dishes = append(dishes, d)
+	}
+	if err := rows.Err(); err != nil {
+		r.logger.Error("iterate dishes", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
 	}
 
 	if dishes == nil {
@@ -76,22 +87,19 @@ func (r *router) createDish(response http.ResponseWriter, request *http.Request)
 	}
 
 	body.Name = strings.TrimSpace(body.Name)
-	if body.Name == "" {
-		writeError(response, http.StatusBadRequest, "MISSING_NAME", "菜品名称不能为空")
+	if validation := validateDishRequest(&body); validation != nil {
+		writeError(response, http.StatusBadRequest, validation.code, validation.message)
 		return
-	}
-	if len([]rune(body.Name)) > 40 {
-		writeError(response, http.StatusBadRequest, "NAME_TOO_LONG", "菜品名称最多 40 字")
-		return
-	}
-	if body.Category == "" {
-		body.Category = "其他"
 	}
 
 	// Check for duplicate name in same family
 	var exists int
-	r.db.QueryRow("SELECT COUNT(*) FROM dishes WHERE family_id = ? AND LOWER(name) = LOWER(?)",
-		familyID, body.Name).Scan(&exists)
+	if err := r.db.QueryRow("SELECT COUNT(*) FROM dishes WHERE family_id = ? AND LOWER(name) = LOWER(?)",
+		familyID, body.Name).Scan(&exists); err != nil {
+		r.logger.Error("check duplicate dish", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
+	}
 	if exists > 0 {
 		writeError(response, http.StatusConflict, "DUPLICATE_NAME", "已有同名菜品")
 		return
@@ -137,16 +145,19 @@ func (r *router) updateDish(response http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	body.Name = strings.TrimSpace(body.Name)
-	if body.Name == "" {
-		writeError(response, http.StatusBadRequest, "MISSING_NAME", "菜品名称不能为空")
+	if validation := validateDishRequest(&body); validation != nil {
+		writeError(response, http.StatusBadRequest, validation.code, validation.message)
 		return
 	}
 
 	// Check duplicate name (excluding self)
 	var exists int
-	r.db.QueryRow("SELECT COUNT(*) FROM dishes WHERE family_id = ? AND LOWER(name) = LOWER(?) AND id != ?",
-		familyID, body.Name, id).Scan(&exists)
+	if err := r.db.QueryRow("SELECT COUNT(*) FROM dishes WHERE family_id = ? AND LOWER(name) = LOWER(?) AND id != ?",
+		familyID, body.Name, id).Scan(&exists); err != nil {
+		r.logger.Error("check duplicate dish on update", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
+	}
 	if exists > 0 {
 		writeError(response, http.StatusConflict, "DUPLICATE_NAME", "已有同名菜品")
 		return
@@ -154,13 +165,18 @@ func (r *router) updateDish(response http.ResponseWriter, request *http.Request)
 
 	ingredientsJSON, _ := json.Marshal(body.Ingredients)
 
-	_, err = r.db.Exec(`UPDATE dishes SET name = ?, category = ?, method = ?, ingredients_json = ?, photo_url = ?
+	result, err := r.db.Exec(`UPDATE dishes SET name = ?, category = ?, method = ?, ingredients_json = ?, photo_url = ?
 		WHERE id = ? AND family_id = ?`,
 		body.Name, body.Category, body.Method, ingredientsJSON, body.PhotoURL, id, familyID,
 	)
 	if err != nil {
 		r.logger.Error("update dish", "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "更新失败")
+		return
+	}
+	if affected, err := result.RowsAffected(); err != nil || affected != 1 {
+		r.logger.Error("read updated dish rows", "affected", affected, "error", err)
+		writeError(response, http.StatusConflict, "STALE_RECORD", "菜品已发生变化，请刷新后重试")
 		return
 	}
 
@@ -183,7 +199,12 @@ func (r *router) toggleDishAvailable(response http.ResponseWriter, request *http
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
 		return
 	}
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		r.logger.Error("read toggled dish rows", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "操作失败")
+		return
+	}
 	if affected == 0 {
 		writeError(response, http.StatusNotFound, "NOT_FOUND", "菜品不存在")
 		return
@@ -204,9 +225,13 @@ func (r *router) deleteDish(response http.ResponseWriter, request *http.Request)
 
 	// Don't delete if referenced in a pending order
 	var pendingCount int
-	r.db.QueryRow(`SELECT COUNT(*) FROM meal_order_items oi
+	if err := r.db.QueryRow(`SELECT COUNT(*) FROM meal_order_items oi
 		JOIN meal_orders o ON o.id = oi.order_id
-		WHERE oi.dish_id = ? AND o.status = 'pending'`, id).Scan(&pendingCount)
+		WHERE oi.dish_id = ? AND o.family_id = ? AND o.status = 'pending'`, id, familyID).Scan(&pendingCount); err != nil {
+		r.logger.Error("check dish order usage", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
+	}
 	if pendingCount > 0 {
 		writeError(response, http.StatusConflict, "IN_USE", "该菜品正在一个待完成的点餐单中，无法删除")
 		return
@@ -218,7 +243,12 @@ func (r *router) deleteDish(response http.ResponseWriter, request *http.Request)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
 		return
 	}
-	affected, _ := result.RowsAffected()
+	affected, err := result.RowsAffected()
+	if err != nil {
+		r.logger.Error("read deleted dish rows", "error", err)
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
+		return
+	}
 	if affected == 0 {
 		writeError(response, http.StatusNotFound, "NOT_FOUND", "菜品不存在")
 		return

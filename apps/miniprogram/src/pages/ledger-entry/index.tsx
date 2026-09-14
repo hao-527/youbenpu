@@ -8,6 +8,7 @@ import { ChipSelect } from '../../components/chip-select'
 import { DatePicker } from '../../components/date-picker'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
+import { useAppShare } from '../../hooks/use-app-share'
 import { useDispatch, useStore } from '../../store'
 import { uid } from '../../store/uid'
 import { palette } from '../../theme/palette'
@@ -34,6 +35,7 @@ function getDateDisplayLabel(date: string, today: string) {
 export default function LedgerEntryPage() {
   const { ledger, members, familyId, currentMemberId } = useStore()
   const dispatch = useDispatch()
+  useAppShare()
   const params = Taro.getCurrentInstance().router?.params
   const entryId = params?.id
   const editingEntry = entryId ? ledger.find((entry) => entry.id === entryId) : undefined
