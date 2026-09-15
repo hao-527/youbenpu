@@ -1,5 +1,5 @@
 import { Button, Image, Input, Text, View } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import { useDidShow } from '@tarojs/taro'
 import { ChevronRight, MapPin, Package, Plus, Search, Settings2, Timer, X } from 'lucide'
 import { useMemo, useState } from 'react'
 
@@ -7,7 +7,9 @@ import { AppIcon } from '../../components/app-icon'
 import { ListSelect } from '../../components/list-select'
 import { PageShell } from '../../components/page-shell'
 import { StateText, type StateTone } from '../../components/state-text'
-import { useStore } from '../../store'
+import { useAppShare } from '../../hooks/use-app-share'
+import { navigate } from '../../utils/navigation'
+import { useMaybeRefreshStore, useStore } from '../../store'
 import { palette } from '../../theme/palette'
 import { inventoryCategories, type InventoryCategory, type InventoryItem, type InventoryStatus } from '../../types/domain'
 import { getInventoryExpiry } from '../../utils/date'
@@ -52,6 +54,9 @@ function getStatusLabel(item: InventoryItem) {
 
 export default function InventoryPage() {
   const { inventory, locations, customInventoryCategories } = useStore()
+  useAppShare()
+  const maybeRefresh = useMaybeRefreshStore()
+  useDidShow(() => { void maybeRefresh() })
   const [keyword, setKeyword] = useState('')
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
   const [locationFilter, setLocationFilter] = useState('全部地点')
@@ -101,7 +106,7 @@ export default function InventoryPage() {
           <Text className='page-title__text'>找物品</Text>
           <Text className='page-title__subtitle'>{activeCount} 件正在使用</Text>
         </View>
-        <Button className='content-action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/inventory-manage/index' })}>
+        <Button className='content-action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/inventory-manage/index')}>
           <AppIcon icon={Settings2} size={16} color={palette.foreground} />
           <Text>管理</Text>
         </Button>
@@ -181,7 +186,7 @@ export default function InventoryPage() {
       ) : (
         <View className='inventory-list surface-card'>
           {visibleItems.map((item) => (
-            <Button key={item.id} className='inventory-row tap tap-row' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: `/pages/inventory-detail/index?id=${item.id}` })}>
+            <Button key={item.id} className='inventory-row tap tap-row' hoverClass='tap--pressed' onClick={() => navigate(`/pages/inventory-detail/index?id=${item.id}`)}>
               {item.photo ? (
                 <Image className='inventory-row__photo' src={item.photo} mode='aspectFill' lazyLoad />
               ) : (
@@ -210,7 +215,7 @@ export default function InventoryPage() {
         className='fab tap'
         hoverClass='tap--pressed'
         aria-label='新增物品'
-        onClick={() => Taro.navigateTo({ url: '/pages/inventory-form/index' })}
+        onClick={() => navigate('/pages/inventory-form/index')}
       >
         <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
         <Text>新增</Text>

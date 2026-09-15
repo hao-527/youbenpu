@@ -6,6 +6,7 @@ import { AppIcon } from '../../components/app-icon'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { StateText, type StateTone } from '../../components/state-text'
+import { useAppShare } from '../../hooks/use-app-share'
 import { useDispatch, useStore } from '../../store'
 import { palette } from '../../theme/palette'
 import type { InventoryStatus } from '../../types/domain'
@@ -20,6 +21,8 @@ const statusTone: Record<InventoryStatus, StateTone> = {
 export default function InventoryDetailPage() {
   const { inventory } = useStore()
   const dispatch = useDispatch()
+  // Registered before the early return so the hook order stays stable.
+  useAppShare()
   const itemId = Taro.getCurrentInstance().router?.params?.id
   const storedItem = inventory.find((item) => item.id === itemId && item.status !== 'deleted')
 

@@ -1,14 +1,16 @@
 import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import { useDidShow } from '@tarojs/taro'
 import { ChevronRight, History, Settings2, Utensils } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
 import { PageShell } from '../../components/page-shell'
+import { useAppShare } from '../../hooks/use-app-share'
+import { navigate } from '../../utils/navigation'
 import { getPortableImageUrl } from '../../utils/image-source'
 import illustMeal from '../../assets/images/illustrations/meal.svg'
 import { StateText } from '../../components/state-text'
-import { useStore } from '../../store'
+import { useMaybeRefreshStore, useStore } from '../../store'
 import { palette } from '../../theme/palette'
 import type { DishCategory } from '../../types/domain'
 import { dishCategories } from '../../types/domain'
@@ -17,6 +19,9 @@ import './index.scss'
 
 export default function MealsPage() {
   const { dishes, orders, customDishCategories } = useStore()
+  useAppShare({ title: '来看看我们家今天吃什么 | 生活有本谱', path: '/pages/meals/index' })
+  const maybeRefresh = useMaybeRefreshStore()
+  useDidShow(() => { void maybeRefresh() })
   const categories: Array<'全部' | DishCategory> = ['全部', ...dishCategories, ...customDishCategories]
   const [activeCategory, setActiveCategory] = useState<(typeof categories)[number]>('全部')
 
@@ -29,10 +34,10 @@ export default function MealsPage() {
 
   const openCreateOrder = () => {
     if (pendingOrder) {
-      Taro.navigateTo({ url: '/pages/meal-orders/index' })
+      navigate('/pages/meal-orders/index')
       return
     }
-    Taro.navigateTo({ url: '/pages/meal-create/index' })
+    navigate('/pages/meal-create/index')
   }
 
   return (
@@ -45,7 +50,7 @@ export default function MealsPage() {
       </View>
 
       {pendingOrder ? (
-        <Button className='meal-focus-card meal-focus-card--pending surface-card tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
+        <Button className='meal-focus-card meal-focus-card--pending surface-card tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/meal-orders/index')}>
           <View className='meal-focus-card__head'>
             <View className='meal-focus-card__copy'>
               <Text className='meal-focus-card__eyebrow'>当前点餐单</Text>
@@ -91,11 +96,11 @@ export default function MealsPage() {
             <Text className='section__meta'>{availableDishes.length} 道</Text>
           </View>
           <View className='meals-dish-section__actions'>
-            <Button className='content-action meals-section-action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
+            <Button className='content-action meals-section-action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/meal-orders/index')}>
               <AppIcon icon={History} size={15} color={palette.foreground} />
               <Text>点餐记录</Text>
             </Button>
-            <Button className='content-action meals-section-action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}>
+            <Button className='content-action meals-section-action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/dish-manage/index')}>
               <AppIcon icon={Settings2} size={15} color={palette.foreground} />
               <Text>菜品管理</Text>
             </Button>
@@ -122,7 +127,7 @@ export default function MealsPage() {
             <Image className='meals-empty-state__illust' src={illustMeal} mode='aspectFit' />
             <Text className='empty-state__title'>这个分类还没有可点的菜</Text>
             <Text className='empty-state__copy'>可以到菜品管理中新增菜品，或将暂停菜品重新上架。</Text>
-            <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/dish-manage/index' })}>
+            <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/dish-manage/index')}>
               去管理菜品
             </Button>
           </View>

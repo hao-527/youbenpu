@@ -33,6 +33,7 @@ type presignResponse struct {
 	Policy        string `json:"policy"`
 	Signature     string `json:"signature"`
 	SecretID      string `json:"secret_id"`
+	ContentType   string `json:"content_type"`
 	SecurityToken string `json:"security_token,omitempty"`
 }
 
@@ -173,9 +174,15 @@ func (r *router) uploadPresign(response http.ResponseWriter, request *http.Reque
 		return
 	}
 
-	allowedExts := map[string]bool{"jpg": true, "jpeg": true, "png": true, "webp": true, "gif": true}
-	if !allowedExts[body.Ext] {
-		body.Ext = "jpg"
+	body.Ext = strings.ToLower(strings.TrimPrefix(strings.TrimSpace(body.Ext), "."))
+	contentTypes := map[string]string{
+		"jpg": "image/jpeg", "jpeg": "image/jpeg", "png": "image/png",
+		"webp": "image/webp", "gif": "image/gif",
+	}
+	contentType, ok := contentTypes[body.Ext]
+	if !ok {
+		writeError(response, http.StatusBadRequest, "INVALID_EXTENSION", "仅支持 JPG、PNG、WEBP 或 GIF 图片")
+		return
 	}
 
 	objectKey := fmt.Sprintf("uploads/%s/%s.%s", time.Now().Format("2006/01/02"), database.NewID(), body.Ext)
@@ -186,6 +193,7 @@ func (r *router) uploadPresign(response http.ResponseWriter, request *http.Reque
 		"conditions": []any{
 			map[string]string{"bucket": r.config.COSBucket},
 			[]any{"eq", "$key", objectKey},
+			[]any{"eq", "$Content-Type", contentType},
 			[]any{"content-length-range", 1, maxImageUploadSize},
 		},
 	}
@@ -197,10 +205,11 @@ func (r *router) uploadPresign(response http.ResponseWriter, request *http.Reque
 	signature := hex.EncodeToString(mac.Sum(nil))
 
 	writeJSON(response, http.StatusOK, presignResponse{
-		URL:       cosURL,
-		Key:       objectKey,
-		Policy:    policyBase64,
-		Signature: signature,
-		SecretID:  r.config.COSSecretID,
+		URL:         cosURL,
+		Key:         objectKey,
+		Policy:      policyBase64,
+		Signature:   signature,
+		SecretID:    r.config.COSSecretID,
+		ContentType: contentType,
 	})
 }

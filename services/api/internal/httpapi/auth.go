@@ -1,12 +1,15 @@
 package httpapi
 
 import (
+	"bytes"
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"regexp"
 	"strings"
 	"time"
@@ -42,13 +45,14 @@ type loginResponse struct {
 
 func (r *router) login(response http.ResponseWriter, request *http.Request) {
 	var body loginRequest
-	if err := readJSON(request, &body); err != nil || body.Code == "" {
+	if err := readJSON(request, &body); err != nil || strings.TrimSpace(body.Code) == "" {
 		writeError(response, http.StatusBadRequest, "INVALID_REQUEST", "code 不能为空")
 		return
 	}
+	body.Code = strings.TrimSpace(body.Code)
 
 	// Exchange code for openid via WeChat API
-	openid, err := r.wxCode2Session(body.Code, body.DevIdentity)
+	openid, err := r.wxCode2Session(request.Context(), body.Code, body.DevIdentity)
 	if err != nil {
 		r.logger.Error("wx code2session", "error", err)
 		writeError(response, http.StatusUnauthorized, "WX_AUTH_FAILED", "微信登录失败")
@@ -132,7 +136,9 @@ func (r *router) signJWT(userID, familyID string) (string, error) {
 
 func (r *router) parseJWT(tokenString string) (*jwtClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &jwtClaims{}, func(t *jwt.Token) (any, error) {
-		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+		// Do not accept another HMAC variant (or an algorithm confusion token)
+		// just because it shares the same secret.
+		if t.Method.Alg() != jwt.SigningMethodHS256.Alg() {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return []byte(r.config.JWTSecret), nil
@@ -141,7 +147,7 @@ func (r *router) parseJWT(tokenString string) (*jwtClaims, error) {
 		return nil, err
 	}
 	claims, ok := token.Claims.(*jwtClaims)
-	if !ok || !token.Valid {
+	if !ok || !token.Valid || claims.UserID == "" || claims.Issuer != "youbenpu" {
 		return nil, fmt.Errorf("invalid token claims")
 	}
 	return claims, nil
@@ -181,14 +187,29 @@ func (r *router) requireAuth(next http.Handler) http.Handler {
 	})
 }
 
-// requireFamily ensures the user has joined a family.
+// requireFamily ensures the user has joined a family. Re-read membership
+// immediately before the handler instead of trusting the value loaded by the
+// authentication middleware, which may be stale after a leave/remove action.
 func (r *router) requireFamily(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(response http.ResponseWriter, request *http.Request) {
-		if getUserFamilyID(request.Context()) == "" {
+		userID := getUserID(request.Context())
+		var familyID sql.NullString
+		if err := r.db.QueryRowContext(request.Context(), "SELECT family_id FROM users WHERE id = ?", userID).Scan(&familyID); err != nil {
+			if errors.Is(err, sql.ErrNoRows) {
+				writeError(response, http.StatusUnauthorized, "USER_NOT_FOUND", "用户不存在")
+				return
+			}
+			r.logger.Error("recheck family membership", "error", err)
+			writeError(response, http.StatusInternalServerError, "DB_ERROR", "校验家庭状态失败")
+			return
+		}
+		if !familyID.Valid || strings.TrimSpace(familyID.String) == "" {
 			writeError(response, http.StatusForbidden, "NO_FAMILY", "请先创建或加入一个家庭")
 			return
 		}
-		next.ServeHTTP(response, request)
+
+		ctx := context.WithValue(request.Context(), ctxFamilyID, familyID.String)
+		next.ServeHTTP(response, request.WithContext(ctx))
 	})
 }
 
@@ -211,16 +232,14 @@ type wxSessionResponse struct {
 	ErrMsg     string `json:"errmsg"`
 }
 
-func (r *router) wxCode2Session(code, devIdentity string) (string, error) {
-	url := fmt.Sprintf(
-		"https://api.weixin.qq.com/sns/jscode2session?appid=%s&secret=%s&js_code=%s&grant_type=authorization_code",
-		r.config.WXAppID, r.config.WXAppSecret, code,
-	)
-
-	// Development mode has no real WeChat openid. Use the device-local demo
-	// identity sent by the client instead of the one-time login code, so a
-	// tester keeps the same account, family, and data after every restart.
+func (r *router) wxCode2Session(ctx context.Context, code, devIdentity string) (string, error) {
+	// A development identity is never accepted merely because WeChat is not
+	// configured. It must be explicitly enabled and is always rejected in
+	// production.
 	if r.config.WXAppID == "" {
+		if !r.config.EnableDevLogin || r.config.Environment == "production" {
+			return "", fmt.Errorf("development login is disabled")
+		}
 		identity := strings.TrimSpace(devIdentity)
 		if !demoIdentityPattern.MatchString(identity) {
 			return "", fmt.Errorf("missing or invalid development identity")
@@ -228,13 +247,27 @@ func (r *router) wxCode2Session(code, devIdentity string) (string, error) {
 		return "dev_openid_" + identity, nil
 	}
 
-	resp, err := http.Get(url)
+	query := url.Values{}
+	query.Set("appid", r.config.WXAppID)
+	query.Set("secret", r.config.WXAppSecret)
+	query.Set("js_code", code)
+	query.Set("grant_type", "authorization_code")
+	endpoint := "https://api.weixin.qq.com/sns/jscode2session?" + query.Encode()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return "", fmt.Errorf("create wechat request: %w", err)
+	}
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("request wechat api: %w", err)
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode < http.StatusOK || resp.StatusCode >= http.StatusMultipleChoices {
+		return "", fmt.Errorf("wechat api returned status %d", resp.StatusCode)
+	}
 
-	bodyBytes, err := io.ReadAll(resp.Body)
+	bodyBytes, err := io.ReadAll(io.LimitReader(resp.Body, 64<<10))
 	if err != nil {
 		return "", fmt.Errorf("read response: %w", err)
 	}
@@ -255,10 +288,28 @@ func (r *router) wxCode2Session(code, devIdentity string) (string, error) {
 	return session.OpenID, nil
 }
 
-// --- Helpers ---
+const maxJSONBodySize = 1 << 20 // 1 MiB
 
 func readJSON(request *http.Request, dest any) error {
-	decoder := json.NewDecoder(request.Body)
+	body, err := io.ReadAll(io.LimitReader(request.Body, maxJSONBodySize+1))
+	if err != nil {
+		return err
+	}
+	if len(body) > maxJSONBodySize {
+		return fmt.Errorf("request body too large")
+	}
+
+	decoder := json.NewDecoder(bytes.NewReader(body))
 	decoder.DisallowUnknownFields()
-	return decoder.Decode(dest)
+	if err := decoder.Decode(dest); err != nil {
+		return err
+	}
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return fmt.Errorf("request contains multiple JSON values")
+		}
+		return fmt.Errorf("invalid trailing data: %w", err)
+	}
+	return nil
 }

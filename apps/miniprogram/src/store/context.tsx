@@ -3,17 +3,18 @@ import { createContext, useCallback, useContext, useEffect, useReducer, useRef }
 import type { PropsWithChildren } from 'react'
 
 import * as api from '../api'
-import { getUserInfo, hasFamily, isLoggedIn } from '../api/token'
+import { getUserInfo, hasFamily, isLoggedIn, onSessionCleared } from '../api/token'
 import { getPortableImageUrl } from '../utils/image-source'
 import { initialState } from './initial-state'
 import { appReducer, type AppAction, type AppState } from './reducer'
-import { loadState, saveState } from './storage'
+import { clearStateStorage, loadState, saveState } from './storage'
 
 export type AppDispatch = (action: AppAction) => Promise<boolean>
 
 const StateContext = createContext<AppState>(initialState)
 const DispatchContext = createContext<AppDispatch>(async () => false)
 const RefreshContext = createContext<() => Promise<void>>(async () => {})
+const MaybeRefreshContext = createContext<() => Promise<void>>(async () => {})
 
 /**
  * Fetches all family data from the API and returns a partial state update.
@@ -21,6 +22,7 @@ const RefreshContext = createContext<() => Promise<void>>(async () => {})
  */
 async function fetchRemoteState(): Promise<Partial<AppState>> {
   const partial: Partial<AppState> = {}
+  let remoteFetchFailed = false
 
   try {
     const family = await api.getFamilyInfo()
@@ -40,7 +42,7 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
     // family member happens to be first in the list.
     const currentUserId = getUserInfo()?.userId
     partial.currentMemberId = members.find((member) => member.id === currentUserId)?.id ?? members[0]?.id ?? ''
-  } catch { /* use cached */ }
+  } catch { remoteFetchFailed = true }
 
   try {
     const ledger = await api.listLedger()
@@ -56,7 +58,7 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
       note: e.note ?? undefined,
       noteVisibility: (e.note_visibility as 'private' | 'shared') ?? 'shared'
     }))
-  } catch { /* use cached */ }
+  } catch { remoteFetchFailed = true }
 
   try {
     const items = await api.listInventory()
@@ -72,7 +74,7 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
       status: i.status as any,
       photo: getPortableImageUrl(i.photo_url)
     }))
-  } catch { /* use cached */ }
+  } catch { remoteFetchFailed = true }
 
   try {
     const dishes = await api.listDishes()
@@ -86,7 +88,7 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
       photo: getPortableImageUrl(d.photo_url),
       available: d.available
     }))
-  } catch { /* use cached */ }
+  } catch { remoteFetchFailed = true }
 
   try {
     const orders = await api.listOrders()
@@ -104,27 +106,38 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
         photo: getPortableImageUrl(item.photo_url)
       }))
     }))
-  } catch { /* use cached */ }
+  } catch { remoteFetchFailed = true }
 
   try {
     const locations = await api.listLocations()
     partial.locations = locations.map((l) => l.name)
-  } catch { /* use cached */ }
+  } catch { remoteFetchFailed = true }
 
   try {
     const categories = await api.listCategories()
     partial.customDishCategories = categories.filter((c) => c.domain === 'dish').map((c) => c.name)
     partial.customInventoryCategories = categories.filter((c) => c.domain === 'inventory').map((c) => c.name)
-  } catch { /* use cached */ }
+  } catch { remoteFetchFailed = true }
 
+  if (remoteFetchFailed) {
+    throw new Error('家庭数据暂时无法完整刷新')
+  }
   return partial
 }
 
 export function StoreProvider({ children }: PropsWithChildren) {
   const [state, localDispatch] = useReducer(appReducer, initialState, (seed) => loadState(seed))
+  const stateRef = useRef<AppState>(initialState)
   const hydrated = useRef(false)
-  const stateRef = useRef(state)
+  const sessionGeneration = useRef(0)
+  const lastRefreshAt = useRef(0)
   stateRef.current = state
+
+  useEffect(() => onSessionCleared(() => {
+    sessionGeneration.current += 1
+    clearStateStorage()
+    localDispatch({ type: 'hydrate', state: initialState })
+  }), [])
 
   /**
    * Pulls the full family dataset from the API and replaces local state.
@@ -134,18 +147,46 @@ export function StoreProvider({ children }: PropsWithChildren) {
    */
   const refresh = useCallback(async () => {
     if (!isLoggedIn() || !hasFamily()) return
+    const generation = sessionGeneration.current
     const remote = await fetchRemoteState()
-    const merged: AppState = { ...stateRef.current, ...remote, onboardingCompleted: stateRef.current.onboardingCompleted }
-    // Patch familyId into sub-items
-    if (remote.familyId) {
-      if (merged.ledger) merged.ledger = merged.ledger.map((e) => ({ ...e, familyId: remote.familyId! }))
-      if (merged.inventory) merged.inventory = merged.inventory.map((i) => ({ ...i, familyId: remote.familyId! }))
-      if (merged.dishes) merged.dishes = merged.dishes.map((d) => ({ ...d, familyId: remote.familyId! }))
-      if (merged.orders) merged.orders = merged.orders.map((o) => ({ ...o, familyId: remote.familyId! }))
+    if (generation !== sessionGeneration.current || !isLoggedIn() || !hasFamily()) return
+
+    const familyId = remote.familyId
+    if (!familyId || getUserInfo()?.familyId !== familyId) {
+      throw new Error('家庭身份已变化，请重新进入')
+    }
+
+    // A successful refresh is a complete replacement of family data. Never
+    // merge old-family arrays with a partial or newly joined family snapshot.
+    const merged: AppState = {
+      ...initialState,
+      ...remote,
+      onboardingCompleted: stateRef.current.onboardingCompleted,
+      settings: stateRef.current.settings,
+      ledger: (remote.ledger ?? []).map((entry) => ({ ...entry, familyId })),
+      inventory: (remote.inventory ?? []).map((item) => ({ ...item, familyId })),
+      dishes: (remote.dishes ?? []).map((dish) => ({ ...dish, familyId })),
+      orders: (remote.orders ?? []).map((order) => ({ ...order, familyId }))
     }
     localDispatch({ type: 'hydrate', state: merged })
     saveState(merged)
+    lastRefreshAt.current = Date.now()
   }, [])
+
+  // Throttled refresh for tab re-entry (useDidShow). Switching tabs should pull
+  // fresh family data so one member sees another's edits without restarting the
+  // app, but without hammering the API on every quick tab toggle. Failures are
+  // swallowed so cached content stays visible.
+  const REFRESH_MIN_INTERVAL_MS = 8000
+  const maybeRefresh = useCallback(async () => {
+    if (!isLoggedIn() || !hasFamily()) return
+    if (Date.now() - lastRefreshAt.current < REFRESH_MIN_INTERVAL_MS) return
+    try {
+      await refresh()
+    } catch {
+      // Keep showing cached data; the next tab switch will retry.
+    }
+  }, [refresh])
 
   // Authenticate and refresh in the background. Pages render from cache (or
   // the empty first-run state) immediately so a delayed real-device callback
@@ -189,16 +230,27 @@ export function StoreProvider({ children }: PropsWithChildren) {
     <StateContext.Provider value={state}>
       <DispatchContext.Provider value={dispatch}>
         <RefreshContext.Provider value={refresh}>
-          {children}
+          <MaybeRefreshContext.Provider value={maybeRefresh}>
+            {children}
+          </MaybeRefreshContext.Provider>
         </RefreshContext.Provider>
       </DispatchContext.Provider>
     </StateContext.Provider>
   )
 }
 
-/** Re-fetches all family data from the API. */
+/** Re-fetches all family data from the API (always). */
 export function useRefreshStore(): () => Promise<void> {
   return useContext(RefreshContext)
+}
+
+/**
+ * Throttled refresh for tab re-entry. Call from a tab page's `useDidShow` so
+ * members see each other's edits when switching tabs, without an API call on
+ * every quick toggle. Skips if refreshed within the last few seconds.
+ */
+export function useMaybeRefreshStore(): () => Promise<void> {
+  return useContext(MaybeRefreshContext)
 }
 
 export function useStore(): AppState {

@@ -7,6 +7,7 @@ import { AppIcon } from '../../components/app-icon'
 import { ListSelect } from '../../components/list-select'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
+import { useAppShare } from '../../hooks/use-app-share'
 import { useDispatch, useStore } from '../../store'
 import { uid } from '../../store/uid'
 import { palette } from '../../theme/palette'
@@ -19,6 +20,7 @@ import './index.scss'
 export default function DishFormPage() {
   const { dishes, familyId, customDishCategories } = useStore()
   const dispatch = useDispatch()
+  useAppShare()
   const dishId = Taro.getCurrentInstance().router?.params?.id
   const editingDish = dishId ? dishes.find((dish) => dish.id === dishId) : undefined
 

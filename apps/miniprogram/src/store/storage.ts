@@ -15,11 +15,20 @@ import type {
   TransactionType
 } from '../types/domain'
 import { dishCategories, inventoryCategories } from '../types/domain'
+import { getUserInfo } from '../api/token'
 import { formatLocalDate, getInventoryExpiry, inferExpiryDate, parseLocalDate } from '../utils/date'
 import type { AppState } from './reducer'
 
-const STORAGE_KEY = 'youbenpu_state'
+const STORAGE_KEY_PREFIX = 'youbenpu_state_'
+const LEGACY_STORAGE_KEY = 'youbenpu_state'
 const SCHEMA_VERSION = 2
+
+function getStateStorageKey(familyId?: string): string | null {
+  const userId = getUserInfo()?.userId?.trim()
+  if (!userId) return null
+  const activeFamilyId = familyId ?? getUserInfo()?.familyId ?? 'none'
+  return `${STORAGE_KEY_PREFIX}${encodeURIComponent(userId)}_${encodeURIComponent(activeFamilyId || 'none')}`
+}
 
 /**
  * Matches the ledger form's own limit of 99,999,999.99. Without a ceiling,
@@ -376,8 +385,13 @@ function migrateState(source: UnknownRecord, fallback: AppState): AppState {
 
 export function loadState(fallback: AppState): AppState {
   storageWritesEnabled = true
+  const storageKey = getStateStorageKey()
   try {
-    const storedValue: unknown = Taro.getStorageSync(STORAGE_KEY)
+    // Never read the pre-isolation key: it could contain another user's or
+    // another family's data from an older app version.
+    Taro.removeStorageSync(LEGACY_STORAGE_KEY)
+    if (!storageKey) return fallback
+    const storedValue: unknown = Taro.getStorageSync(storageKey)
     if (storedValue === '' || storedValue === null || storedValue === undefined) return fallback
 
     const parsed: unknown = typeof storedValue === 'string' ? JSON.parse(storedValue) : storedValue
@@ -400,7 +414,7 @@ export function loadState(fallback: AppState): AppState {
   } catch {
     storageWritesEnabled = true
     try {
-      Taro.removeStorageSync(STORAGE_KEY)
+      if (storageKey) Taro.removeStorageSync(storageKey)
     } catch { /* ignore cleanup errors */ }
     return fallback
   }
@@ -408,7 +422,17 @@ export function loadState(fallback: AppState): AppState {
 
 export function saveState(state: AppState): void {
   if (!storageWritesEnabled) return
+  const storageKey = getStateStorageKey(state.familyId)
+  if (!storageKey || !state.familyId) return
   try {
-    Taro.setStorageSync(STORAGE_KEY, JSON.stringify({ ...state, schemaVersion: SCHEMA_VERSION }))
+    Taro.setStorageSync(storageKey, JSON.stringify({ ...state, schemaVersion: SCHEMA_VERSION }))
   } catch { /* ignore storage quota and serialization errors */ }
+}
+
+export function clearStateStorage(): void {
+  try {
+    const keys = Taro.getStorageInfoSync().keys ?? []
+    keys.filter((key) => key === LEGACY_STORAGE_KEY || key.startsWith(STORAGE_KEY_PREFIX))
+      .forEach((key) => Taro.removeStorageSync(key))
+  } catch { /* ignore cleanup errors */ }
 }

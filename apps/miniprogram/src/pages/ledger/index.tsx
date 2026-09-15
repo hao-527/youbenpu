@@ -1,12 +1,14 @@
 import { Button, Image, Text, View } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import { useDidShow } from '@tarojs/taro'
 import { ArrowDownLeft, ArrowUpRight, ChevronRight, Plus } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
 import { MonthPicker } from '../../components/month-picker'
 import { PageShell } from '../../components/page-shell'
-import { useStore } from '../../store'
+import { useAppShare } from '../../hooks/use-app-share'
+import { navigate } from '../../utils/navigation'
+import { useMaybeRefreshStore, useStore } from '../../store'
 import { palette } from '../../theme/palette'
 import type { LedgerEntry } from '../../types/domain'
 import { formatLocalDate, getPreviousDate } from '../../utils/date'
@@ -44,6 +46,11 @@ function groupByDate(entries: LedgerEntry[], today: string, yesterday: string) {
 
 export default function LedgerPage() {
   const { ledger, members, currentMemberId } = useStore()
+  useAppShare()
+  const maybeRefresh = useMaybeRefreshStore()
+  // Pull fresh family data when this tab is shown so one member sees another's
+  // edits without restarting the app. Throttled inside the store.
+  useDidShow(() => { void maybeRefresh() })
   const now = new Date()
   const today = formatLocalDate(now)
   const yesterday = getPreviousDate(today)
@@ -133,7 +140,7 @@ export default function LedgerPage() {
           <Image className='ledger-empty__illust' src={illustNote} mode='aspectFit' />
             <Text className='empty-state__title'>本月还没有记录</Text>
             <Text className='empty-state__copy'>从第一笔家庭收支开始，掌握每一笔钱的去向。</Text>
-            <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}>
+            <Button className='button button--outline empty-state__action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/ledger-entry/index')}>
               记一笔
             </Button>
           </View>
@@ -150,7 +157,7 @@ export default function LedgerPage() {
                   className='ledger-row tap tap-row'
                   hoverClass='tap--pressed'
                   aria-label={`${entry.purpose}，${entry.type === 'income' ? '收入' : '支出'}${formatYuan(entry.amountCents)}`}
-                  onClick={() => Taro.navigateTo({ url: `/pages/ledger-entry/index?id=${entry.id}` })}
+                  onClick={() => navigate(`/pages/ledger-entry/index?id=${entry.id}`)}
                 >
                   <View className={`icon-bubble ${entry.type === 'income' ? 'icon-bubble--green' : 'icon-bubble--primary'}`}>
                     <AppIcon icon={entry.type === 'income' ? ArrowDownLeft : ArrowUpRight} size={16} color={entry.type === 'income' ? palette.success : palette.primary} />
@@ -180,7 +187,7 @@ export default function LedgerPage() {
           className='fab tap'
           hoverClass='tap--pressed'
           aria-label='记一笔'
-          onClick={() => Taro.navigateTo({ url: '/pages/ledger-entry/index' })}
+          onClick={() => navigate('/pages/ledger-entry/index')}
         >
           <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
           <Text>记一笔</Text>

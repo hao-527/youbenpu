@@ -1,6 +1,6 @@
 import Taro from '@tarojs/taro'
 
-import { clearToken, clearUserInfo, getToken } from './token'
+import { clearSession, getToken } from './token'
 
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
@@ -71,8 +71,7 @@ async function request<T>(method: Method, url: string, data?: unknown, options?:
 
     // Handle auth errors
     if (statusCode === 401) {
-      clearToken()
-      clearUserInfo()
+      clearSession()
       // Will be caught by the app to redirect to login
       throw new HttpError(401, 'UNAUTHORIZED', '登录已过期')
     }

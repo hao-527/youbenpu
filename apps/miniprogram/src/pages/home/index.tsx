@@ -1,5 +1,5 @@
 import { Button, Image, Text, View } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import { useDidShow } from '@tarojs/taro'
 import { ChevronRight, Package, PackagePlus, ReceiptText, Utensils } from 'lucide'
 import { useMemo } from 'react'
 
@@ -7,8 +7,10 @@ import { AppIcon } from '../../components/app-icon'
 import { Onboarding } from '../../components/onboarding'
 import { PageShell } from '../../components/page-shell'
 import { StateText } from '../../components/state-text'
+import { useAppShare } from '../../hooks/use-app-share'
 import { useFamilyGate } from '../../hooks/use-family-gate'
-import { useStore } from '../../store'
+import { navigate } from '../../utils/navigation'
+import { useMaybeRefreshStore, useStore } from '../../store'
 import { palette } from '../../theme/palette'
 import { formatLocalDate, getInventoryExpiry, getNaturalMonthStart } from '../../utils/date'
 import { formatYuan } from '../../utils/money'
@@ -25,6 +27,9 @@ import './index.scss'
 export default function HomePage() {
   const { familyName, ledger, inventory, orders, onboardingCompleted, settings } = useStore()
   const { requireFamily, familyGate } = useFamilyGate()
+  useAppShare()
+  const maybeRefresh = useMaybeRefreshStore()
+  useDidShow(() => { void maybeRefresh() })
 
   const pendingOrder = useMemo(() => settings.mealReminder ? orders.find((order) => order.status === 'pending') ?? null : null, [orders, settings.mealReminder])
   const attentionItems = useMemo(() => {
@@ -62,7 +67,7 @@ export default function HomePage() {
   /** Feature entries first check family membership, then navigate. */
   const openFeature = (url: string, reason: string) => {
     if (!requireFamily(reason)) return
-    Taro.navigateTo({ url })
+    navigate(url)
   }
 
   const pendingCount = pendingOrder ? pendingOrder.items.length : 0
@@ -137,7 +142,7 @@ export default function HomePage() {
         ) : (
           <View className='home-task-list'>
             {pendingOrder && (
-              <Button className='home-task-card surface-card tap tap-row' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/meal-orders/index' })}>
+              <Button className='home-task-card surface-card tap tap-row' hoverClass='tap--pressed' onClick={() => navigate('/pages/meal-orders/index')}>
                 <View className='home-task-card__head'>
                   <View className='icon-bubble icon-bubble--xs icon-bubble--primary'>
                     <AppIcon icon={Utensils} size={20} color={palette.primary} />
@@ -166,7 +171,7 @@ export default function HomePage() {
             )}
 
             {attentionItems.slice(0, 3).map((item) => (
-              <Button key={item.id} className='home-item-row surface-card tap tap-row' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: `/pages/inventory-detail/index?id=${item.id}` })}>
+              <Button key={item.id} className='home-item-row surface-card tap tap-row' hoverClass='tap--pressed' onClick={() => navigate(`/pages/inventory-detail/index?id=${item.id}`)}>
                 {item.photo ? (
                   <Image className='home-item-row__photo' src={item.photo} mode='aspectFill' lazyLoad />
                 ) : (
@@ -188,7 +193,7 @@ export default function HomePage() {
             ))}
 
             {attentionItems.length > 3 && (
-              <Button className='home-more-link tap' hoverClass='tap--pressed' onClick={() => Taro.switchTab({ url: '/pages/inventory/index' })}>
+              <Button className='home-more-link tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/inventory/index')}>
                 <Text>查看其余 {attentionItems.length - 3} 个待处理物品</Text>
                 <AppIcon icon={ChevronRight} size={15} color={palette.primary} />
               </Button>

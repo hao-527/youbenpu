@@ -38,6 +38,10 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
   const [displayName, setDisplayName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [loading, setLoading] = useState(false)
+  // Opt-in: bring the user's current family's data into the family being
+  // joined. Only meaningful when the user already belongs to a family.
+  const [mergeData, setMergeData] = useState(false)
+  const currentFamilyId = getUserInfo()?.familyId ?? null
 
   // Reset to the entry step each time the sheet opens. If the user arrived via
   // an invite QR code, jump straight to the join step with the code filled in.
@@ -92,11 +96,26 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
       Taro.showToast({ title: '请填写你的名字', icon: 'none' })
       return
     }
+    // Capture the merge source before joining, since joining switches the
+    // active family. Merging copies the current family's data into the new one
+    // (private ledger notes are never copied) and cannot be undone.
+    let mergeFrom: string | undefined
+    if (mergeData && currentFamilyId) {
+      const confirm = await Taro.showModal({
+        title: '确认合并数据',
+        content: '将把你当前家庭的账本、物品、菜品等数据复制到新家庭，家庭成员都能看到。私密账本不会被复制。此操作不可撤销。',
+        confirmText: '确认合并',
+        confirmColor: palette.primary
+      })
+      if (!confirm.confirm) return
+      mergeFrom = currentFamilyId
+    }
+
     setLoading(true)
     try {
       await ensureLoggedIn()
-      const result = await joinFamily(inviteCode.trim().toUpperCase(), displayName.trim())
-      Taro.showToast({ title: '加入成功', icon: 'success' })
+      const result = await joinFamily(inviteCode.trim().toUpperCase(), displayName.trim(), mergeFrom)
+      Taro.showToast({ title: mergeFrom ? '加入并合并成功' : '加入成功', icon: 'success' })
       await finish(result.family_id, 'member')
     } catch (error: any) {
       Taro.showToast({ title: error.message || '加入失败', icon: 'none' })
@@ -217,6 +236,20 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
               />
               <Text className='field__hint'>向家庭管理员索取邀请码，或扫描邀请二维码自动填入</Text>
             </View>
+
+            {currentFamilyId && (
+              <Button
+                className='family-setup__merge tap tap-row'
+                hoverClass='tap--pressed'
+                onClick={() => setMergeData((v) => !v)}
+              >
+                <View className='family-setup__merge-body'>
+                  <Text className='family-setup__merge-title'>把我当前家庭的数据一起带过来</Text>
+                  <Text className='family-setup__merge-hint'>复制账本、物品、菜品等到新家庭；私密账本不会复制</Text>
+                </View>
+                <Text className='family-setup__merge-state'>{mergeData ? '已选择' : '不带'}</Text>
+              </Button>
+            )}
 
             <Button
               className='button button--primary family-setup__submit tap'

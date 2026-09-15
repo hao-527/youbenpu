@@ -7,7 +7,9 @@ import { AppIcon } from '../../components/app-icon'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { StateText, type StateTone } from '../../components/state-text'
+import { useAppShare } from '../../hooks/use-app-share'
 import { useDispatch, useStore } from '../../store'
+import { navigate } from '../../utils/navigation'
 import { palette } from '../../theme/palette'
 import { inventoryCategories, type InventoryCategory, type InventoryItem, type InventoryStatus } from '../../types/domain'
 import { getInventoryExpiry } from '../../utils/date'
@@ -30,6 +32,7 @@ function getStatusLabel(item: InventoryItem) {
 export default function InventoryManagePage() {
   const { inventory, customInventoryCategories } = useStore()
   const dispatch = useDispatch()
+  useAppShare()
   const [tab, setTab] = useState<ManageTab>('all')
   const [activeCategory, setActiveCategory] = useState<'全部' | InventoryCategory>('全部')
 
@@ -203,7 +206,7 @@ export default function InventoryManagePage() {
                     </>
                   ) : (
                     <>
-                      <Button className='icon-action tap' hoverClass='tap--pressed' aria-label='编辑' onClick={() => Taro.navigateTo({ url: `/pages/inventory-form/index?id=${item.id}` })}>
+                      <Button className='icon-action tap' hoverClass='tap--pressed' aria-label='编辑' onClick={() => navigate(`/pages/inventory-form/index?id=${item.id}`)}>
                         <AppIcon icon={Pencil} size={17} color={palette.subtleForeground} />
                       </Button>
                       <Button className='icon-action tap' hoverClass='tap--pressed' aria-label='删除' onClick={() => softDelete(item.id, item.name)}>
@@ -218,7 +221,7 @@ export default function InventoryManagePage() {
 
           {/* Add button at bottom of all-tab */}
           {tab === 'all' && (
-            <Button className='im-add tap' hoverClass='tap--pressed' onClick={() => Taro.navigateTo({ url: '/pages/inventory-form/index' })}>
+            <Button className='im-add tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/inventory-form/index')}>
               <AppIcon icon={Plus} size={18} color={palette.primary} />
               <Text>新增物品</Text>
             </Button>
