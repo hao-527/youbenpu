@@ -34,3 +34,13 @@ demos/
 # Logs
 *.log
 npm-debug.log*
+
+# Local-only private docs (server access notes, credentials, etc.) — never commit
+*.local.md
+**/*.local.md
+
+# IDE / Agent 工作目录
+.kiro/
+
+# 备份文件
+*.bak
