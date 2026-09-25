@@ -16,6 +16,11 @@ export interface LedgerEntry {
   timeLabel: string
   note?: string
   noteVisibility: 'private' | 'shared'
+  /**
+   * 是否计入收支合计。默认 true（手动记账）。账单导入的退款计为 income 且 true，
+   * 交易关闭/冻结/中性转账等记录但不计入（false），既保留痕迹又不影响金额。
+   */
+  countsTowardTotal: boolean
 }
 
 /* ========== 点餐 ========== */

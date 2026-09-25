@@ -20,6 +20,8 @@ export const API = {
   FAMILY_ACTIVE: `${API_BASE}/api/v1/families/active`,
   INVITATIONS: `${API_BASE}/api/v1/invitations`,
   LEDGER: `${API_BASE}/api/v1/ledger`,
+  LEDGER_IMPORT: `${API_BASE}/api/v1/ledger/import`,
+  LEDGER_IMPORT_CONFIRM: `${API_BASE}/api/v1/ledger/import/confirm`,
   INVENTORY: `${API_BASE}/api/v1/inventory`,
   INVENTORY_BATCH_DELETE: `${API_BASE}/api/v1/inventory/batch`,
   DISHES: `${API_BASE}/api/v1/dishes`,

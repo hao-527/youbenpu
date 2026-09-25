@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="format-detection" content="telephone=no" />
+    <title>生活有本谱</title>
+    <!--
+      Taro injects the rpx->rem runtime adaptation code into
+      htmlWebpackPlugin.options.script. This <script> MUST output it, or every
+      rem value falls back to the browser's default 16px root and the whole
+      layout collapses (overlapping text, broken fixed overlays).
+    -->
+    <script><%= htmlWebpackPlugin.options.script %></script>
+    <!--
+      Figma design-capture helper (mcp.figma.com html-to-design). Only active
+      when a page is opened with a #figmacapture=... hash param; otherwise
+      inert. Used to reverse-generate Figma design files from these H5 pages.
+      Safe to leave in for normal H5 use/dev.
+    -->
+    <script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+  </head>
+  <body>
+    <div id="app"></div>
+  </body>
+</html>

@@ -194,32 +194,11 @@
 
 /* Compact category pills make the filter read as navigation, not another card. */
 .meals-page .tabs {
-  margin: 0 calc(-1 * var(--page-gutter)) var(--space-4);
+  /* Tightened from --space-4: the gap between the tab row and the empty-state
+   * card below (plus the card's own generous min-height/padding) read as an
+   * oversized, disconnected block of whitespace. */
+  margin: 0 calc(-1 * var(--page-gutter)) var(--space-2);
   border-bottom: 0;
-}
-
-.meals-page .tabs__track {
-  gap: var(--space-2);
-  padding: 6rpx var(--page-gutter) 10rpx;
-}
-
-.meals-page .tabs__item {
-  min-height: 64rpx;
-  margin-bottom: 0;
-  padding: 0 var(--space-4);
-  border: var(--hairline) solid transparent;
-  border-radius: var(--radius-full);
-  background: var(--color-muted);
-  color: var(--color-subtle-foreground);
-  font-size: var(--text-sm);
-  line-height: 64rpx;
-}
-
-.meals-page .tabs__item--active {
-  border-color: var(--color-primary);
-  background: var(--color-primary-surface);
-  color: var(--color-on-primary);
-  font-weight: 700;
 }
 
 .meals-page .tabs__item.tap--pressed {
@@ -227,8 +206,11 @@
 }
 
 .meals-page .empty-state {
-  min-height: 300rpx;
-  padding: var(--space-6) var(--space-5);
+  /* Tightened from 300rpx / space-6+space-5: this empty state was taller and
+   * more padded than the content it holds, leaving excess vertical space
+   * above and below the illustration/copy. */
+  min-height: 0;
+  padding: var(--space-4) var(--space-5);
   border: var(--hairline) solid var(--color-border);
   border-radius: var(--radius-xl);
   background: var(--color-surface);
@@ -434,7 +416,11 @@
 }
 
 .meals-page .tabs__track {
-  gap: var(--space-4);
+  /* space-6 (measured ~25px gap, more than half a label's own width) was an
+   * overcorrection from the original cramped 4rpx — it left "全部" and "炒菜"
+   * looking disconnected, like two separate groups instead of one tab row.
+   * space-3 keeps clear separation without that gap. */
+  gap: var(--space-3);
   padding-top: 0;
   padding-bottom: 0;
 }
@@ -442,7 +428,9 @@
 .meals-page .tabs__item {
   min-height: var(--touch-target);
   margin-bottom: calc(-1 * var(--hairline));
-  padding: 0 4rpx;
+  /* Widened from the original cramped 4rpx, but kept modest since
+   * .tabs__track gap (above) already provides the main separation. */
+  padding: 0 var(--space-1);
   border: 0;
   border-bottom: 5rpx solid transparent;
   border-radius: 0;

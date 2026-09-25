@@ -78,10 +78,14 @@ export function AppIcon({
     [icon, size, color, strokeWidth]
   )
 
+  // Uppercase `PX` is Taro's opt-out from pxtransform: the icon keeps a fixed
+  // physical size on both mini-program and H5. Lowercase `px` here would be
+  // re-scaled to rem on H5 (pxtransform treats inline px like rpx), which made
+  // icons render at fractional, wrong sizes and broke the layout.
   return (
     <Image
       className={className}
-      style={{ width: `${size}px`, height: `${size}px` }}
+      style={{ width: `${size}PX`, height: `${size}PX` }}
       src={source}
       mode='aspectFit'
       aria-label={label}

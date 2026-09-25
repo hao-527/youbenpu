@@ -405,3 +405,30 @@
 .home-task-card + .home-task-card {
   border-top: var(--hairline) solid var(--color-border);
 }
+
+
+/* Equal-height feature cards: on H5 the grid rows were sized by content so
+ * the card with the longest copy grew taller. Force the row to stretch and
+ * let each card fill it, so all three bottoms align. (feature-card equal-height) */
+.home-feature-grid {
+  align-items: stretch;
+}
+.home-feature-card {
+  height: 100%;
+  min-height: 148PX;
+  justify-content: center;
+}
+.home-feature-card__copy {
+  white-space: normal;
+}
+
+/* H5: Taro <Image> renders as taro-image-core (display:block) and does not
+ * honor the parent flex cross-axis centering, so the illustration hugs the
+ * top-left. Pin it block-centered and give it a fixed box so all three cards
+ * align both vertically and horizontally. (illust h5 center) */
+.home-feature-card__illust {
+  display: block;
+  margin: 0 auto 8PX;
+  width: 40PX;
+  height: 40PX;
+}

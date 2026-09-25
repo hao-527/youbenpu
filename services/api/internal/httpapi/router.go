@@ -72,6 +72,8 @@ func NewRouter(dependencies Dependencies) http.Handler {
 	mux.Handle("POST /api/v1/ledger", r.authFamily(http.HandlerFunc(r.wrapCreateLedger)))
 	mux.Handle("PUT /api/v1/ledger/{id}", r.authFamily(http.HandlerFunc(r.wrapUpdateLedger)))
 	mux.Handle("DELETE /api/v1/ledger/{id}", r.authFamily(http.HandlerFunc(r.wrapDeleteLedger)))
+	mux.Handle("POST /api/v1/ledger/import", r.authFamily(http.HandlerFunc(r.wrapImportLedger)))
+	mux.Handle("POST /api/v1/ledger/import/confirm", r.authFamily(http.HandlerFunc(r.wrapImportLedgerConfirm)))
 
 	// Inventory
 	mux.Handle("GET /api/v1/inventory", r.authFamily(http.HandlerFunc(r.wrapListInventory)))
@@ -148,6 +150,10 @@ func (r *router) wrapListLedger(w http.ResponseWriter, req *http.Request)    { r
 func (r *router) wrapCreateLedger(w http.ResponseWriter, req *http.Request)  { r.createLedger(w, req) }
 func (r *router) wrapUpdateLedger(w http.ResponseWriter, req *http.Request)  { r.updateLedger(w, req) }
 func (r *router) wrapDeleteLedger(w http.ResponseWriter, req *http.Request)  { r.deleteLedger(w, req) }
+func (r *router) wrapImportLedger(w http.ResponseWriter, req *http.Request)  { r.importLedger(w, req) }
+func (r *router) wrapImportLedgerConfirm(w http.ResponseWriter, req *http.Request) {
+	r.importLedgerConfirm(w, req)
+}
 func (r *router) wrapListInventory(w http.ResponseWriter, req *http.Request) { r.listInventory(w, req) }
 func (r *router) wrapCreateInventory(w http.ResponseWriter, req *http.Request) {
 	r.createInventory(w, req)

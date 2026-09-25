@@ -1,0 +1,132 @@
+.cdialog-overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-6);
+  background: rgba(28, 25, 23, 0);
+  transition: background-color var(--duration-normal) var(--ease-out);
+}
+
+.cdialog-overlay--enter {
+  background: var(--color-scrim-strong);
+}
+
+.cdialog {
+  width: 100%;
+  max-width: 300PX;
+  overflow: hidden;
+  border: var(--hairline) solid var(--color-border);
+  border-radius: var(--radius-sheet);
+  background: var(--color-surface);
+  box-shadow: none;
+  opacity: 0;
+  transform: scale(0.94) translateY(8rpx);
+  transition:
+    opacity var(--duration-normal) var(--ease-out),
+    transform var(--duration-normal) var(--ease-out);
+}
+
+.cdialog--enter {
+  opacity: 1;
+  transform: scale(1) translateY(0);
+}
+
+.cdialog__body {
+  padding: var(--space-6) var(--space-6) var(--space-5);
+  text-align: center;
+}
+
+.cdialog__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 88rpx;
+  height: 88rpx;
+  margin: 0 auto var(--space-4);
+  border-radius: var(--radius-md);
+}
+
+.cdialog__icon--danger {
+  background: rgba(220, 38, 38, 0.1);
+}
+
+.cdialog__icon--primary {
+  background: var(--color-primary-light, #FFF1EB);
+}
+
+.cdialog__title {
+  display: block;
+  color: var(--color-foreground);
+  font-size: var(--text-lg);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+.cdialog__content {
+  display: block;
+  margin-top: var(--space-3);
+  color: var(--color-subtle-foreground);
+  font-size: var(--text-sm);
+  line-height: 1.7;
+}
+
+.cdialog__input {
+  box-sizing: border-box;
+  width: 100%;
+  margin-top: var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  border: 2rpx solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-size: var(--text-base);
+  text-align: center;
+}
+
+.cdialog__input-ph {
+  color: var(--color-disabled-foreground);
+}
+
+/* Side-by-side actions: cancel (outline) left, primary (filled block) right.
+ * Uses the app's own button language — filled orange/red block + outline
+ * white block — instead of iOS-style divider text buttons. */
+.cdialog__actions {
+  display: flex;
+  gap: var(--space-2);
+  padding: 0 var(--space-6) var(--space-6);
+}
+
+.cdialog__btn {
+  display: flex;
+  flex: 1;
+  min-height: var(--button-height);
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.35;
+  text-align: center;
+}
+
+.cdialog__btn--cancel {
+  border: var(--hairline) solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-foreground);
+}
+
+.cdialog__btn--confirm {
+  background: var(--color-primary-surface);
+  color: var(--color-on-primary);
+}
+
+.cdialog__btn--danger {
+  background: var(--color-destructive);
+  color: var(--color-on-primary);
+}

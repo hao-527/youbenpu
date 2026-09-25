@@ -1,0 +1,26 @@
+.feedback-layer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 500;
+  pointer-events: none;
+}
+
+.feedback-layer .cdialog-overlay {
+  pointer-events: auto;
+}
+
+.feedback-toasts {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 600;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}

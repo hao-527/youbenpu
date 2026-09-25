@@ -163,7 +163,9 @@ function normalizeLedger(value: unknown, familyId: string, defaultMemberName: st
       date,
       timeLabel: readLimitedString(candidate.timeLabel, 40, date),
       ...(note ? { note } : {}),
-      noteVisibility: candidate.noteVisibility === 'private' ? 'private' : 'shared'
+      noteVisibility: candidate.noteVisibility === 'private' ? 'private' : 'shared',
+      // Missing/legacy cached entries default to counting.
+      countsTowardTotal: candidate.countsTowardTotal !== false
     })
   })
 

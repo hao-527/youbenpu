@@ -1,9 +1,10 @@
 import Taro from '@tarojs/taro'
-import { useEffect } from 'react'
+import { createElement, useEffect } from 'react'
 import type { PropsWithChildren } from 'react'
 
 import { ensureLoggedIn } from './api'
 import './app.scss'
+import { FeedbackProvider } from './components/feedback'
 import { StoreProvider } from './store'
 import { parseInviteScene, setPendingInvite, getPendingInvite } from './utils/pending-invite'
 import { getCurrentInviteCode } from './utils/invite-state'
@@ -20,10 +21,23 @@ function App({ children }: PropsWithChildren) {
     // straight in the app and is only asked to create/join a family when they
     // open 我的 or use a feature that needs one. Family setup shares this
     // in-flight request so an early tap still has a valid token.
-    ensureLoggedIn().catch(() => { /* offline / login failure — app still browsable */ })
+    //
+    // On H5 (used for design-capture / browser preview) there is no WeChat
+    // runtime, so `Taro.login()` rejects with a plain object. Wrap in an async
+    // IIFE with try/catch so that rejection can never surface as an unhandled
+    // promise rejection (which the dev-server overlay would otherwise show).
+    void (async () => {
+      try {
+        await ensureLoggedIn()
+      } catch {
+        /* offline / login failure — app stays browsable */
+      }
+    })()
   }, [])
 
-  return StoreProvider({ children })
+  // FeedbackProvider wraps the app so any screen can call useToast()/useConfirm()
+  // for self-designed toasts and confirm dialogs (replacing Taro.showToast/showModal).
+  return createElement(FeedbackProvider, null, createElement(StoreProvider, null, children))
 }
 
 // Global share handler for WeChat native share (分享)

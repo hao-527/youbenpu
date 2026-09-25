@@ -132,7 +132,7 @@ export default function MealOrdersPage() {
           <Text className='section__title'>历史记录</Text>
           <Text className='section__meta'>{orders.filter((order) => order.status !== 'pending').length} 条</Text>
         </View>
-        <ScrollView className='tabs' scrollX enableFlex>
+        <ScrollView className='tabs tabs--category' scrollX enableFlex>
           <View className='tabs__track'>
             {historyFilters.map((item) => (
               <Button

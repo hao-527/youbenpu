@@ -21,15 +21,24 @@ function getNavigationSafeTop(): number {
     // Older base libraries fall back to the standard custom-navigation height.
   }
 
-  try {
-    const menuButton = Taro.getMenuButtonBoundingClientRect()
-    if (menuButton.bottom > statusBarHeight) {
-      const verticalGap = Math.max(menuButton.top - statusBarHeight, MIN_MENU_BUTTON_GAP)
-      cachedNavigationSafeTop = Math.ceil(menuButton.bottom + verticalGap)
-      return cachedNavigationSafeTop
+  // `getMenuButtonBoundingClientRect` reads the WeChat capsule button and only
+  // makes sense on the weapp platform. On H5 it has no native implementation:
+  // Taro's H5 shim resolves it through an async `fail` callback rather than
+  // throwing synchronously, so the try/catch below can never catch it — the
+  // rejection escapes as an unhandled page error. Skip the call entirely on
+  // H5 (checked at compile time, so this branch is dead-code-eliminated from
+  // the weapp bundle) and fall through to the statusBarHeight-only default.
+  if (process.env.TARO_ENV !== 'h5') {
+    try {
+      const menuButton = Taro.getMenuButtonBoundingClientRect()
+      if (menuButton.bottom > statusBarHeight) {
+        const verticalGap = Math.max(menuButton.top - statusBarHeight, MIN_MENU_BUTTON_GAP)
+        cachedNavigationSafeTop = Math.ceil(menuButton.bottom + verticalGap)
+        return cachedNavigationSafeTop
+      }
+    } catch {
+      // DevTools or unsupported environments may not expose the menu button rect.
     }
-  } catch {
-    // DevTools or unsupported environments may not expose the menu button rect.
   }
 
   cachedNavigationSafeTop = statusBarHeight + DEFAULT_NAVIGATION_BAR_HEIGHT

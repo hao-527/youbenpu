@@ -1,6 +1,6 @@
 import { Button, Image, Text, View } from '@tarojs/components'
 import { useDidShow } from '@tarojs/taro'
-import { ArrowDownLeft, ArrowUpRight, ChevronRight, Plus } from 'lucide'
+import { ArrowDownLeft, ArrowUpRight, ChevronRight, Download, Plus } from 'lucide'
 import { useMemo, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
@@ -65,6 +65,9 @@ export default function LedgerPage() {
     .sort((a, b) => b.date.localeCompare(a.date) || b.timeLabel.localeCompare(a.timeLabel)), [ledger, monthPrefix])
 
   const summary = useMemo(() => filteredEntries.reduce((result, entry) => {
+    // Neutral entries (imported closed/frozen/transfer rows) are shown in the
+    // list for traceability but must not affect the income/expense totals.
+    if (entry.countsTowardTotal === false) return result
     if (entry.type === 'income') result.incomeCents += entry.amountCents
     else result.expenseCents += entry.amountCents
     result.balanceCents = result.incomeCents - result.expenseCents
@@ -74,7 +77,7 @@ export default function LedgerPage() {
 
   const memberStats = useMemo(() => members.map((member) => {
     const expenseCents = filteredEntries
-      .filter((entry) => entry.memberName === member.displayName && entry.type === 'expense')
+      .filter((entry) => entry.memberName === member.displayName && entry.type === 'expense' && entry.countsTowardTotal !== false)
       .reduce((sum, entry) => sum + entry.amountCents, 0)
     return { name: member.displayName, expenseCents }
   }).filter((item) => item.expenseCents > 0), [filteredEntries, members])
@@ -89,6 +92,15 @@ export default function LedgerPage() {
           </View>
           <Text className='page-title__subtitle'>家庭收支</Text>
         </View>
+        <Button
+          className='ledger-import-entry tap'
+          hoverClass='tap--pressed'
+          aria-label='导入微信或支付宝账单'
+          onClick={() => navigate('/pages/ledger-import/index')}
+        >
+          <AppIcon icon={Download} size={14} color={palette.primary} />
+          <Text className='ledger-import-entry__text'>导入账单</Text>
+        </Button>
       </View>
 
       <View className='ledger-overview surface-card'>
@@ -163,15 +175,20 @@ export default function LedgerPage() {
                     <AppIcon icon={entry.type === 'income' ? ArrowDownLeft : ArrowUpRight} size={16} color={entry.type === 'income' ? palette.success : palette.primary} />
                   </View>
                   <View className='ledger-row__body'>
-                    <Text className='ledger-row__title'>{entry.purpose}</Text>
+                    <View className='ledger-row__title-row'>
+                      <Text className='ledger-row__title'>{entry.purpose}</Text>
+                      {entry.countsTowardTotal === false && (
+                        <Text className='ledger-row__tag'>未计入</Text>
+                      )}
+                    </View>
                     <Text className='ledger-row__meta'>{entry.memberName} · {entry.timeLabel}</Text>
                     {entry.note && (entry.noteVisibility === 'shared' || entry.memberName === currentMemberName) && (
                       <Text className='ledger-row__note'>{entry.note}</Text>
                     )}
                   </View>
                   <View className='ledger-row__amount-wrap'>
-                    <Text className={`ledger-row__amount num ${entry.type === 'income' ? 'ledger-row__amount--income' : ''}`}>
-                      {entry.type === 'income' ? '+' : '-'}{formatYuan(entry.amountCents).slice(1)}
+                    <Text className={`ledger-row__amount num ${entry.type === 'income' ? 'ledger-row__amount--income' : ''} ${entry.countsTowardTotal === false ? 'ledger-row__amount--neutral' : ''}`}>
+                      {entry.countsTowardTotal === false ? '' : entry.type === 'income' ? '+' : '-'}{formatYuan(entry.amountCents).slice(1)}
                     </Text>
                     <AppIcon icon={ChevronRight} size={14} color={palette.subtleForeground} />
                   </View>

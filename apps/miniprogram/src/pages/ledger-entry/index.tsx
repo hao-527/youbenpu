@@ -6,6 +6,7 @@ import { useMemo, useState } from 'react'
 import { AppIcon } from '../../components/app-icon'
 import { ChipSelect } from '../../components/chip-select'
 import { DatePicker } from '../../components/date-picker'
+import { useConfirm, useToast } from '../../components/feedback'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { useAppShare } from '../../hooks/use-app-share'
@@ -35,6 +36,8 @@ function getDateDisplayLabel(date: string, today: string) {
 export default function LedgerEntryPage() {
   const { ledger, members, familyId, currentMemberId } = useStore()
   const dispatch = useDispatch()
+  const confirm = useConfirm()
+  const toast = useToast()
   useAppShare()
   const params = Taro.getCurrentInstance().router?.params
   const entryId = params?.id
@@ -105,7 +108,9 @@ export default function LedgerEntryPage() {
       date,
       timeLabel: editingEntry?.date === date ? editingEntry.timeLabel : createTimeLabel(date, today),
       note: note.trim() || undefined,
-      noteVisibility: visibility
+      noteVisibility: visibility,
+      // Manual entries always count; editing an imported entry keeps its flag.
+      countsTowardTotal: editingEntry?.countsTowardTotal ?? true
     }
     const succeeded = await dispatch(editingEntry ? { type: 'ledger/update', entry } : { type: 'ledger/add', entry })
     if (!succeeded) return
@@ -113,20 +118,19 @@ export default function LedgerEntryPage() {
     setTimeout(() => Taro.navigateBack(), 350)
   }
 
-  const deleteEntry = () => {
+  const deleteEntry = async () => {
     if (!editingEntry) return
-    Taro.showModal({
+    const { confirmed } = await confirm({
       title: '删除这笔记录？',
       content: '删除后无法恢复。',
       confirmText: '删除',
-      confirmColor: palette.destructive
-    }).then(async (result) => {
-      if (!result.confirm) return
-      const succeeded = await dispatch({ type: 'ledger/delete', id: editingEntry.id })
-      if (!succeeded) return
-      Taro.showToast({ title: '记录已删除', icon: 'success' })
-      setTimeout(() => Taro.navigateBack(), 350)
+      danger: true
     })
+    if (!confirmed) return
+    const succeeded = await dispatch({ type: 'ledger/delete', id: editingEntry.id })
+    if (!succeeded) return
+    toast('记录已删除', 'success')
+    setTimeout(() => Taro.navigateBack(), 350)
   }
 
   if (entryId && !editingEntry) {

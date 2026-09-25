@@ -44,3 +44,9 @@ npm-debug.log*
 
 # 备份文件
 *.bak
+
+# Real personal bill statements (WeChat/Alipay) used only for local dev/testing.
+# These contain real transactions and must never be committed.
+bills/
+**/billimport/testdata/*.csv
+**/billimport/testdata/*.xlsx

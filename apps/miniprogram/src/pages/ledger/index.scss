@@ -69,15 +69,29 @@
   text-align: center;
 }
 
+/* .page-title > view:first-child { min-width:0; flex:1 } and the nowrap on
+ * .page-title__text now live globally in app.scss (every page with a
+ * right-side title button hits the same wrap bug, not just this one).
+ * This page additionally nests an illustration next to the title text, so
+ * that inner row needs its own min-width:0 + nowrap safeguard. */
 .ledger-page-title__row {
   display: flex;
   align-items: center;
   gap: var(--space-1);
+  min-width: 0;
+}
+
+.ledger-page-title__row .page-title__text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .ledger-page-title__illust {
   width: 56rpx;
+  min-width: 56rpx;
   height: 56rpx;
+  flex-shrink: 0;
 }
 
 .ledger-overview__head {
@@ -405,4 +419,47 @@
 
 .ledger-overview {
   border-left: 6rpx solid var(--color-primary);
+}
+
+.ledger-import-entry {
+  display: inline-flex;
+  align-items: center;
+  gap: 6rpx;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-full);
+  background: var(--color-primary-soft, rgba(232, 83, 14, 0.1));
+  color: var(--color-primary);
+  font-size: 24rpx;
+  line-height: 1.2;
+  flex-shrink: 0;
+}
+
+.ledger-import-entry::after {
+  border: none;
+}
+
+.ledger-import-entry__text {
+  color: var(--color-primary);
+}
+
+.ledger-row__title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.ledger-row__tag {
+  flex-shrink: 0;
+  padding: 2rpx 10rpx;
+  border-radius: var(--radius-full);
+  background: var(--color-border);
+  color: var(--color-subtle-foreground);
+  font-size: 20rpx;
+  line-height: 1.4;
+}
+
+.ledger-row__amount--neutral {
+  color: var(--color-subtle-foreground);
+  text-decoration: line-through;
 }

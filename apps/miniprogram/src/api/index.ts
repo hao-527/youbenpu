@@ -168,6 +168,7 @@ export interface LedgerEntryDTO {
   time_label: string
   note?: string | null
   note_visibility: string
+  counts_toward_total?: boolean
 }
 
 export function listLedger(month?: string) {
@@ -185,6 +186,15 @@ export function updateLedgerEntry(id: string, entry: Omit<LedgerEntryDTO, 'id'>)
 export function deleteLedgerEntry(id: string) {
   return del<{ message: string }>(`${API.LEDGER}/${id}`)
 }
+
+export {
+  importBill,
+  confirmImport,
+  type ImportDraft,
+  type ImportPreview,
+  type ConfirmImportEntry,
+  type ConfirmImportResult
+} from './ledger-import'
 
 // ===== Inventory =====
 

@@ -6,8 +6,16 @@
  * Never hardcode a hex value in a page stylesheet; reference a semantic token
  * so light/dark themes stay in sync. Icon colors that must be passed to JS
  * live in `src/theme/palette.ts`, which mirrors these tokens.
+ *
+ * `page` is the mini-program page root. On H5 there is no <page> element —
+ * Taro renders the page root as `.taro_page` — so every selector that carries
+ * design tokens or page-level base styles targets BOTH `page` and `.taro_page`.
+ * Without `.taro_page`, all CSS custom properties (colors, spacing, scrim,
+ * radius) silently fail on H5 and the layout collapses.
  */
-page {
+:root,
+page,
+.taro_page {
   /* ---------- Primitive: color ----------
    * Neutrals are intentionally WARM (hue ~30) to sit with the red-orange
    * brand. A cool slate ramp against a warm primary is what made the UI
@@ -19,6 +27,16 @@ page {
   --orange-600: #e8530e;
   --orange-700: #c9440a;
   --orange-800: #be4009;
+  /* ---------- Brand refresh: warm yellow + mint green ----------
+   * 暖黄作为品牌装饰主色（卡片高亮、金额、IP 背景），
+   * 薄荷绿作为行动色（主按钮、选中态、成功/收入）。
+   */
+  --yellow-400: #f6c64b;
+  --yellow-500: #f0b429;
+  --yellow-tint: #fff6dc;
+  --mint-500: #3dd68c;
+  --mint-600: #17b877;
+  --mint-tint: #e3faf0;
   --neutral-50: #faf7f5;
   --neutral-100: #f5f1ee;
   --neutral-200: #eae4df;
@@ -81,8 +99,8 @@ page {
   /* Brand orange also can't carry white LABEL text (3.7:1). Filled controls
    * that put text on orange use this darker surface (4.87:1); the brand
    * orange itself is untouched for figures, icons, borders and the TabBar. */
-  --color-primary-surface: var(--orange-700);
-  --color-success: var(--green-600);
+  --color-primary-surface: var(--mint-600);
+  --color-success: var(--mint-600);
   --color-destructive: var(--red-600);
   --color-background: var(--neutral-50);
   --color-surface: var(--white);
@@ -96,7 +114,7 @@ page {
   --color-border-strong: var(--neutral-300);
   --color-tint-primary: var(--orange-50);
   --color-tint-warm: var(--orange-25);
-  --color-tint-green: var(--green-50);
+  --color-tint-green: var(--mint-tint);
   --color-tint-red: #fef2f2;
 
   /* Overlays: readable in both themes. */
@@ -134,8 +152,9 @@ page {
   -webkit-font-smoothing: antialiased;
 }
 
-@media (prefers-color-scheme: dark) {
-  page {
+@media (prefers-color-scheme: dark) and (min-width: 999999px) {
+  page,
+  .taro_page {
     --orange-25: #1e1008;
     --orange-50: #2d1508;
     --orange-600: #fb923c;
@@ -269,6 +288,25 @@ button::after {
   justify-content: space-between;
   gap: var(--space-3);
   margin-bottom: var(--space-2);
+}
+
+/* Global fix: several pages pair the title with a right-side button
+ * ("导入账单", "管理", etc). That button is content-sized and effectively
+ * flex-shrink:0, so without an explicit min-width:0 + flex:1 on the title's
+ * own wrapper, the title block does not shrink normally under width
+ * pressure — its child text instead wraps mid-word (e.g. "账本" splitting
+ * into "账" / "本" on two lines, "找物品" wrapping to two lines). Apply this
+ * to every .page-title's first child and to the title text itself so no
+ * page has to patch this individually. */
+.page-title > view:first-child {
+  min-width: 0;
+  flex: 1;
+}
+
+.page-title__text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .page-title__text {
@@ -544,6 +582,22 @@ button::after {
   font-weight: 700;
 }
 
+/* Category-filter usage (dish categories on meals/dish-manage/meal-create/
+ * meal-orders): the default .tabs gap/padding is tuned for dense page-tab
+ * rows where many short items must fit before scrolling kicks in. Applied to
+ * a short list of 2-4 char labels, that tight spacing read as cramped.
+ * space-6 was tried first but overcorrected (~25px gap, more than half a
+ * label's own width — items looked disconnected). space-3 + space-1 padding
+ * matches the calibrated spacing on the meals page (its own .meals-page
+ * override, kept in sync with this shared default). */
+.tabs--category .tabs__track {
+  gap: var(--space-3);
+}
+
+.tabs--category .tabs__item {
+  padding: 0 var(--space-1);
+}
+
 /* ========== Segmented control ========== */
 
 .segmented-control {
@@ -578,7 +632,11 @@ button::after {
 
 .button {
   display: flex;
-  width: 100%;
+  /* !important needed to outrank the global `taro-button-core { width: auto
+   * !important }` H5 reset above — that reset exists to stop Taro's own
+   * `width: 100%` default from hijacking inline action buttons, but this
+   * class is exactly the case that DOES want full width. */
+  width: 100% !important;
   min-height: var(--button-height);
   align-items: center;
   justify-content: center;
@@ -870,7 +928,7 @@ button::after {
   background: var(--color-surface);
 }
 
-@media (prefers-color-scheme: dark) {
+@media (prefers-color-scheme: dark) and (min-width: 999999px) {
   .fixed-action-bar {
     border-top-color: var(--color-border);
     background: var(--color-surface);
@@ -898,9 +956,12 @@ button::after {
 
 /* Default is a single full-width action, which is 3 of the 4 bars in the app.
  * The bar owns this decision; a `width` on the button itself would lose the
- * cascade to this descendant selector. */
+ * cascade to this descendant selector.
+ * !important needed to outrank `.button { width: 100% !important }` above —
+ * this descendant selector is the one case that deliberately opts OUT of
+ * that default so the button can share the bar via flex:1 instead. */
 .fixed-action-bar .button {
-  width: auto;
+  width: auto !important;
   min-width: 0;
   flex: 1;
   padding: 0 var(--space-4);
@@ -1019,28 +1080,30 @@ button::after {
  * A quieter "household ledger / pantry label" layer: paper-like surfaces,
  * hairline structure and restrained shapes replace floating/glowing cards.
  */
-page {
-  --neutral-50: #f7f4ee;
-  --neutral-100: #efebe3;
-  --neutral-200: #ded7cc;
-  --neutral-300: #c8beaf;
-  --neutral-400: #9b9082;
-  --neutral-500: #746a5f;
+:root,
+page,
+.taro_page {
+  --neutral-50: #fffdf5;
+  --neutral-100: #fbf7ec;
+  --neutral-200: #f0ebe0;
+  --neutral-300: #ddd6c8;
+  --neutral-400: #a89e90;
+  --neutral-500: #776e63;
   --neutral-600: #514941;
-  --neutral-900: #29241f;
-  --white: #fffdf9;
-  --radius-card: 14rpx;
-  --radius-xl: 18rpx;
-  --radius-sheet: 22rpx;
-  --shadow-sm: none;
-  --shadow-card: none;
-  --shadow-bar: none;
-  --shadow-cta: none;
+  --neutral-900: #201b16;
+  --white: #ffffff;
+  --radius-card: 24rpx;
+  --radius-xl: 28rpx;
+  --radius-sheet: 32rpx;
+  --shadow-sm: 0 2rpx 12rpx rgba(120, 110, 90, 0.06);
+  --shadow-card: 0 4rpx 24rpx -8rpx rgba(120, 110, 90, 0.16);
+  --shadow-bar: 0 -8rpx 28rpx rgba(120, 110, 90, 0.08);
+  --shadow-cta: 0 8rpx 20rpx rgba(23, 184, 119, 0.22);
 }
 
 .surface-card {
-  border: var(--hairline) solid var(--color-border);
-  box-shadow: none;
+  border: 0;
+  box-shadow: var(--shadow-card);
 }
 
 .fab {
@@ -1139,8 +1202,9 @@ page {
   box-shadow: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  page {
+@media (prefers-color-scheme: dark) and (min-width: 999999px) {
+  page,
+  .taro_page {
     --shadow-sm: none;
     --shadow-card: none;
     --shadow-bar: none;
@@ -1154,8 +1218,9 @@ page {
 
 /* Keep the dormant dark theme valid even though the light paper palette is
  * declared in the late visual-refresh layer above. */
-@media (prefers-color-scheme: dark) {
-  page {
+@media (prefers-color-scheme: dark) and (min-width: 999999px) {
+  page,
+  .taro_page {
     --neutral-50: #12100f;
     --neutral-100: #1f1c1a;
     --neutral-200: #332e2b;
@@ -1169,4 +1234,61 @@ page {
 
 .segmented-control__item {
   min-height: var(--touch-target);
+}
+
+
+/* ===== H5 compatibility layer =====
+ * Mini-program has no <body>; on H5 Taros default .taro_page carries a white
+ * background that hides the paper palette, so re-assert the page background
+ * on both body and the page root. Also pin light theme so H5 matches the
+ * mini-program (which ships with darkmode disabled) regardless of OS setting.
+ */
+body {
+  background: #fffdf5;
+}
+.taro_page {
+  background: var(--color-background) !important;
+}
+
+/* H5 global: Taro <Image> becomes <taro-image-core> which wraps an inner <img>.
+ * The wrapper is display:block and its inner img is not auto-centered, so any
+ * icon/illustration placed in a flex-centered container hugs the top-left.
+ * Make the wrapper a centering flex box and let the inner img sit centered.
+ * Mini-program is unaffected (no taro-image-core tag there). (taro-image-core flex fix) */
+taro-image-core {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+taro-image-core > img {
+  display: block;
+  margin: 0 auto;
+}
+
+/* H5 global: Taro injects a base rule `taro-button-core + taro-button-core
+ * { margin-top: 15px }` (spacing for stacked form buttons). It fires on ANY
+ * two adjacent <Button> elements, including button-based grid/flex layouts
+ * like the feature-card row, silently breaking their alignment. Neutralize
+ * it globally; every layout in this app controls spacing itself via
+ * gap/grid, never relies on this implicit button margin. (adjacent button default margin) */
+taro-button-core + taro-button-core {
+  margin-top: 0 !important;
+}
+
+/* H5 global: Taro injects a base rule `taro-button-core { width: 100% }`
+ * (a sane default for a lone form-submit button). It fires on EVERY
+ * <Button>, including ones meant to sit inline in a flex row next to other
+ * content (page-title action buttons like "导入账单"/"管理", icon buttons,
+ * etc). Paired with a sibling flex:1 element, the button's 100% intent wins
+ * the space fight and squeezes the other side toward zero width, collapsing
+ * its text into a vertical single-character stack (e.g. "账本" splitting
+ * into "账" / "本" each on its own line). Reset to auto globally; buttons
+ * that truly want full width already declare it via a page-specific class
+ * (.button--primary, .family-setup__submit, etc). Uses !important because
+ * Taro's own base rule is injected with the same specificity but a later
+ * source order (confirmed via getMatchedCSSRules — without !important the
+ * later Taro rule always wins regardless of where this block sits in the
+ * file). (taro-button-core default width fix) */
+taro-button-core {
+  width: auto !important;
 }

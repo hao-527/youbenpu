@@ -13,15 +13,16 @@ import (
 // --- List Entries ---
 
 type ledgerEntryResponse struct {
-	ID             string  `json:"id"`
-	Type           string  `json:"type"`
-	AmountCents    int64   `json:"amount_cents"`
-	Purpose        string  `json:"purpose"`
-	MemberName     string  `json:"member_name"`
-	Date           string  `json:"date"`
-	TimeLabel      string  `json:"time_label"`
-	Note           *string `json:"note,omitempty"`
-	NoteVisibility string  `json:"note_visibility"`
+	ID                string  `json:"id"`
+	Type              string  `json:"type"`
+	AmountCents       int64   `json:"amount_cents"`
+	Purpose           string  `json:"purpose"`
+	MemberName        string  `json:"member_name"`
+	Date              string  `json:"date"`
+	TimeLabel         string  `json:"time_label"`
+	Note              *string `json:"note,omitempty"`
+	NoteVisibility    string  `json:"note_visibility"`
+	CountsTowardTotal bool    `json:"counts_toward_total"`
 }
 
 var ledgerMonthPattern = regexp.MustCompile(`^\d{4}-(0[1-9]|1[0-2])$`)
@@ -41,12 +42,12 @@ func (r *router) listLedger(response http.ResponseWriter, request *http.Request)
 	var args []any
 
 	if month != "" {
-		query = `SELECT id, type, amount_cents, purpose, member_name, occurred_at, time_label, note, note_visibility, recorder_id
+		query = `SELECT id, type, amount_cents, purpose, member_name, occurred_at, time_label, note, note_visibility, counts_toward_total, recorder_id
 			FROM ledger_entries WHERE family_id = ? AND DATE_FORMAT(occurred_at, '%Y-%m') = ?
 			ORDER BY occurred_at DESC, created_at DESC`
 		args = []any{familyID, month}
 	} else {
-		query = `SELECT id, type, amount_cents, purpose, member_name, occurred_at, time_label, note, note_visibility, recorder_id
+		query = `SELECT id, type, amount_cents, purpose, member_name, occurred_at, time_label, note, note_visibility, counts_toward_total, recorder_id
 			FROM ledger_entries WHERE family_id = ?
 			ORDER BY occurred_at DESC, created_at DESC LIMIT 200`
 		args = []any{familyID}
@@ -65,7 +66,7 @@ func (r *router) listLedger(response http.ResponseWriter, request *http.Request)
 		var e ledgerEntryResponse
 		var note *string
 		var recorderID string
-		if err := rows.Scan(&e.ID, &e.Type, &e.AmountCents, &e.Purpose, &e.MemberName, &e.Date, &e.TimeLabel, &note, &e.NoteVisibility, &recorderID); err != nil {
+		if err := rows.Scan(&e.ID, &e.Type, &e.AmountCents, &e.Purpose, &e.MemberName, &e.Date, &e.TimeLabel, &note, &e.NoteVisibility, &e.CountsTowardTotal, &recorderID); err != nil {
 			r.logger.Error("scan ledger entry", "error", err)
 			writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
 			return

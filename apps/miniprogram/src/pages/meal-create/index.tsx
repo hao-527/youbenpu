@@ -110,7 +110,7 @@ export default function MealCreatePage() {
         <Text className='meal-create-summary__copy'>可以选择多道菜，同一道最多 99 份</Text>
       </View>
 
-      <ScrollView className='tabs' scrollX enableFlex>
+      <ScrollView className='tabs tabs--category' scrollX enableFlex>
         <View className='tabs__track'>
           {categories.map((category) => (
             <Button

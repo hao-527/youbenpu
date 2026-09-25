@@ -56,7 +56,10 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
       date: e.date,
       timeLabel: e.time_label,
       note: e.note ?? undefined,
-      noteVisibility: (e.note_visibility as 'private' | 'shared') ?? 'shared'
+      noteVisibility: (e.note_visibility as 'private' | 'shared') ?? 'shared',
+      // Older API responses omit the flag; treat missing as counting so manual
+      // entries and legacy data behave unchanged.
+      countsTowardTotal: e.counts_toward_total !== false
     }))
   } catch { remoteFetchFailed = true }
 

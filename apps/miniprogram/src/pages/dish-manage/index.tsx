@@ -77,7 +77,7 @@ export default function DishManagePage() {
         <Text className='dish-manage-summary__hint'>点击菜品可编辑，暂停后不会出现在点餐选择页</Text>
       </View>
 
-      <ScrollView className='tabs' scrollX enableFlex>
+      <ScrollView className='tabs tabs--category' scrollX enableFlex>
         <View className='tabs__track'>
           {categories.map((category) => (
             <Button

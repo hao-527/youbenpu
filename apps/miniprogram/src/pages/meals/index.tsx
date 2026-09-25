@@ -107,7 +107,7 @@ export default function MealsPage() {
           </View>
         </View>
 
-        <ScrollView className='tabs meals-category-tabs' scrollX enableFlex>
+        <ScrollView className='tabs tabs--category meals-category-tabs' scrollX enableFlex>
           <View className='tabs__track'>
             {categories.map((category) => (
               <Button

@@ -17,7 +17,7 @@ export const palette = {
   /** Brand orange is 3.7:1 on white — use this darker step for small text. */
   primaryText: '#BE4009',
   /** Filled controls that carry white label text (4.87:1). */
-  primarySurface: '#C9440A',
+  primarySurface: '#17B877',
   primaryLight: '#FFF1EB',
   onPrimary: '#FFFFFF',
   foreground: '#29241F',
@@ -30,7 +30,7 @@ export const palette = {
   disabledForeground: '#9B9082',
   accent: '#E8530E',
   destructive: '#DC2626',
-  /** Deepened from #059669 (3.77:1) so income amounts clear 4.5:1. */
-  success: '#047F5A',
-  background: '#F7F4EE'
+  /** Mint green income/success, clears 4.5:1 on white. */
+  success: '#17B877',
+  background: '#FFFDF5'
 } as const

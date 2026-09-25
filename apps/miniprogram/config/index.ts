@@ -48,8 +48,34 @@ export default defineConfig(async (merge, { command }) => {
         { from: 'src/assets/tabbar/', to: 'dist/assets/tabbar/', ignore: ['.*'] }
       ],
       options: {}
+    },
+    h5: {
+      publicPath: '/',
+      staticDirectory: 'static',
+      // Render mini-program element tags to real HTML tags on H5 so the
+      // page markup is standard DOM (needed for clean rendering/capture).
+      esnextModules: ['@tarojs'],
+      postcss: {
+        autoprefixer: {
+          enable: true
+        }
+      },
+      devServer: {
+        port: 10086,
+        host: '127.0.0.1',
+        // The app is browsable without a WeChat login; login failures on H5
+        // are expected and handled. Disable the dev-server error overlay so
+        // those benign rejections don't paint a red mask over the UI (needed
+        // for clean design-capture screenshots).
+        client: {
+          overlay: false
+        }
+      }
     }
   }
 
-  return merge({}, baseConfig, command === 'build' && !isWatch ? prodConfig : devConfig)
+  const finalConfig = merge({}, baseConfig, command === 'build' && !isWatch ? prodConfig : devConfig)
+  // eslint-disable-next-line no-console
+  console.log('[DEBUG config] h5.devServer.client =', JSON.stringify(finalConfig.h5?.devServer?.client))
+  return finalConfig
 })
