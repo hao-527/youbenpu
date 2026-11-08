@@ -53,12 +53,12 @@ func (r *router) listInventory(response http.ResponseWriter, request *http.Reque
 			writeError(response, http.StatusBadRequest, "INVALID_STATUS", "无效的状态筛选值")
 			return
 		}
-		query = `SELECT id, name, category, location, quantity_label, expiry_date, status, photo_url
+		query = `SELECT id, name, category, location, quantity_label, DATE_FORMAT(expiry_date, '%Y-%m-%d'), status, photo_url
 			FROM inventory_items WHERE family_id = ? AND status IN (` + strings.Join(placeholders, ",") + `)
 			ORDER BY created_at DESC`
 		args = append([]any{familyID}, args...)
 	} else {
-		query = `SELECT id, name, category, location, quantity_label, expiry_date, status, photo_url
+		query = `SELECT id, name, category, location, quantity_label, DATE_FORMAT(expiry_date, '%Y-%m-%d'), status, photo_url
 			FROM inventory_items WHERE family_id = ?
 			ORDER BY created_at DESC`
 		args = []any{familyID}

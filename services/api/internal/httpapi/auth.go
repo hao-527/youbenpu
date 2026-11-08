@@ -142,7 +142,7 @@ func (r *router) parseJWT(tokenString string) (*jwtClaims, error) {
 			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
 		}
 		return []byte(r.config.JWTSecret), nil
-	})
+	}, jwt.WithExpirationRequired())
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +172,14 @@ func (r *router) requireAuth(next http.Handler) http.Handler {
 
 		// Refresh family_id from DB in case it changed (user joined a family after token was issued)
 		var familyID sql.NullString
-		err = r.db.QueryRow("SELECT family_id FROM users WHERE id = ?", claims.UserID).Scan(&familyID)
+		err = r.db.QueryRowContext(request.Context(), "SELECT family_id FROM users WHERE id = ?", claims.UserID).Scan(&familyID)
 		if err != nil {
-			writeError(response, http.StatusUnauthorized, "USER_NOT_FOUND", "用户不存在")
+			if errors.Is(err, sql.ErrNoRows) {
+				writeError(response, http.StatusUnauthorized, "USER_NOT_FOUND", "用户不存在")
+			} else {
+				r.logger.Error("load authenticated user", "error", err)
+				writeError(response, http.StatusServiceUnavailable, "DB_UNAVAILABLE", "服务暂时不可用，请稍后重试")
+			}
 			return
 		}
 
@@ -260,6 +265,12 @@ func (r *router) wxCode2Session(ctx context.Context, code, devIdentity string) (
 	client := &http.Client{Timeout: 5 * time.Second}
 	resp, err := client.Do(req)
 	if err != nil {
+		// net/http wraps transport failures with the full URL, including the
+		// WeChat secret and one-use code. Log only the underlying failure.
+		var requestError *url.Error
+		if errors.As(err, &requestError) {
+			err = requestError.Err
+		}
 		return "", fmt.Errorf("request wechat api: %w", err)
 	}
 	defer resp.Body.Close()

@@ -2,3 +2,9 @@
 .env
 *.log
 data/uploads/*
+
+.env.*
+*.local.md
+api
+api-bin
+internal/ledger/billimport/testdata/

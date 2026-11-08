@@ -23,6 +23,7 @@ type ledgerEntryResponse struct {
 	Note              *string `json:"note,omitempty"`
 	NoteVisibility    string  `json:"note_visibility"`
 	CountsTowardTotal bool    `json:"counts_toward_total"`
+	CanEdit           bool    `json:"can_edit"`
 }
 
 var ledgerMonthPattern = regexp.MustCompile(`^\d{4}-(0[1-9]|1[0-2])$`)
@@ -49,7 +50,7 @@ func (r *router) listLedger(response http.ResponseWriter, request *http.Request)
 	} else {
 		query = `SELECT id, type, amount_cents, purpose, member_name, occurred_at, time_label, note, note_visibility, counts_toward_total, recorder_id
 			FROM ledger_entries WHERE family_id = ?
-			ORDER BY occurred_at DESC, created_at DESC LIMIT 200`
+			ORDER BY occurred_at DESC, created_at DESC`
 		args = []any{familyID}
 	}
 
@@ -71,6 +72,7 @@ func (r *router) listLedger(response http.ResponseWriter, request *http.Request)
 			writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
 			return
 		}
+		e.CanEdit = e.NoteVisibility != "private" || recorderID == userID
 		// Private notes only visible to the recorder
 		if note != nil && e.NoteVisibility == "private" && recorderID != userID {
 			e.Note = nil

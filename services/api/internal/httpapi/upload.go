@@ -57,6 +57,8 @@ func (r *router) upload(response http.ResponseWriter, request *http.Request) {
 		return
 	}
 
+	defer request.MultipartForm.RemoveAll()
+
 	file, header, err := request.FormFile("file")
 	if err != nil {
 		writeError(response, http.StatusBadRequest, "INVALID_UPLOAD", "请选择要上传的图片")

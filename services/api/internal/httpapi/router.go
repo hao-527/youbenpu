@@ -145,12 +145,12 @@ func (r *router) wrapLeaveFamily(w http.ResponseWriter, req *http.Request) { r.l
 func (r *router) wrapUpdateMemberRole(w http.ResponseWriter, req *http.Request) {
 	r.updateMemberRole(w, req)
 }
-func (r *router) wrapRemoveMember(w http.ResponseWriter, req *http.Request)  { r.removeMember(w, req) }
-func (r *router) wrapListLedger(w http.ResponseWriter, req *http.Request)    { r.listLedger(w, req) }
-func (r *router) wrapCreateLedger(w http.ResponseWriter, req *http.Request)  { r.createLedger(w, req) }
-func (r *router) wrapUpdateLedger(w http.ResponseWriter, req *http.Request)  { r.updateLedger(w, req) }
-func (r *router) wrapDeleteLedger(w http.ResponseWriter, req *http.Request)  { r.deleteLedger(w, req) }
-func (r *router) wrapImportLedger(w http.ResponseWriter, req *http.Request)  { r.importLedger(w, req) }
+func (r *router) wrapRemoveMember(w http.ResponseWriter, req *http.Request) { r.removeMember(w, req) }
+func (r *router) wrapListLedger(w http.ResponseWriter, req *http.Request)   { r.listLedger(w, req) }
+func (r *router) wrapCreateLedger(w http.ResponseWriter, req *http.Request) { r.createLedger(w, req) }
+func (r *router) wrapUpdateLedger(w http.ResponseWriter, req *http.Request) { r.updateLedger(w, req) }
+func (r *router) wrapDeleteLedger(w http.ResponseWriter, req *http.Request) { r.deleteLedger(w, req) }
+func (r *router) wrapImportLedger(w http.ResponseWriter, req *http.Request) { r.importLedger(w, req) }
 func (r *router) wrapImportLedgerConfirm(w http.ResponseWriter, req *http.Request) {
 	r.importLedgerConfirm(w, req)
 }
@@ -231,10 +231,17 @@ func (r *router) ready(response http.ResponseWriter, request *http.Request) {
 }
 
 func (r *router) meta(response http.ResponseWriter, _ *http.Request) {
+	authMode := "disabled"
+	if r.config.WXAppID != "" && r.config.WXAppSecret != "" {
+		authMode = "wechat"
+	} else if r.config.EnableDevLogin && r.config.Environment != "production" {
+		authMode = "development"
+	}
 	writeJSON(response, http.StatusOK, map[string]string{
 		"name":        "生活有本谱",
 		"api_version": "v1",
 		"environment": r.config.Environment,
+		"auth_mode":   authMode,
 		"version":     r.buildInfo.Version,
 		"commit":      r.buildInfo.Commit,
 	})

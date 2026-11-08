@@ -223,9 +223,21 @@ func (r *router) deleteDish(response http.ResponseWriter, request *http.Request)
 		return
 	}
 
+	tx, err := r.db.BeginTx(request.Context(), nil)
+	if err != nil {
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
+		return
+	}
+	defer tx.Rollback()
+	var lockedFamily string
+	if err := tx.QueryRowContext(request.Context(), "SELECT id FROM families WHERE id = ? FOR UPDATE", familyID).Scan(&lockedFamily); err != nil {
+		writeError(response, http.StatusConflict, "STALE_RECORD", "家庭状态已变化，请刷新后重试")
+		return
+	}
+
 	// Don't delete if referenced in a pending order
 	var pendingCount int
-	if err := r.db.QueryRow(`SELECT COUNT(*) FROM meal_order_items oi
+	if err := tx.QueryRow(`SELECT COUNT(*) FROM meal_order_items oi
 		JOIN meal_orders o ON o.id = oi.order_id
 		WHERE oi.dish_id = ? AND o.family_id = ? AND o.status = 'pending'`, id, familyID).Scan(&pendingCount); err != nil {
 		r.logger.Error("check dish order usage", "error", err)
@@ -237,7 +249,7 @@ func (r *router) deleteDish(response http.ResponseWriter, request *http.Request)
 		return
 	}
 
-	result, err := r.db.Exec("DELETE FROM dishes WHERE id = ? AND family_id = ?", id, familyID)
+	result, err := tx.Exec("DELETE FROM dishes WHERE id = ? AND family_id = ?", id, familyID)
 	if err != nil {
 		r.logger.Error("delete dish", "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
@@ -251,6 +263,11 @@ func (r *router) deleteDish(response http.ResponseWriter, request *http.Request)
 	}
 	if affected == 0 {
 		writeError(response, http.StatusNotFound, "NOT_FOUND", "菜品不存在")
+		return
+	}
+
+	if err := tx.Commit(); err != nil {
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "删除失败")
 		return
 	}
 

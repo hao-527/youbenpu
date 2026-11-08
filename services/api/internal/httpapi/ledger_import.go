@@ -1,7 +1,9 @@
 package httpapi
 
 import (
+	"errors"
 	"fmt"
+	"github.com/go-sql-driver/mysql"
 	"io"
 	"net/http"
 	"strings"
@@ -52,6 +54,8 @@ func (r *router) importLedger(response http.ResponseWriter, request *http.Reques
 		return
 	}
 
+	defer request.MultipartForm.RemoveAll()
+
 	file, _, err := request.FormFile("file")
 	if err != nil {
 		writeError(response, http.StatusBadRequest, "INVALID_UPLOAD", "请选择要导入的账单文件")
@@ -59,9 +63,14 @@ func (r *router) importLedger(response http.ResponseWriter, request *http.Reques
 	}
 	defer file.Close()
 
-	data, err := io.ReadAll(io.LimitReader(file, maxBillUploadSize))
+	data, err := io.ReadAll(io.LimitReader(file, maxBillUploadSize+1))
 	if err != nil {
 		writeError(response, http.StatusBadRequest, "INVALID_UPLOAD", "无法读取账单文件")
+		return
+	}
+
+	if len(data) > maxBillUploadSize {
+		writeError(response, http.StatusBadRequest, "INVALID_UPLOAD", "账单文件不能超过 8MB")
 		return
 	}
 
@@ -255,6 +264,11 @@ func (r *router) insertImportedEntries(response http.ResponseWriter, familyID, u
 			truncateImportRunes(e.TimeLabel, 60), truncateImportRunes(e.Note, 300),
 			e.Fingerprint, boolToTinyInt(e.CountsTowardTotal),
 		); err != nil {
+			var duplicate *mysql.MySQLError
+			if errors.As(err, &duplicate) && duplicate.Number == 1062 {
+				skipped++
+				continue
+			}
 			r.logger.Error("insert imported entry", "error", err)
 			writeError(response, http.StatusInternalServerError, "DB_ERROR", "导入失败")
 			return
@@ -299,7 +313,7 @@ func validImportEntry(e confirmImportEntry) bool {
 	if !isValidISODate(e.Date) {
 		return false
 	}
-	if strings.TrimSpace(e.Fingerprint) == "" {
+	if strings.TrimSpace(e.Fingerprint) == "" || len(e.Fingerprint) > 64 {
 		return false
 	}
 	return true

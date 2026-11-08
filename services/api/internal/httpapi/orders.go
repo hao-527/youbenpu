@@ -33,7 +33,7 @@ func (r *router) listOrders(response http.ResponseWriter, request *http.Request)
 	familyID := getUserFamilyID(request.Context())
 
 	rows, err := r.db.Query(`SELECT id, requester_name, status, submitted_at
-		FROM meal_orders WHERE family_id = ? ORDER BY created_at DESC LIMIT 50`, familyID)
+		FROM meal_orders WHERE family_id = ? ORDER BY created_at DESC`, familyID)
 	if err != nil {
 		r.logger.Error("list orders", "error", err)
 		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
@@ -158,6 +158,22 @@ func (r *router) createOrder(response http.ResponseWriter, request *http.Request
 		return
 	}
 	defer tx.Rollback()
+
+	// Serialize order creation within one family before checking pending state.
+	// The unique index remains the final guard, without competing duplicate-key locks.
+	var lockedFamily string
+	if err := tx.QueryRow("SELECT id FROM families WHERE id = ? FOR UPDATE", familyID).Scan(&lockedFamily); err != nil {
+		writeError(response, http.StatusConflict, "STALE_RECORD", "家庭状态已变化，请刷新后重试")
+		return
+	}
+	if err := tx.QueryRow("SELECT COUNT(*) FROM meal_orders WHERE family_id = ? AND status = 'pending'", familyID).Scan(&pendingCount); err != nil {
+		writeError(response, http.StatusInternalServerError, "DB_ERROR", "查询失败")
+		return
+	}
+	if pendingCount > 0 {
+		writeError(response, http.StatusConflict, "PENDING_EXISTS", "已有一张待完成点餐单，请先处理")
+		return
+	}
 
 	// Dish names and photos are presentation snapshots, not trusted input. Read
 	// them from the current family's available dishes inside the transaction so

@@ -4,7 +4,7 @@ ARG VERSION=dev
 ARG COMMIT=unknown
 
 WORKDIR /src
-COPY go.mod ./
+COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN mkdir -p /out/data/uploads \
