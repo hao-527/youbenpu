@@ -5,7 +5,6 @@ import { useEffect, useState } from 'react'
 import { AppIcon } from '../../app-icon'
 import { palette } from '../../../theme/palette'
 
-import './index.scss'
 
 export type ToastKind = 'success' | 'error' | 'none'
 

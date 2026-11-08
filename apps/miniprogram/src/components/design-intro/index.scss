@@ -1,0 +1,7 @@
+@use '../../theme/figma' as *;
+.design-intro { display: flex; align-items: center; justify-content: space-between; position: relative; min-height: figma(70); margin-bottom: figma(10); }
+.design-intro__copy { display: block; max-width: 60%; white-space: pre-line; font-family: 'YBP Handwriting','Kaiti SC',serif; font-size: figma(18); line-height: figma(26); transform: rotate(-4deg); }
+.design-intro__art { width: figma(144); height: figma(108); margin-top: figma(-22); margin-bottom: figma(-12); flex-shrink: 0; }
+.design-intro--entry, .design-intro--import { min-height: figma(60); justify-content: flex-end; }
+.design-intro--entry .design-intro__art { width: figma(180); height: figma(136); margin-top: figma(-76); }
+.design-intro--import .design-intro__art { width: figma(128); height: figma(108); margin-top: figma(-58); }

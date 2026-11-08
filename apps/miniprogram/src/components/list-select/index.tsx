@@ -5,7 +5,6 @@ import { AppIcon } from '../app-icon'
 import { ActionSheet } from '../action-sheet'
 import { palette } from '../../theme/palette'
 
-import './index.scss'
 
 interface ListSelectOption {
   label: string

@@ -1,15 +1,19 @@
 import Taro from '@tarojs/taro'
-import { createContext, useCallback, useContext, useEffect, useReducer, useRef } from 'react'
+import { createContext, useCallback, useContext, useEffect, useReducer, useRef, useState } from 'react'
 import type { PropsWithChildren } from 'react'
 
 import * as api from '../api'
-import { getUserInfo, hasFamily, isLoggedIn, onSessionCleared } from '../api/token'
+import { HttpError } from '../api/http'
+import { getUserInfo, hasFamily, isLoggedIn, onIdentityChanged, onSessionCleared } from '../api/token'
 import { getPortableImageUrl } from '../utils/image-source'
 import { initialState } from './initial-state'
 import { appReducer, type AppAction, type AppState } from './reducer'
 import { clearStateStorage, loadState, saveState } from './storage'
 
 export type AppDispatch = (action: AppAction) => Promise<boolean>
+
+export interface RemoteStatus { loading: boolean; error: string; ready: boolean }
+const RemoteStatusContext = createContext<RemoteStatus>({ loading: true, error: '', ready: false })
 
 const StateContext = createContext<AppState>(initialState)
 const DispatchContext = createContext<AppDispatch>(async () => false)
@@ -18,11 +22,15 @@ const MaybeRefreshContext = createContext<() => Promise<void>>(async () => {})
 
 /**
  * Fetches all family data from the API and returns a partial state update.
- * Falls back gracefully if individual endpoints fail.
+ * Publishes only a complete snapshot; keeps the first API failure for feedback.
  */
 async function fetchRemoteState(): Promise<Partial<AppState>> {
   const partial: Partial<AppState> = {}
-  let remoteFetchFailed = false
+  let remoteFetchError: unknown = null
+  const captureFailure = (error: unknown) => {
+    if (error instanceof HttpError && error.status === 401) throw error
+    remoteFetchError ??= error
+  }
 
   try {
     const family = await api.getFamilyInfo()
@@ -41,8 +49,8 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
     // identity so Profile represents the actual person rather than whichever
     // family member happens to be first in the list.
     const currentUserId = getUserInfo()?.userId
-    partial.currentMemberId = members.find((member) => member.id === currentUserId)?.id ?? members[0]?.id ?? ''
-  } catch { remoteFetchFailed = true }
+    partial.currentMemberId = members.find((member) => member.id === currentUserId)?.id ?? ''
+  } catch (error) { captureFailure(error) }
 
   try {
     const ledger = await api.listLedger()
@@ -59,9 +67,10 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
       noteVisibility: (e.note_visibility as 'private' | 'shared') ?? 'shared',
       // Older API responses omit the flag; treat missing as counting so manual
       // entries and legacy data behave unchanged.
-      countsTowardTotal: e.counts_toward_total !== false
+      countsTowardTotal: e.counts_toward_total !== false,
+      canEdit: e.can_edit !== false
     }))
-  } catch { remoteFetchFailed = true }
+  } catch (error) { captureFailure(error) }
 
   try {
     const items = await api.listInventory()
@@ -77,7 +86,7 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
       status: i.status as any,
       photo: getPortableImageUrl(i.photo_url)
     }))
-  } catch { remoteFetchFailed = true }
+  } catch (error) { captureFailure(error) }
 
   try {
     const dishes = await api.listDishes()
@@ -91,7 +100,7 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
       photo: getPortableImageUrl(d.photo_url),
       available: d.available
     }))
-  } catch { remoteFetchFailed = true }
+  } catch (error) { captureFailure(error) }
 
   try {
     const orders = await api.listOrders()
@@ -109,37 +118,52 @@ async function fetchRemoteState(): Promise<Partial<AppState>> {
         photo: getPortableImageUrl(item.photo_url)
       }))
     }))
-  } catch { remoteFetchFailed = true }
+  } catch (error) { captureFailure(error) }
 
   try {
     const locations = await api.listLocations()
     partial.locations = locations.map((l) => l.name)
-  } catch { remoteFetchFailed = true }
+  } catch (error) { captureFailure(error) }
 
   try {
     const categories = await api.listCategories()
     partial.customDishCategories = categories.filter((c) => c.domain === 'dish').map((c) => c.name)
     partial.customInventoryCategories = categories.filter((c) => c.domain === 'inventory').map((c) => c.name)
-  } catch { remoteFetchFailed = true }
+  } catch (error) { captureFailure(error) }
 
-  if (remoteFetchFailed) {
-    throw new Error('家庭数据暂时无法完整刷新')
+  // An active family may also change on another client during these requests.
+  try {
+    const current = await api.getFamilyInfo()
+    if (current.id !== partial.familyId) remoteFetchError = new Error('家庭身份已变化，请重新刷新')
+  } catch (error) { captureFailure(error) }
+
+  if (remoteFetchError) {
+    throw remoteFetchError instanceof Error ? remoteFetchError : new Error('家庭数据暂时无法完整刷新')
   }
   return partial
 }
 
 export function StoreProvider({ children }: PropsWithChildren) {
+  const [remoteStatus, setRemoteStatus] = useState<RemoteStatus>({ loading: true, error: '', ready: false })
   const [state, localDispatch] = useReducer(appReducer, initialState, (seed) => loadState(seed))
   const stateRef = useRef<AppState>(initialState)
   const hydrated = useRef(false)
   const sessionGeneration = useRef(0)
   const lastRefreshAt = useRef(0)
+  const pendingActions = useRef(new Map<string, Promise<boolean>>())
   stateRef.current = state
 
-  useEffect(() => onSessionCleared(() => {
+  useEffect(() => onSessionCleared((reason) => {
+    setRemoteStatus({ loading: false, error: reason, ready: false })
     sessionGeneration.current += 1
     clearStateStorage()
     localDispatch({ type: 'hydrate', state: initialState })
+  }), [])
+
+  useEffect(() => onIdentityChanged(() => {
+    sessionGeneration.current += 1
+    setRemoteStatus({ loading: true, error: '', ready: false })
+    localDispatch({ type: 'hydrate', state: { ...initialState, onboardingCompleted: stateRef.current.onboardingCompleted, settings: stateRef.current.settings } })
   }), [])
 
   /**
@@ -148,14 +172,33 @@ export function StoreProvider({ children }: PropsWithChildren) {
    * Callable at any time — e.g. right after the user creates or joins a
    * family from the family-setup sheet, so pages refresh without a restart.
    */
-  const refresh = useCallback(async () => {
-    if (!isLoggedIn() || !hasFamily()) return
+  const refresh = useCallback(async function refreshFamily(reconciled = false): Promise<void> {
+    if (!isLoggedIn() || !hasFamily()) {
+      setRemoteStatus({ loading: false, error: '', ready: false })
+      return
+    }
+    setRemoteStatus((previous) => ({ ...previous, loading: true, error: '' }))
     const generation = sessionGeneration.current
-    const remote = await fetchRemoteState()
+    let remote: Partial<AppState>
+    try {
+      remote = await fetchRemoteState()
+    } catch (error) {
+      if (!reconciled && error instanceof HttpError && error.code === 'NO_FAMILY') {
+        await api.login()
+        return refreshFamily(true)
+      }
+      if (generation === sessionGeneration.current) setRemoteStatus((previous) => ({ ...previous, loading: false, error: error instanceof Error ? error.message : '刷新失败' }))
+      throw error
+    }
     if (generation !== sessionGeneration.current || !isLoggedIn() || !hasFamily()) return
 
     const familyId = remote.familyId
     if (!familyId || getUserInfo()?.familyId !== familyId) {
+      if (!reconciled) {
+        await api.login()
+        return refreshFamily(true)
+      }
+      setRemoteStatus({ loading: false, error: '家庭身份已变化，请刷新', ready: false })
       throw new Error('家庭身份已变化，请重新进入')
     }
 
@@ -174,6 +217,7 @@ export function StoreProvider({ children }: PropsWithChildren) {
     localDispatch({ type: 'hydrate', state: merged })
     saveState(merged)
     lastRefreshAt.current = Date.now()
+    setRemoteStatus({ loading: false, error: '', ready: true })
   }, [])
 
   // Throttled refresh for tab re-entry (useDidShow). Switching tabs should pull
@@ -199,7 +243,8 @@ export function StoreProvider({ children }: PropsWithChildren) {
       try {
         await api.ensureLoggedIn()
         await refresh()
-      } catch {
+      } catch (error) {
+        setRemoteStatus({ loading: false, error: error instanceof Error ? error.message : '登录或家庭数据加载失败，请重试', ready: false })
         // Offline failures keep cached content visible and can retry next launch.
       }
     }
@@ -218,27 +263,40 @@ export function StoreProvider({ children }: PropsWithChildren) {
 
   // Remote-first dispatch. The API may replace client-generated IDs with the
   // canonical server ID before the reducer updates local state.
-  const dispatch: AppDispatch = useCallback(async (action: AppAction) => {
-    try {
-      const syncedAction = await syncActionToAPI(action)
-      localDispatch(syncedAction)
-      return true
-    } catch (error: any) {
-      Taro.showToast({ title: error.message || '操作失败', icon: 'none' })
-      return false
-    }
-  }, [])
+  const dispatch: AppDispatch = useCallback((action: AppAction) => {
+    const key = `${sessionGeneration.current}:${JSON.stringify(action)}`
+    const pending = pendingActions.current.get(key)
+    if (pending) return pending
+    const generation = sessionGeneration.current
+    const operation = (async () => {
+      try {
+        const syncedAction = await syncActionToAPI(action)
+        if (generation === sessionGeneration.current) localDispatch(syncedAction)
+        return true
+      } catch (error: any) {
+        Taro.showToast({ title: error.message || '操作失败', icon: 'none' })
+        if (['STATUS_CHANGED', 'STALE_RECORD', 'PENDING_EXISTS', 'INVALID_DISH', 'NOT_FOUND'].includes(error.code)) await refresh().catch(() => {})
+        return false
+      } finally {
+        pendingActions.current.delete(key)
+      }
+    })()
+    pendingActions.current.set(key, operation)
+    return operation
+  }, [refresh])
 
   return (
-    <StateContext.Provider value={state}>
-      <DispatchContext.Provider value={dispatch}>
-        <RefreshContext.Provider value={refresh}>
-          <MaybeRefreshContext.Provider value={maybeRefresh}>
-            {children}
-          </MaybeRefreshContext.Provider>
-        </RefreshContext.Provider>
-      </DispatchContext.Provider>
-    </StateContext.Provider>
+    <RemoteStatusContext.Provider value={remoteStatus}>
+      <StateContext.Provider value={state}>
+        <DispatchContext.Provider value={dispatch}>
+          <RefreshContext.Provider value={refresh}>
+            <MaybeRefreshContext.Provider value={maybeRefresh}>
+              {children}
+            </MaybeRefreshContext.Provider>
+          </RefreshContext.Provider>
+        </DispatchContext.Provider>
+      </StateContext.Provider>
+    </RemoteStatusContext.Provider>
   )
 }
 
@@ -431,3 +489,5 @@ async function syncActionToAPI(action: AppAction): Promise<AppAction> {
       return action
   }
 }
+
+export function useRemoteStatus(): RemoteStatus { return useContext(RemoteStatusContext) }

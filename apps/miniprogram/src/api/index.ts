@@ -3,7 +3,8 @@
  */
 import Taro from '@tarojs/taro'
 
-import { API } from './config'
+import { API, requireWechatLogin } from './config'
+import { getLoginCode } from './login-code'
 import { getStableDemoIdentity } from './dev-identity'
 import { del, get, post, put } from './http'
 import { isLoggedIn, getUserInfo, setToken, setUserInfo, type UserInfo } from './token'
@@ -28,23 +29,27 @@ let loginInFlight: Promise<LoginResult> | null = null
 
 export async function ensureLoggedIn(): Promise<void> {
   if (isLoggedIn()) return
-
-  if (!loginInFlight) {
-    loginInFlight = login().finally(() => {
-      loginInFlight = null
-    })
-  }
-
-  await loginInFlight
+  await login()
 }
 
 export async function login(): Promise<LoginResult> {
-  const { code } = await Taro.login()
+  if (!loginInFlight) {
+    loginInFlight = performLogin().finally(() => { loginInFlight = null })
+  }
+  return loginInFlight
+}
+
+async function performLogin(): Promise<LoginResult> {
+  if (requireWechatLogin) {
+    const meta = await get<{ auth_mode?: string }>(API.META, { noAuth: true })
+    if (meta.auth_mode !== 'wechat') throw new Error('微信登录暂不可用，请稍后重试')
+  }
+  const code = await getLoginCode(process.env.NODE_ENV === 'development', process.env.TARO_ENV === 'h5', () => Taro.login())
   const data = await post<LoginResponse>(API.AUTH_LOGIN, {
     code,
     // The backend only uses this in its no-WX_APPID development fallback.
     // In production it ignores this and resolves the real WeChat openid.
-    dev_identity: getStableDemoIdentity()
+    ...(requireWechatLogin ? {} : { dev_identity: getStableDemoIdentity() })
   }, { noAuth: true })
 
   setToken(data.token)
@@ -169,6 +174,7 @@ export interface LedgerEntryDTO {
   note?: string | null
   note_visibility: string
   counts_toward_total?: boolean
+  can_edit?: boolean
 }
 
 export function listLedger(month?: string) {

@@ -8,9 +8,8 @@ import type { AppState } from './reducer'
  * family/members then arrive from the API. Seeding a placeholder family here
  * made the home page claim "我们家" while 我的 said "还没有加入家庭".
  *
- * Business data (ledger, dishes, orders, inventory) also starts empty. Only
- * the default storage locations are pre-filled, since starting with none is
- * more confusing than helpful.
+ * Business data and locations start empty. Creating a family supplies its
+ * real default locations through the API; no-family state has no fake locations.
  */
 export const initialState: AppState = {
   schemaVersion: 2,
@@ -22,7 +21,7 @@ export const initialState: AppState = {
   dishes: [],
   orders: [],
   inventory: [],
-  locations: ['冰箱冷藏', '冰箱冷冻', '橱柜', '药箱', '浴室'],
+  locations: [],
   customDishCategories: [],
   customInventoryCategories: [],
   settings: {

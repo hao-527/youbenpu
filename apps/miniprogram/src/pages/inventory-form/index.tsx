@@ -1,7 +1,10 @@
-import { Button, Image, Input, Text, View } from '@tarojs/components'
+import { useConfirm } from '../../components/feedback'
+import { goBack } from '../../utils/navigation'
+import { SafeImage as Image } from '../../components/safe-image'
+import { Button, Input, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Calendar, Camera, MapPin, Package } from 'lucide'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
 import { DatePicker } from '../../components/date-picker'
@@ -9,11 +12,12 @@ import { ListSelect } from '../../components/list-select'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { useAppShare } from '../../hooks/use-app-share'
-import { useDispatch, useStore } from '../../store'
+import { useDispatch, useStore, useRemoteStatus } from '../../store'
+import { useOperation } from '../../hooks/use-operation'
 import { uid } from '../../store/uid'
 import { palette } from '../../theme/palette'
 import { inventoryCategories, type InventoryCategory, type InventoryItem } from '../../types/domain'
-import { formatLocalDate, getInventoryExpiry } from '../../utils/date'
+import { getInventoryExpiry } from '../../utils/date'
 import { choosePersistentImage } from '../../utils/media'
 
 import './index.scss'
@@ -21,6 +25,10 @@ import './index.scss'
 export default function InventoryFormPage() {
   const { inventory, locations, familyId, customInventoryCategories } = useStore()
   const dispatch = useDispatch()
+  const confirm = useConfirm()
+  const remote = useRemoteStatus()
+  const submission = useOperation()
+  const upload = useOperation()
   useAppShare()
   const itemId = Taro.getCurrentInstance().router?.params?.id
   const editingItem = itemId ? inventory.find((item) => item.id === itemId) : undefined
@@ -45,9 +53,28 @@ export default function InventoryFormPage() {
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
 
+
+  const hydratedId = useRef<string | null>(null)
+  useEffect(() => {
+    if (!itemId && !location && locations.length) setLocation(locations[0])
+  }, [itemId, location, locations])
+  useEffect(() => {
+    if (!itemId || !editingItem || hydratedId.current === itemId) return
+    hydratedId.current = itemId
+    setName(editingItem.name)
+    setCategory(editingItem.category)
+    setLocation(editingItem.location)
+    setQuantity(editingItem.quantityLabel)
+    setExpiryDate(editingItem.expiryDate)
+    setPhoto(editingItem.photo)
+  }, [itemId, editingItem])
+
   const choosePhoto = async () => {
-    const selected = await choosePersistentImage()
-    if (selected) setPhoto(selected)
+    if (submission.busy) return
+    await upload.run(async () => {
+      const selected = await choosePersistentImage()
+      if (selected) setPhoto(selected)
+    })
   }
 
   const clearUnavailablePhoto = () => {
@@ -56,13 +83,14 @@ export default function InventoryFormPage() {
   }
 
   const addCustomCategory = () => {
-    ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
+    confirm({
       title: '新增物品分类',
       editable: true,
-      placeholderText: '输入分类名称（10字内）'
+      placeholder: '输入分类名称（10字内）',
+      maxLength: 10
     }).then(async (result) => {
-      if (!result.confirm || !result.content) return
-      const newName = result.content.trim().slice(0, 10)
+      if (!result.confirmed || !result.value) return
+      const newName = result.value.trim().slice(0, 10)
       if (!newName) return
       if (allCategories.includes(newName)) {
         setCategory(newName)
@@ -77,13 +105,14 @@ export default function InventoryFormPage() {
   }
 
   const addLocation = () => {
-    ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
+    confirm({
       title: '新增存放位置',
       editable: true,
-      placeholderText: '例如：冰箱冷藏、阳台柜'
+      placeholder: '例如：冰箱冷藏、阳台柜',
+      maxLength: 20
     }).then(async (result) => {
-      if (!result.confirm || !result.content) return
-      const newLocation = result.content.trim().slice(0, 20)
+      if (!result.confirmed || !result.value) return
+      const newLocation = result.value.trim().slice(0, 20)
       if (!newLocation) return
       if (locations.includes(newLocation)) {
         setLocation(newLocation)
@@ -98,6 +127,8 @@ export default function InventoryFormPage() {
   }
 
   const submit = async () => {
+    if (submission.busy || upload.busy) return
+    if (!familyId) { Taro.showToast({ title: '请先创建或加入家庭', icon: 'none' }); return }
     const normalizedName = name.trim()
     const normalizedQuantity = quantity.trim()
     if (!normalizedName) {
@@ -127,15 +158,19 @@ export default function InventoryFormPage() {
       status: terminalStatus ?? expiry.status,
       photo
     }
-    const succeeded = await dispatch(editingItem ? { type: 'inventory/update', item } : { type: 'inventory/add', item })
+    const succeeded = await submission.run(() => dispatch(editingItem ? { type: 'inventory/update', item } : { type: 'inventory/add', item }), '提交失败，已保留内容，请重试', true)
     if (!succeeded) return
     Taro.showToast({ title: editingItem ? '物品已更新' : '物品已添加', icon: 'success' })
-    setTimeout(() => Taro.navigateBack(), 350)
+    setTimeout(() => goBack('/pages/inventory/index'), 350)
+  }
+
+  if (itemId && !editingItem && (remote.loading || !remote.ready)) {
+    return <PageShell className='inventory-form-page' tabPage={false}><PageHeader title='加载记录' /><View className='empty-state'><Text>{remote.loading ? '正在加载，请稍候' : '请重试加载后查看记录'}</Text></View></PageShell>
   }
 
   if (itemId && !editingItem) {
     return (
-      <PageShell tabPage={false}>
+      <PageShell className='inventory-form-page' tabPage={false}>
         <PageHeader title='物品信息' />
         <View className='empty-state surface-card'>
           <View className='empty-state__icon'>
@@ -149,13 +184,13 @@ export default function InventoryFormPage() {
   }
 
   return (
-    <PageShell tabPage={false} withFixedBar>
+    <PageShell className='inventory-form-page' tabPage={false} withFixedBar>
       <PageHeader title={editingItem ? '编辑物品' : '新增物品'} subtitle='名称和存放位置为必填项' />
 
       <View className='photo-picker'>
         <Button className='photo-picker__button tap' hoverClass='tap--pressed' aria-label={photo ? '更换物品图片' : '添加物品图片'} onClick={choosePhoto}>
           {photo ? (
-            <Image className='photo-picker__image' src={photo} mode='aspectFill' onError={clearUnavailablePhoto} />
+            <Image className='photo-picker__image' src={photo} mode='aspectFit' onError={clearUnavailablePhoto} />
           ) : (
             <View className='photo-picker__placeholder'>
               <AppIcon icon={Camera} size={28} color={palette.primary} />
@@ -202,8 +237,9 @@ export default function InventoryFormPage() {
         </View>
       </View>
 
+      {submission.error && <View className='surface-card form-error'><Text>{submission.error}</Text></View>}
       <View className='fixed-action-bar'>
-        <Button className='button button--primary tap' hoverClass='tap--pressed' onClick={submit}>
+        <Button className='button button--primary tap' hoverClass='tap--pressed' disabled={submission.busy || upload.busy || !familyId} loading={submission.busy || upload.busy} onClick={submit}>
           {editingItem ? '保存修改' : '添加物品'}
         </Button>
       </View>

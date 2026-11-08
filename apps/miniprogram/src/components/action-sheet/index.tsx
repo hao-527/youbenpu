@@ -1,7 +1,7 @@
 import { Button, ScrollView, Text, View } from '@tarojs/components'
 import { useEffect, useState } from 'react'
+import { useNativeOverlay } from '../../hooks/use-native-overlay'
 
-import './index.scss'
 
 interface ActionSheetProps {
   open: boolean
@@ -13,6 +13,7 @@ interface ActionSheetProps {
 export function ActionSheet({ open, title, onClose, children }: ActionSheetProps) {
   const [visible, setVisible] = useState(false)
   const [animating, setAnimating] = useState(false)
+  useNativeOverlay(visible)
 
   useEffect(() => {
     if (open) {
@@ -38,7 +39,7 @@ export function ActionSheet({ open, title, onClose, children }: ActionSheetProps
           </View>
         )}
         <ScrollView className='asheet__body' scrollY enhanced showScrollbar={false}>
-          {children}
+          <View className='asheet__content'>{children}</View>
         </ScrollView>
       </View>
     </View>

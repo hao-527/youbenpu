@@ -1,0 +1,102 @@
+@use './figma' as *;
+@use './home-fonts';
+
+@mixin system {
+  :root, page, .taro_page {
+    --color-background: #fffdf3;
+    --color-foreground: #11110f;
+    --color-muted-foreground: #666a73;
+    --color-subtle-foreground: #777b83;
+    --color-primary: #ff634a;
+    --color-primary-text: #df422b;
+    --color-primary-surface: #ff634a;
+    --color-success: #2aa617;
+    --color-income: #ff634a;
+    --color-expense: #2aa617;
+    --color-tint-primary: #fff0eb;
+    --color-tint-green: #efffd1;
+    --color-border: #eeeae0;
+    --color-muted: #f5f4f0;
+    --page-gutter: #{figma(14)};
+    --radius-card: #{figma(22)};
+    --radius-md: #{figma(14)};
+    --radius-sheet: #{figma(24)};
+    --section-gap: #{figma(12)};
+    --title-size: #{figma(32)};
+    --text-base: #{figma(14)};
+    --text-md: #{figma(14)};
+    --text-sm: #{figma(13)};
+    --text-xs: #{figma(12)};
+    --text-lg: #{figma(18)};
+    --text-xl: #{figma(22)};
+    --button-height: max(44PX, #{figma(44)});
+    --shadow-card: 0 #{figma(6)} #{figma(20)} rgba(51,41,18,.08);
+    font-family: 'YBP Body', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  }
+  .page-shell { position: relative; }
+  .page-shell taro-button-core { margin: 0; }
+  .page-shell.page-shell:not(.home-page) {
+    font-family: 'YBP Body', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    color: #11110f;
+    background: #fffdf3;
+    .page-title { align-items: flex-start; min-height: figma(62); margin-bottom: figma(10); }
+    .page-title__text { font-size: figma(32); line-height: figma(44); font-weight: 900; letter-spacing: figma(-.5); }
+    .page-title__subtitle { font-size: figma(12); line-height: figma(18); margin-top: 0; }
+    .surface-card { border: 0; border-radius: figma(22); }
+    .section__title { font-size: figma(20); line-height: figma(28); }
+    .section__head { margin-bottom: figma(8); }
+    .content-action, .ledger-import-entry { min-height: max(44PX, #{figma(44)}); padding: 0 figma(12); border: 0; border-radius: figma(99); background: white; font-size: figma(12); color: #11110f; white-space: nowrap; }
+    .content-action::after, .ledger-import-entry::after { border: 0; }
+    .button { padding: figma(10) figma(16); min-height: max(44PX, #{figma(44)}); border-radius: figma(99); line-height: 1.4; }
+    .button--primary { background: #ff634a; color: white; }
+    .button[disabled]:not([disabled='false']) { background: #f5f4f0; color: #a2a29b; }
+    .tabs__item, .chip-select__item { border: 0; border-radius: figma(99); background: #f5f4f0; min-height: max(44PX, #{figma(36)}); color: #11110f; }
+    .tabs__item--active, .chip-select__item--active { background: #d5ff78; color: #11110f; box-shadow: none; }
+    .segmented-control { background: #f5f4f0; border: 0; border-radius: figma(99); }
+    .segmented-control__item { min-height: max(44PX, #{figma(38)}); border-radius: figma(99); }
+    .segmented-control__item--active { background: #d5ff78; color: #11110f; box-shadow: none; }
+    .icon-bubble { border-radius: figma(14); }
+    .search { border: 0; border-radius: figma(99); min-height: figma(44); background: white; }
+    .field__control { background: #f5f4f0; border: 0; border-radius: figma(14); min-height: max(44PX, #{figma(40)}); font-size: figma(14); }
+    .field__control--picker { width: 100% !important; padding: figma(10) figma(12); }
+    .form-page:not(.ledger-entry-form) { padding: 0; background: transparent; box-shadow: none; gap: figma(10); }
+    .form-page:not(.ledger-entry-form) > .field { padding: figma(14); background: white; border-radius: figma(22); box-shadow: var(--shadow-card); }
+    .field__label { margin-bottom: figma(8); font-size: figma(14); font-weight: 700; color: #11110f; letter-spacing: 0; }
+    .photo-picker { border: 0; border-radius: figma(22); overflow: hidden; background: white; }
+    .photo-picker__button { width: 100% !important; }
+    .photo-picker__placeholder { background: #f5f4ec; min-height: figma(180); }
+    .photo-picker__change { border-radius: figma(99); min-height: figma(44); padding: 0 figma(20); background: white; color: #11110f; }
+    .empty-state { padding: figma(28) figma(20); min-height: figma(220); }
+    .empty-state__title { font-size: figma(18); }
+    .empty-state__copy { max-width: 100%; font-size: figma(13); line-height: 1.65; }
+  }
+  .subpage-header { display: flex; align-items: flex-start; gap: figma(4); min-height: figma(54); margin-bottom: figma(12); }
+  .subpage-header .page-back { display: flex; justify-content: center; align-items: center; flex: 0 0 figma(44); width: figma(44); height: figma(44); min-height: 44PX; padding: 0; margin: 0 figma(-10); border: 0; background: transparent; }
+  .subpage-header__body { flex: 1; min-width: 0; text-align: left; }
+  .subpage-header__title { display: flex; align-items: center; gap: figma(6); font-size: figma(27); font-weight: 900; line-height: figma(42); }
+  .subpage-header__subtitle { font-size: figma(12); line-height: figma(18); text-align: left; }
+  .subpage-header__end { min-width: 0; flex-shrink: 0; }
+  .brand-title-line { display: flex; align-items: center; gap: figma(5); }
+  .brand-title-leaf { flex-shrink: 0; width: figma(16); height: figma(24); }
+  .fixed-action-bar { width: 100%; max-width: 540PX; left: 0; right: 0; margin: 0 auto; padding: figma(12) figma(14) calc(#{figma(12)} + env(safe-area-inset-bottom)); border: 0; background: rgba(255,253,243,.96); }
+  .fixed-action-bar .button { border-radius: figma(99); min-height: max(44PX, #{figma(44)}); }
+  .page-shell--tab .fab { bottom: calc(env(safe-area-inset-bottom) + #{figma(80)}); }
+  .fab { border-radius: figma(99); background: #ff634a; color: white; }
+  .form-overlay { z-index: 300; }
+  .image-load-failed { display: flex !important; align-items: center; justify-content: center; background: #f5f4ec; }
+  .page-remote-status { display: flex; align-items: center; justify-content: space-between; gap: figma(12); padding: figma(12); margin-bottom: figma(10); border-radius: figma(16); background: #fff0eb; color: #9b3c2e; font-size: figma(12); line-height: 1.5; }
+  .page-remote-status .page-remote-retry { flex-shrink: 0; display: flex; align-items: center; justify-content: center; min-height: 44PX; padding: 0 figma(8); border: 0; background: transparent; color: #df422b; font-size: figma(13); }
+}
+
+.form-error { padding: 24px; margin: 20px 0; color: #b83220; background: #fff0eb; font-size: 24px; line-height: 1.6; overflow-wrap: anywhere; }
+
+// Fixed CSS-px input floor avoids iOS focus zoom; native WeChat remains in design units.
+.page-shell--h5 input, .page-shell--h5 textarea, .cdialog input {
+  font-size: max(16PX, #{figma(14)});
+}
+.page-shell--h5 .fixed-action-bar { bottom: var(--keyboard-inset, 0PX); }
+[data-keyboard-open] .ybp-navigation { visibility: hidden; }
+.asheet-overlay, .form-overlay { bottom: var(--keyboard-inset, 0PX); }
+.asheet { max-height: min(75vh, calc(var(--visual-height, 100vh) - 24PX)); }
+.cdialog-overlay { bottom: var(--keyboard-inset, 0PX); }
+.cdialog { max-height: calc(var(--visual-height, 100vh) - 32PX); overflow-y: auto; }

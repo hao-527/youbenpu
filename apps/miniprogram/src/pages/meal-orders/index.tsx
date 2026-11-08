@@ -1,5 +1,7 @@
-import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
-import Taro from '@tarojs/taro'
+import { useConfirm } from '../../components/feedback'
+import { formatSubmittedAt } from '../../utils/date'
+import { SafeImage as Image } from '../../components/safe-image'
+import { Button, ScrollView, Text, View } from '@tarojs/components'
 import { ReceiptText, Trash2, Utensils } from 'lucide'
 import { useMemo, useState } from 'react'
 
@@ -51,6 +53,7 @@ function DishList({ order, compact = false }: { order: MealOrder; compact?: bool
 export default function MealOrdersPage() {
   const { orders } = useStore()
   const dispatch = useDispatch()
+  const confirm = useConfirm()
   useAppShare({ title: '看看我们家的点餐记录 | 生活有本谱', path: '/pages/meals/index' })
   const [historyFilter, setHistoryFilter] = useState<HistoryFilter>('all')
 
@@ -58,40 +61,40 @@ export default function MealOrdersPage() {
   const historyOrders = useMemo(() => orders.filter((order) => order.status !== 'pending' && (historyFilter === 'all' || order.status === historyFilter)), [historyFilter, orders])
 
   const completeOrder = (id: string) => {
-    Taro.showModal({
+    confirm({
       title: '确认这餐已完成？',
       content: '完成后会移入历史记录。',
       confirmText: '确认完成',
-      confirmColor: palette.primary
+      danger: false
     }).then((result) => {
-      if (result.confirm) dispatch({ type: 'order/complete', id })
+      if (result.confirmed) dispatch({ type: 'order/complete', id })
     })
   }
 
   const cancelOrder = (id: string) => {
-    Taro.showModal({
+    confirm({
       title: '取消当前点餐单？',
       content: '取消后会移入历史记录，之后可以重新发起点餐。',
       confirmText: '确认取消',
-      confirmColor: palette.destructive
+      danger: true
     }).then((result) => {
-      if (result.confirm) dispatch({ type: 'order/cancel', id })
+      if (result.confirmed) dispatch({ type: 'order/cancel', id })
     })
   }
 
   const deleteOrder = (id: string) => {
-    Taro.showModal({
+    confirm({
       title: '删除这条历史记录？',
       content: '删除后无法恢复，菜品库不会受影响。',
       confirmText: '删除',
-      confirmColor: palette.destructive
+      danger: true
     }).then((result) => {
-      if (result.confirm) dispatch({ type: 'order/delete', id })
+      if (result.confirmed) dispatch({ type: 'order/delete', id })
     })
   }
 
   return (
-    <PageShell tabPage={false}>
+    <PageShell className='meal-orders-page'  tabPage={false}>
       <PageHeader title='点餐记录' subtitle={pendingOrder ? '有 1 张待完成点餐单' : '当前没有待办'} />
 
       <View className='section orders-current-section'>
@@ -103,7 +106,7 @@ export default function MealOrdersPage() {
             <View className='current-order-card__head'>
               <View className='current-order-card__copy'>
                 <Text className='current-order-card__title'>{pendingOrder.items.length} 道菜 · {pendingOrder.items.reduce((sum, item) => sum + item.quantity, 0)} 份</Text>
-                <Text className='current-order-card__meta'>{pendingOrder.requesterName} · {pendingOrder.submittedAt}</Text>
+                <Text className='current-order-card__meta'>{pendingOrder.requesterName} · {formatSubmittedAt(pendingOrder.submittedAt)}</Text>
               </View>
               <StateText label='待完成' tone='warn' />
             </View>
@@ -164,7 +167,7 @@ export default function MealOrdersPage() {
                   <View className='history-order-card__head'>
                     <View className='history-order-card__copy'>
                       <Text className='history-order-card__title'>{order.requesterName} 的点餐单</Text>
-                      <Text className='history-order-card__meta'>{order.submittedAt} · {order.items.length} 道菜</Text>
+                      <Text className='history-order-card__meta'>{formatSubmittedAt(order.submittedAt)} · {order.items.length} 道菜</Text>
                     </View>
                     <StateText label={meta.label} tone={meta.tone} />
                   </View>

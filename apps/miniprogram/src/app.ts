@@ -2,6 +2,7 @@ import Taro from '@tarojs/taro'
 import { createElement, useEffect } from 'react'
 import type { PropsWithChildren } from 'react'
 
+import { useBrowserViewport } from './hooks/use-browser-viewport'
 import { ensureLoggedIn } from './api'
 import './app.scss'
 import { FeedbackProvider } from './components/feedback'
@@ -10,6 +11,7 @@ import { parseInviteScene, setPendingInvite, getPendingInvite } from './utils/pe
 import { getCurrentInviteCode } from './utils/invite-state'
 
 function App({ children }: PropsWithChildren) {
+  useBrowserViewport()
   useEffect(() => {
     // Park an invite code from a scanned QR so the family-setup sheet can
     // pre-fill it whenever the user opens it.

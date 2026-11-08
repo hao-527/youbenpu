@@ -1,14 +1,19 @@
-import { Button, Image, Input, Text, Textarea, View } from '@tarojs/components'
+import { useConfirm } from '../../components/feedback'
+import { goBack } from '../../utils/navigation'
+import { SafeImage as Image } from '../../components/safe-image'
+import { DesignIntro } from '../../components/design-intro'
+import { Button, Input, Text, Textarea, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Camera, Utensils } from 'lucide'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 import { AppIcon } from '../../components/app-icon'
 import { ListSelect } from '../../components/list-select'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { useAppShare } from '../../hooks/use-app-share'
-import { useDispatch, useStore } from '../../store'
+import { useDispatch, useStore, useRemoteStatus } from '../../store'
+import { useOperation } from '../../hooks/use-operation'
 import { uid } from '../../store/uid'
 import { palette } from '../../theme/palette'
 import { dishCategories } from '../../types/domain'
@@ -20,6 +25,10 @@ import './index.scss'
 export default function DishFormPage() {
   const { dishes, familyId, customDishCategories } = useStore()
   const dispatch = useDispatch()
+  const confirm = useConfirm()
+  const remote = useRemoteStatus()
+  const submission = useOperation()
+  const upload = useOperation()
   useAppShare()
   const dishId = Taro.getCurrentInstance().router?.params?.id
   const editingDish = dishId ? dishes.find((dish) => dish.id === dishId) : undefined
@@ -36,9 +45,24 @@ export default function DishFormPage() {
   const [photo, setPhoto] = useState(editingDish?.photo ?? '')
   const [showCategoryPicker, setShowCategoryPicker] = useState(false)
 
+
+  const hydratedId = useRef<string | null>(null)
+  useEffect(() => {
+    if (!dishId || !editingDish || hydratedId.current === dishId) return
+    hydratedId.current = dishId
+    setName(editingDish.name)
+    setCategory(editingDish.category)
+    setMethod(editingDish.method)
+    setIngredientsText(editingDish.ingredients.join('、'))
+    setPhoto(editingDish.photo)
+  }, [dishId, editingDish])
+
   const choosePhoto = async () => {
-    const selected = await choosePersistentImage()
-    if (selected) setPhoto(selected)
+    if (submission.busy) return
+    await upload.run(async () => {
+      const selected = await choosePersistentImage()
+      if (selected) setPhoto(selected)
+    })
   }
 
   const clearUnavailablePhoto = () => {
@@ -47,13 +71,14 @@ export default function DishFormPage() {
   }
 
   const addCustomCategory = () => {
-    ;(Taro.showModal as (options: Record<string, unknown>) => Promise<{ confirm: boolean; content?: string }>)({
+    confirm({
       title: '新增菜品分类',
       editable: true,
-      placeholderText: '输入分类名称（10字内）'
+      placeholder: '输入分类名称（10字内）',
+      maxLength: 10
     }).then(async (result) => {
-      if (!result.confirm || !result.content) return
-      const newName = result.content.trim().slice(0, 10)
+      if (!result.confirmed || !result.value) return
+      const newName = result.value.trim().slice(0, 10)
       if (!newName) return
       if (allCategories.includes(newName)) {
         setCategory(newName)
@@ -68,6 +93,8 @@ export default function DishFormPage() {
   }
 
   const submit = async () => {
+    if (submission.busy || upload.busy) return
+    if (!familyId) { Taro.showToast({ title: '请先创建或加入家庭', icon: 'none' }); return }
     const normalizedName = name.trim()
     if (!normalizedName) {
       Taro.showToast({ title: '请填写菜品名称', icon: 'none' })
@@ -101,15 +128,19 @@ export default function DishFormPage() {
       photo,
       available: editingDish?.available ?? true
     }
-    const succeeded = await dispatch(editingDish ? { type: 'dish/update', dish } : { type: 'dish/add', dish })
+    const succeeded = await submission.run(() => dispatch(editingDish ? { type: 'dish/update', dish } : { type: 'dish/add', dish }), '提交失败，已保留内容，请重试', true)
     if (!succeeded) return
     Taro.showToast({ title: editingDish ? '菜品已更新' : '菜品已添加', icon: 'success' })
-    setTimeout(() => Taro.navigateBack(), 350)
+    setTimeout(() => goBack('/pages/dish-manage/index'), 350)
+  }
+
+  if (dishId && !editingDish && (remote.loading || !remote.ready)) {
+    return <PageShell className='dish-form-page' tabPage={false}><PageHeader title='加载记录' /><View className='empty-state'><Text>{remote.loading ? '正在加载，请稍候' : '请重试加载后查看记录'}</Text></View></PageShell>
   }
 
   if (dishId && !editingDish) {
     return (
-      <PageShell tabPage={false}>
+      <PageShell className='dish-form-page' tabPage={false}>
         <PageHeader title='菜品信息' />
         <View className='empty-state surface-card'>
           <View className='empty-state__icon'>
@@ -123,8 +154,9 @@ export default function DishFormPage() {
   }
 
   return (
-    <PageShell tabPage={false} withFixedBar>
+    <PageShell className='dish-form-page' tabPage={false} withFixedBar>
       <PageHeader title={editingDish ? '编辑菜品' : '添加菜品'} subtitle='菜名和分类为必填项' />
+      <DesignIntro kind='recipe'>{'记录一道好菜，\n让家的味道被记住～'}</DesignIntro>
 
       <View className='photo-picker dish-form-photo'>
         <Button className='photo-picker__button tap' hoverClass='tap--pressed' aria-label={photo ? '更换菜品图片' : '添加菜品图片'} onClick={choosePhoto}>
@@ -166,8 +198,9 @@ export default function DishFormPage() {
         </View>
       </View>
 
+      {submission.error && <View className='surface-card form-error'><Text>{submission.error}</Text></View>}
       <View className='fixed-action-bar'>
-        <Button className='button button--primary tap' hoverClass='tap--pressed' onClick={submit}>
+        <Button className='button button--primary tap' hoverClass='tap--pressed' disabled={submission.busy || upload.busy || !familyId} loading={submission.busy || upload.busy} onClick={submit}>
           {editingDish ? '保存修改' : '添加到菜品库'}
         </Button>
       </View>

@@ -1,0 +1,17 @@
+@use 'sass:math';
+
+// Figma: 390 CSS px; Taro: 750 design units -> rpx / H5 rem.
+// Runtime system/capsule measurements remain untransformed inline CSS px.
+@function figma($value) {
+  @return math.div($value * 750, 390) * 1px;
+}
+
+@mixin final-home-tokens {
+  --home-text: #11110f;
+  --home-secondary: #666a73;
+  --home-brand: #a9ef23;
+  --home-coral: #ff634a;
+  --home-income: #ff634a;
+  --home-expense: #2aa617;
+  --home-info: #2585ea;
+}

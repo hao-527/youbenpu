@@ -179,7 +179,7 @@
 }
 
 .ledger-overview__metric-value--income {
-  color: var(--color-success);
+  color: var(--color-income);
 }
 
 .ledger-overview__divider {
@@ -376,7 +376,7 @@
 .ledger-row__amount {
   display: block;
   overflow: hidden;
-  color: var(--color-foreground);
+  color: var(--color-expense);
   font-size: var(--text-md);
   font-weight: 700;
   text-overflow: ellipsis;
@@ -384,7 +384,7 @@
 }
 
 .ledger-row__amount--income {
-  color: var(--color-success);
+  color: var(--color-income);
 }
 
 @media screen and (max-width: 350px) {
@@ -463,3 +463,5 @@
   color: var(--color-subtle-foreground);
   text-decoration: line-through;
 }
+
+.ledger-overview__metric-value--expense, .ledger-member-stat__amount { color: var(--color-expense); }

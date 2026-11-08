@@ -1,4 +1,7 @@
-import { Button, Image, Input, Text, View } from '@tarojs/components'
+import { SafeImage as Image } from '../../components/safe-image'
+import { map, map_mascot } from '../../assets/images/final'
+import { BrandTitle } from '../../components/brand-title'
+import { Button, Input, Text, View } from '@tarojs/components'
 import { useDidShow } from '@tarojs/taro'
 import { ChevronRight, MapPin, Package, Plus, Search, Settings2, Timer, X } from 'lucide'
 import { useMemo, useState } from 'react'
@@ -100,12 +103,21 @@ export default function InventoryPage() {
   const locationListOptions = useMemo(() => locationOptions.map((l) => ({ label: l, value: l })), [locationOptions])
 
   return (
-    <PageShell withFab>
+    <PageShell className='inventory-page'>
       <View className='page-title inventory-title'>
         <View>
-          <Text className='page-title__text'>找物品</Text>
+          <BrandTitle className='page-title__text'>找物品</BrandTitle>
           <Text className='page-title__subtitle'>{activeCount} 件正在使用</Text>
         </View>
+      <Button
+        className='inventory-add-entry button button--primary tap'
+        hoverClass='tap--pressed'
+        aria-label='新增物品'
+        onClick={() => navigate('/pages/inventory-form/index')}
+      >
+        <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
+        <Text>新增</Text>
+      </Button>
         <Button className='content-action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/inventory-manage/index')}>
           <AppIcon icon={Settings2} size={16} color={palette.foreground} />
           <Text>管理</Text>
@@ -126,6 +138,16 @@ export default function InventoryPage() {
         />
       </View>
 
+      <View className='inventory-map'>
+        <View className='inventory-map__stage'>
+          <Image className='inventory-map__house' src={map} mode='aspectFit' />
+          <Image className='inventory-map__mascot' src={map_mascot} mode='aspectFit' />
+        </View>
+        <View className='inventory-map__locations'>{locations.slice(0, 4).map(location => {
+          const count = displayInventory.filter(item => item.location === location).length
+          return <Button key={location} className={`inventory-map__location tap ${locationFilter === location ? 'inventory-map__location--active' : ''}`} onClick={() => setLocationFilter(locationFilter === location ? '全部地点' : location)}><Text className='inventory-map__name'>{location}</Text><Text className='inventory-map__count'>{count}</Text></Button>
+        })}</View>
+      </View>
       <View className='inventory-filters'>
         <Button
           className={`inventory-filter tap ${categoryFilter !== '全部' ? 'inventory-filter--active' : ''}`}
@@ -181,14 +203,14 @@ export default function InventoryPage() {
             mode='aspectFit'
           />
           <Text className='empty-state__title'>没有找到相关物品</Text>
-          <Text className='empty-state__copy'>{hasActiveFilters ? '没有符合条件的物品，试试清除筛选或调整关键词。' : '还没有记录物品，点击下方“新增”开始建立家庭物品清单。'}</Text>
+          <Text className='empty-state__copy'>{hasActiveFilters ? '没有符合条件的物品，试试清除筛选或调整关键词。' : '还没有记录物品，点击“新增”开始建立家庭物品清单。'}</Text>
         </View>
       ) : (
         <View className='inventory-list surface-card'>
           {visibleItems.map((item) => (
             <Button key={item.id} className='inventory-row tap tap-row' hoverClass='tap--pressed' onClick={() => navigate(`/pages/inventory-detail/index?id=${item.id}`)}>
               {item.photo ? (
-                <Image className='inventory-row__photo' src={item.photo} mode='aspectFill' lazyLoad />
+                <Image className='inventory-row__photo' src={item.photo} mode='aspectFit' lazyLoad />
               ) : (
                 <View className='inventory-row__photo inventory-row__placeholder'>
                   <AppIcon icon={Package} size={22} color={palette.subtleForeground} />
@@ -211,15 +233,7 @@ export default function InventoryPage() {
         </View>
       )}
 
-      <Button
-        className='fab tap'
-        hoverClass='tap--pressed'
-        aria-label='新增物品'
-        onClick={() => navigate('/pages/inventory-form/index')}
-      >
-        <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
-        <Text>新增</Text>
-      </Button>
+
 
       <ListSelect
         open={openFilter === 'category'}

@@ -2,10 +2,8 @@ import Taro from '@tarojs/taro'
 
 import type {
   Dish,
-  DishCategory,
   FamilyMember,
   FamilyRole,
-  InventoryCategory,
   InventoryItem,
   InventoryStatus,
   LedgerEntry,
@@ -165,7 +163,8 @@ function normalizeLedger(value: unknown, familyId: string, defaultMemberName: st
       ...(note ? { note } : {}),
       noteVisibility: candidate.noteVisibility === 'private' ? 'private' : 'shared',
       // Missing/legacy cached entries default to counting.
-      countsTowardTotal: candidate.countsTowardTotal !== false
+      countsTowardTotal: candidate.countsTowardTotal !== false,
+      canEdit: candidate.canEdit !== false
     })
   })
 

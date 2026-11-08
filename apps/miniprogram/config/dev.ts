@@ -5,11 +5,10 @@ const config: UserConfigExport = {
     NODE_ENV: '"development"'
   },
   defineConstants: {
-    // Local backend for devtools simulator. The simulator can reach the API
-    // via 127.0.0.1. For 真机预览 on a phone, swap this to the Mac's LAN IP
-    // (check with `ipconfig getifaddr en0`, e.g. http://172.18.13.236:8080)
-    // because 127.0.0.1 only works inside the simulator.
-    API_BASE_URL: '"http://172.18.11.84:8080"'
+    // Simulator/H5 use loopback. Real-phone development can explicitly set
+    // TARO_APP_API_BASE to this Mac's reachable LAN URL; no stale IP fallback.
+    API_BASE_URL: JSON.stringify(process.env.TARO_APP_API_BASE || 'http://127.0.0.1:8080'),
+    REQUIRE_WECHAT_LOGIN: JSON.stringify(process.env.TARO_APP_REQUIRE_WECHAT_LOGIN === '1')
   },
   mini: {}
 }

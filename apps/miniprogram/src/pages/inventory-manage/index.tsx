@@ -1,4 +1,7 @@
-import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
+import { useConfirm } from '../../components/feedback'
+import { pantry } from '../../assets/images/final'
+import { SafeImage as Image } from '../../components/safe-image'
+import { Button, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Package, Pencil, Plus, RotateCcw, Trash2 } from 'lucide'
 import { useMemo, useState } from 'react'
@@ -32,6 +35,7 @@ function getStatusLabel(item: InventoryItem) {
 export default function InventoryManagePage() {
   const { inventory, customInventoryCategories } = useStore()
   const dispatch = useDispatch()
+  const confirm = useConfirm()
   useAppShare()
   const [tab, setTab] = useState<ManageTab>('all')
   const [activeCategory, setActiveCategory] = useState<'全部' | InventoryCategory>('全部')
@@ -67,13 +71,13 @@ export default function InventoryManagePage() {
       Taro.showToast({ title: '还有物品在使用这个分类', icon: 'none' })
       return
     }
-    Taro.showModal({
+    confirm({
       title: `删除自定义分类"${category}"？`,
       content: '删除后，新增或编辑物品时不再出现这个分类。',
       confirmText: '删除',
-      confirmColor: palette.destructive
+      danger: true
     }).then(async (result) => {
-      if (!result.confirm) return
+      if (!result.confirmed) return
       const succeeded = await dispatch({ type: 'category/removeInventory', name: category })
       if (!succeeded) return
       if (activeCategory === category) setActiveCategory('全部')
@@ -90,50 +94,51 @@ export default function InventoryManagePage() {
   }
 
   const permanentDelete = (id: string, name: string) => {
-    Taro.showModal({
+    confirm({
       title: `永久删除"${name}"？`,
       content: '删除后无法恢复。',
       confirmText: '永久删除',
-      confirmColor: palette.destructive
+      danger: true
     }).then(async (result) => {
-      if (result.confirm) await dispatch({ type: 'inventory/permanentDelete', id })
+      if (result.confirmed) await dispatch({ type: 'inventory/permanentDelete', id })
     })
   }
 
   const permanentDeleteAll = () => {
     if (trashItems.length === 0) return
-    Taro.showModal({
+    confirm({
       title: '清空全部？',
       content: `将永久删除 ${trashItems.length} 个物品，无法恢复。`,
       confirmText: '全部删除',
-      confirmColor: palette.destructive
+      danger: true
     }).then(async (result) => {
-      if (!result.confirm) return
+      if (!result.confirmed) return
       const succeeded = await dispatch({ type: 'inventory/permanentDeleteAll', ids: trashItems.map((item) => item.id) })
       if (succeeded) Taro.showToast({ title: '已全部清除', icon: 'success' })
     })
   }
 
   const softDelete = (id: string, name: string) => {
-    Taro.showModal({
+    confirm({
       title: `删除"${name}"？`,
       content: '物品会移入垃圾桶，可稍后恢复或永久删除。',
       confirmText: '删除',
-      confirmColor: palette.destructive
+      danger: true
     }).then((result) => {
-      if (result.confirm) dispatch({ type: 'inventory/delete', id })
+      if (result.confirmed) dispatch({ type: 'inventory/delete', id })
     })
   }
 
   return (
-    <PageShell tabPage={false}>
-      <PageHeader title='物品管理' subtitle={`${allItems.length} 件物品`} />
+    <PageShell className='inventory-manage-page'  tabPage={false}>
+      <Image className='inventory-manage-header-art' src={pantry} mode='aspectFit' />
+      <PageHeader title='物品管理' subtitle={`${allItems.length} 件物品`} end={<Button className='content-action tap' onClick={() => navigate('/pages/inventory-form/index')}>新增物品</Button>} />
 
       {/* Tab bar */}
       <View className='im-tabs'>
         <Button className={`im-tab tap ${tab === 'all' ? 'im-tab--active' : ''}`} hoverClass='tap--pressed' onClick={() => setTab('all')}>
           <AppIcon icon={Package} size={16} color={tab === 'all' ? palette.primary : palette.subtleForeground} />
-          <Text>全部物品</Text>
+          <Text>全部物品 {allItems.length}</Text>
         </Button>
         <Button className={`im-tab tap ${tab === 'trash' ? 'im-tab--active' : ''}`} hoverClass='tap--pressed' onClick={() => setTab('trash')}>
           <AppIcon icon={Trash2} size={16} color={tab === 'trash' ? palette.destructive : palette.subtleForeground} />
@@ -165,6 +170,7 @@ export default function InventoryManagePage() {
 
         {/* Right: item list */}
         <ScrollView className='im-list' scrollY>
+          <View className='im-list__content'>
           {/* Trash header with clear-all */}
           {tab === 'trash' && trashItems.length > 0 && (
             <Button className='im-clear-all danger-action tap' hoverClass='tap--pressed' onClick={permanentDeleteAll}>
@@ -177,13 +183,13 @@ export default function InventoryManagePage() {
             <View className='im-empty'>
               <AppIcon icon={tab === 'trash' ? Trash2 : Package} size={28} color={palette.subtleForeground} />
               <Text className='im-empty__title'>{tab === 'trash' ? '垃圾桶是空的' : '暂无物品'}</Text>
-              <Text className='im-empty__copy'>{tab === 'trash' ? '删除的物品会出现在这里' : '点右下角新增按钮添加物品'}</Text>
+              <Text className='im-empty__copy'>{tab === 'trash' ? '删除的物品会出现在这里' : '点击“新增物品”开始记录'}</Text>
             </View>
           ) : (
             visibleItems.map((item) => (
               <View key={item.id} className='im-row'>
                 {item.photo ? (
-                  <Image className='im-row__photo' src={item.photo} mode='aspectFill' lazyLoad />
+                  <Image className='im-row__photo' src={item.photo} mode='aspectFit' lazyLoad />
                 ) : (
                   <View className='im-row__photo im-row__placeholder'>
                     <AppIcon icon={Package} size={20} color={palette.subtleForeground} />
@@ -226,6 +232,7 @@ export default function InventoryManagePage() {
               <Text>新增物品</Text>
             </Button>
           )}
+          </View>
         </ScrollView>
       </View>
     </PageShell>

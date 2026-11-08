@@ -1,7 +1,12 @@
 import Taro from '@tarojs/taro'
+import { clearCurrentInviteCode } from '../utils/invite-state'
+import { API, requireWechatLogin } from './config'
 
-const TOKEN_KEY = 'youbenpu_token'
-const USER_KEY = 'youbenpu_user'
+// Keep official WeChat sessions separate from simulator identities and from
+// credentials issued by a different API environment.
+const sessionPrefix = requireWechatLogin ? `youbenpu_wechat_${encodeURIComponent(API.BASE)}` : 'youbenpu'
+const TOKEN_KEY = `${sessionPrefix}_token`
+const USER_KEY = `${sessionPrefix}_user`
 
 export interface UserInfo {
   userId: string
@@ -33,24 +38,35 @@ export function getUserInfo(): UserInfo | null {
 }
 
 export function setUserInfo(info: UserInfo): void {
+  const previous = getUserInfo()
+  const changed = previous && (previous.familyId !== info.familyId || previous.userId !== info.userId)
+  if (changed) clearCurrentInviteCode()
   Taro.setStorageSync(USER_KEY, JSON.stringify(info))
+  if (changed) identityChangeListeners.forEach(listener => listener())
 }
 
 export function clearUserInfo(): void {
   Taro.removeStorageSync(USER_KEY)
 }
 
-const sessionClearListeners = new Set<() => void>()
+const identityChangeListeners = new Set<() => void>()
+export function onIdentityChanged(listener: () => void): () => void {
+  identityChangeListeners.add(listener)
+  return () => { identityChangeListeners.delete(listener) }
+}
 
-export function onSessionCleared(listener: () => void): () => void {
+const sessionClearListeners = new Set<(reason: string) => void>()
+
+export function onSessionCleared(listener: (reason: string) => void): () => void {
   sessionClearListeners.add(listener)
   return () => sessionClearListeners.delete(listener)
 }
 
-export function clearSession(): void {
+export function clearSession(reason = ''): void {
+  clearCurrentInviteCode()
   clearToken()
   clearUserInfo()
-  sessionClearListeners.forEach((listener) => listener())
+  sessionClearListeners.forEach((listener) => listener(reason))
 }
 
 export function isLoggedIn(): boolean {
@@ -60,4 +76,9 @@ export function isLoggedIn(): boolean {
 export function hasFamily(): boolean {
   const info = getUserInfo()
   return !!info?.familyId
+}
+
+/** Ignore delayed failures from a request issued before the current login. */
+export function clearSessionIfCurrent(requestToken: string, reason = ''): void {
+  if (requestToken && getToken() === requestToken) clearSession(reason)
 }

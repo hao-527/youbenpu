@@ -107,7 +107,7 @@
   background: var(--color-primary);
 }
 
-.quantity-stepper__button[disabled] {
+.quantity-stepper__button[disabled]:not([disabled='false']) {
   border-color: var(--color-border);
   background: var(--color-muted);
 }

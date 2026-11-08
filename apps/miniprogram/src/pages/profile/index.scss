@@ -188,7 +188,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 100;
+  z-index: 300;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -295,3 +295,5 @@
   border-bottom: 0;
   box-shadow: none;
 }
+
+.profile-empty__art { display: block; width: 320rpx; height: 210rpx; margin: 0 auto 24rpx; }

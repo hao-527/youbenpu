@@ -1,6 +1,6 @@
 import Taro from '@tarojs/taro'
 
-import { clearSession, getToken } from './token'
+import { clearSessionIfCurrent, getToken } from './token'
 
 type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
 
@@ -37,8 +37,9 @@ async function request<T>(method: Method, url: string, data?: unknown, options?:
     'Content-Type': 'application/json'
   }
 
+  const requestToken = options?.noAuth ? '' : getToken()
   if (!options?.noAuth) {
-    const token = getToken()
+    const token = requestToken
     if (token) {
       header['Authorization'] = `Bearer ${token}`
     }
@@ -71,7 +72,7 @@ async function request<T>(method: Method, url: string, data?: unknown, options?:
 
     // Handle auth errors
     if (statusCode === 401) {
-      clearSession()
+      clearSessionIfCurrent(requestToken, '登录已过期，请重试')
       // Will be caught by the app to redirect to login
       throw new HttpError(401, 'UNAUTHORIZED', '登录已过期')
     }

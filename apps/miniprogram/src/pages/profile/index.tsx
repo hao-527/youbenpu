@@ -1,17 +1,19 @@
+import { useConfirm } from '../../components/feedback'
+import { SafeImage as Image } from '../../components/safe-image'
+import { profile_garden, family_garden } from '../../assets/images/final'
+import { BrandTitle } from '../../components/brand-title'
 import { Button, Switch, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { Bell, ChevronRight, Home, LogOut, MapPin, Share2, Tags, UserPlus, Users, Utensils } from 'lucide'
+import { Bell, ChevronRight, Home, LogOut, MapPin, Share2, Tags, User, UserPlus, Users, Utensils } from 'lucide'
 import { useRef, useState } from 'react'
 
-import { createInvitation, leaveFamily } from '../../api'
+import { createInvitation, ensureLoggedIn, leaveFamily } from '../../api'
 import { clearSession, hasFamily } from '../../api/token'
-import { ActionSheet } from '../../components/action-sheet'
 import { AppIcon } from '../../components/app-icon'
-import { FamilySwitcher } from '../../components/family-switcher'
 import { PageShell } from '../../components/page-shell'
 import { useAppShare } from '../../hooks/use-app-share'
 import { useFamilyGate } from '../../hooks/use-family-gate'
-import { useDispatch, useMaybeRefreshStore, useStore } from '../../store'
+import { useDispatch, useMaybeRefreshStore, useRefreshStore, useStore } from '../../store'
 import { palette } from '../../theme/palette'
 import { setCurrentInviteCode } from '../../utils/invite-state'
 import { navigate } from '../../utils/navigation'
@@ -21,45 +23,41 @@ import './index.scss'
 export default function ProfilePage() {
   const { familyName, members, settings, currentMemberId } = useStore()
   const dispatch = useDispatch()
-  const currentMember = members.find((m) => m.id === currentMemberId) ?? members[0]
+  const refresh = useRefreshStore()
+  const confirm = useConfirm()
+  const currentMember = members.find((m) => m.id === currentMemberId)
   const isAdmin = currentMember?.roleLabel === '家庭管理员'
   const { joined, openFamilySetup, familyGate } = useFamilyGate()
-  const promptedRef = useRef(false)
   const maybeRefresh = useMaybeRefreshStore()
 
-  // New users see the create/join sheet the first time they open 我的 in a
-  // session — not on app launch, so browsing is never blocked upfront.
-  // Also pull fresh family data on show so edits from other members appear.
-  useDidShow(() => {
-    void maybeRefresh()
-    if (hasFamily() || promptedRef.current) return
-    promptedRef.current = true
-    openFamilySetup()
-  })
+  // Browsing and replaying the example never forces family creation.
+  useDidShow(() => { void maybeRefresh() })
 
   const [showInvite, setShowInvite] = useState(false)
   const [inviteCode, setInviteCode] = useState('')
-  const [inviteExpires, setInviteExpires] = useState('')
   const [inviteLoading, setInviteLoading] = useState(false)
+  const inviteLock = useRef(false)
 
   const generateInvite = async () => {
+    if (inviteLock.current) return
+    inviteLock.current = true
     setInviteLoading(true)
     try {
       const result = await createInvitation()
       setInviteCode(result.code)
-      setInviteExpires(result.expires_at)
       setCurrentInviteCode(result.code) // Set for share handler
       setShowInvite(true)
     } catch (error: any) {
       Taro.showToast({ title: error.message || '生成邀请码失败', icon: 'none' })
     } finally {
+      inviteLock.current = false
       setInviteLoading(false)
     }
   }
 
-  const copyCode = () => {
-    Taro.setClipboardData({ data: inviteCode })
-    Taro.showToast({ title: '已复制', icon: 'success' })
+  const copyCode = async () => {
+    try { await Taro.setClipboardData({ data: inviteCode }); Taro.showToast({ title: '已复制', icon: 'success' }) }
+    catch { Taro.showToast({ title: '复制失败，请手动复制上方邀请码', icon: 'none' }) }
   }
 
   // Page-level share — invite-aware. When an invite code has been generated
@@ -82,20 +80,21 @@ export default function ProfilePage() {
       content = '你是最后一位成员，退出后家庭将被解散，所有数据将被删除。'
     }
 
-    Taro.showModal({
+    confirm({
       title: '退出家庭',
       content,
       confirmText: '退出',
-      confirmColor: palette.destructive
+      danger: true
     }).then(async (result) => {
-      if (!result.confirm) return
+      if (!result.confirmed) return
       try {
         await leaveFamily()
         clearSession()
+        await ensureLoggedIn()
+        await refresh()
         Taro.showToast({ title: '已退出', icon: 'success' })
         // Stay on 我的 and offer the create/join sheet again.
-        promptedRef.current = true
-        setTimeout(() => openFamilySetup('你已退出家庭，创建或加入一个新的家庭继续使用。'), 600)
+        if (!hasFamily()) setTimeout(() => openFamilySetup('你已退出家庭，创建或加入一个新的家庭继续使用。'), 600)
       } catch (error: any) {
         Taro.showToast({ title: error.message || '退出失败', icon: 'none' })
       }
@@ -105,16 +104,17 @@ export default function ProfilePage() {
   // ---------- 未加入家庭：只展示引导，不展示家庭相关设置 ----------
   if (!joined) {
     return (
-      <PageShell>
+      <PageShell className='profile-page'>
         <View className='page-title'>
           <View>
-            <Text className='page-title__text'>我的</Text>
-            <Text className='page-title__subtitle'>生活有本谱 · 家庭记账、物品管理、一起点餐</Text>
+            <BrandTitle className='page-title__text'>我的</BrandTitle>
+            <Text className='page-title__subtitle'>管理家庭，让生活更有谱。</Text>
           </View>
         </View>
 
         <View className='profile-empty surface-card'>
-          <Text className='profile-empty__title'>还没有加入家庭</Text>
+          <Image className='profile-empty__art' src={family_garden} mode='aspectFit' />
+          <Text className='profile-empty__title'>给一家人一个共享空间</Text>
           <Text className='profile-empty__copy'>
             创建一个家庭，或用邀请码加入家人的家庭，就能一起记账、管理物品和点餐。
           </Text>
@@ -138,7 +138,7 @@ export default function ProfilePage() {
           </View>
         </View>
 
-        <Text className='profile-footer'>生活有本谱 v1.0.0</Text>
+      <Text className='profile-footer'>生活有本谱 v1.0.0</Text>
 
         {familyGate}
       </PageShell>
@@ -146,29 +146,29 @@ export default function ProfilePage() {
   }
 
   return (
-    <PageShell>
+    <PageShell className='profile-page'>
+      <View className='page-title'><View><BrandTitle className='page-title__text'>我的</BrandTitle><Text className='page-title__subtitle'>管理家庭，让生活更有谱。</Text></View></View>
       {/* ---------- 顶部身份区：紧凑，可点击 ---------- */}
       <Button
         className='profile-header tap tap-row'
         hoverClass='tap--pressed'
         onClick={() => navigate('/pages/family-manage/index')}
       >
+        <Image className='profile-garden' src={profile_garden} mode='aspectFit' />
         <View className='profile-header__avatar'>
-          {currentMember?.avatarText || '我'}
+          <AppIcon icon={User} size={30} color='#7aa82f' />
         </View>
         <View className='profile-header__body'>
           <Text className='profile-header__name'>
             {currentMember?.displayName || '用户'}
           </Text>
-          <Text className='profile-header__meta'>
-            {familyName} · {currentMember?.roleLabel || '成员'}
-          </Text>
+          <View className='profile-header__tags'>
+            <Text className='profile-header__tag'>{familyName}</Text>
+          </View>
         </View>
         <AppIcon icon={ChevronRight} size={18} color={palette.disabledForeground} />
       </Button>
 
-      {/* ---------- 我的家庭：切换 / 新建 ---------- */}
-      <FamilySwitcher onCreateNew={() => openFamilySetup('创建一个新的家庭，和不同的成员共享不同的数据。')} />
 
       {/* ---------- 功能入口 ---------- */}
       <View className='section'>
@@ -176,6 +176,18 @@ export default function ProfilePage() {
           <Text className='section__title'>管理</Text>
         </View>
         <View className='profile-menu surface-card'>
+          <Button
+            className='profile-menu__item tap tap-row'
+            hoverClass='tap--pressed'
+            onClick={() => navigate('/pages/family-switch/index')}
+          >
+            <View className='icon-bubble icon-bubble--xs icon-bubble--primary'>
+              <AppIcon icon={Home} size={15} color={palette.primary} />
+            </View>
+            <Text className='profile-menu__label'>我的家庭</Text>
+            <Text className='profile-menu__value'>{familyName}</Text>
+            <AppIcon icon={ChevronRight} size={16} color={palette.disabledForeground} />
+          </Button>
           <Button
             className='profile-menu__item tap tap-row'
             hoverClass='tap--pressed'

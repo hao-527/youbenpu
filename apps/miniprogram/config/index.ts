@@ -1,10 +1,13 @@
 import { defineConfig, type UserConfigExport } from '@tarojs/cli'
+import path from 'node:path'
 
 import devConfig from './dev'
 import prodConfig from './prod'
 
 export default defineConfig(async (merge, { command }) => {
   const isWatch = process.argv.includes('--watch')
+  const isDevelopmentBuild = isWatch || process.env.NODE_ENV === 'development'
+  const outputRoot = process.env.YBP_OUTPUT_ROOT || (process.env.TARO_ENV === 'h5' ? 'dist-h5' : 'dist')
   const baseConfig: UserConfigExport = {
     projectName: 'youbenpu-miniprogram',
     date: '2026-08-03',
@@ -16,9 +19,15 @@ export default defineConfig(async (merge, { command }) => {
       828: 0.905
     },
     sourceRoot: 'src',
-    outputRoot: 'dist',
+    outputRoot,
     framework: 'react',
-    compiler: 'webpack5',
+    alias: { 'lucide$': path.resolve(__dirname, '../src/icons/lucide.js') },
+    compiler: {
+      type: 'webpack5',
+      // Taro's development prebundle rewrites Lucide's Infinity icon export
+      // as the global constant. Let webpack process the original ESM instead.
+      prebundle: { exclude: ['lucide'] }
+    },
     cache: {
       enable: false
     },
@@ -45,7 +54,7 @@ export default defineConfig(async (merge, { command }) => {
     },
     copy: {
       patterns: [
-        { from: 'src/assets/tabbar/', to: 'dist/assets/tabbar/', ignore: ['.*'] }
+        { from: 'src/assets/tabbar/', to: `${outputRoot}/assets/tabbar/`, ignore: ['.*'] }
       ],
       options: {}
     },
@@ -74,8 +83,6 @@ export default defineConfig(async (merge, { command }) => {
     }
   }
 
-  const finalConfig = merge({}, baseConfig, command === 'build' && !isWatch ? prodConfig : devConfig)
-  // eslint-disable-next-line no-console
-  console.log('[DEBUG config] h5.devServer.client =', JSON.stringify(finalConfig.h5?.devServer?.client))
+  const finalConfig = merge({}, baseConfig, command === 'build' && !isDevelopmentBuild ? prodConfig : devConfig)
   return finalConfig
 })

@@ -31,6 +31,24 @@ export function getPreviousDate(value: string): string {
   return formatLocalDate(addDays(date, -1))
 }
 
+/** Display the API's submission time; never infer completion/cancellation time. */
+export function formatSubmittedAt(value: string, now = new Date()): string {
+  if (!value) return '时间未提供'
+  // Store display timestamps are local "YYYY-MM-DD HH:mm". iOS does not
+  // reliably parse that string; keep its local meaning without UTC conversion.
+  const local = /^(\d{4}-\d{2}-\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?$/.exec(value)
+  const dayDate = local ? parseLocalDate(local[1]) : null
+  if (local && (!dayDate || Number(local[2]) > 23 || Number(local[3]) > 59 || Number(local[4] || 0) > 59)) return value
+  const date = local && dayDate
+    ? new Date(dayDate.getFullYear(), dayDate.getMonth(), dayDate.getDate(), Number(local[2]), Number(local[3]), Number(local[4] || 0))
+    : new Date(value)
+  if (Number.isNaN(date.getTime())) return value
+  const day = formatLocalDate(date)
+  const today = formatLocalDate(now)
+  const label = day === today ? '今天' : day === getPreviousDate(today) ? '昨天' : `${date.getMonth() + 1}月${date.getDate()}日`
+  return `${label} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`
+}
+
 export function getNaturalMonthStart(months: number, now = new Date()): string {
   return formatLocalDate(new Date(now.getFullYear(), now.getMonth() - Math.max(0, months - 1), 1))
 }

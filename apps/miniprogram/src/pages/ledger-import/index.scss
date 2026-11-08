@@ -148,11 +148,11 @@
 .import-row__amount {
   font-size: 30rpx;
   font-weight: 600;
-  color: var(--color-foreground);
+  color: var(--color-expense);
 }
 
 .import-row__amount--income {
-  color: var(--color-success);
+  color: var(--color-income);
 }
 
 .import-actionbar {

@@ -1,5 +1,8 @@
 /** API base URL — injected by Taro defineConstants per environment */
 declare const API_BASE_URL: string
+declare const REQUIRE_WECHAT_LOGIN: boolean
+
+export const requireWechatLogin = typeof REQUIRE_WECHAT_LOGIN !== 'undefined' && REQUIRE_WECHAT_LOGIN
 
 const API_BASE = typeof API_BASE_URL !== 'undefined'
   ? API_BASE_URL
@@ -7,6 +10,7 @@ const API_BASE = typeof API_BASE_URL !== 'undefined'
 
 export const API = {
   BASE: API_BASE,
+  META: `${API_BASE}/api/v1/meta`,
   AUTH_LOGIN: `${API_BASE}/api/v1/auth/login`,
   FAMILY: `${API_BASE}/api/v1/family`,
   FAMILY_INFO: `${API_BASE}/api/v1/family/info`,

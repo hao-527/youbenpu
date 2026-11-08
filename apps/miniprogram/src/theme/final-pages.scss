@@ -1,0 +1,148 @@
+@use './figma' as *;
+@mixin pages {
+  .page-shell .profile-page .profile-header { position: relative; overflow: hidden; width: 100% !important; min-height: figma(106); padding: figma(12); border: figma(1.5) solid white; border-radius: figma(20); background: linear-gradient(100deg,#e0ff9c,#f5ffc2 56%,#dbff91); }
+  .page-shell .profile-garden { position: absolute; right: figma(4); bottom: 0; width: figma(168); height: figma(96); opacity: .98; }
+  .page-shell .profile-header__avatar { flex-shrink: 0; border: figma(3) solid white; width: figma(60); min-width: figma(60); height: figma(60); border-radius: 50%; background: linear-gradient(160deg,#f1ffd0,#d9f5a0); box-shadow: 0 figma(3) figma(8) rgba(122,168,47,.2); }
+  .page-shell .profile-header__body { z-index: 1; display: flex; flex-direction: column; gap: figma(6); max-width: 50%; }
+  .page-shell .profile-header__tags { display: flex; flex-wrap: wrap; gap: figma(5); }
+  .page-shell .profile-header__tag { max-width: figma(110); padding: 0 figma(8); overflow: hidden; border-radius: figma(99); background: rgba(255,255,255,.85); color: #5b6153; font-size: figma(11); line-height: figma(20); text-overflow: ellipsis; white-space: nowrap; }
+  .page-shell .profile-header__name { font-size: figma(22); line-height: figma(28); font-weight: 900; }
+  .page-shell .profile-page .profile-menu__item { min-height: figma(46); padding: figma(4) figma(10); }
+  .page-shell .profile-page .profile-menu__label { font-size: figma(14); font-weight: 700; }
+  .page-shell .profile-page .profile-menu__item + .profile-menu__item { border-color: #f5f4f0; }
+  .page-shell .profile-page .profile-leave-btn { width: 100% !important; min-height: figma(44); padding: 0 figma(14); border: figma(1) solid #ffb7a9; border-radius: figma(16); background: #fff0eb; }
+  /* scroll-view must not carry padding (devtools warns); the track holds it. */
+  .page-shell .family-tiles { padding: 0; background: white; border-radius: figma(22); }
+  .page-shell .family-tiles__track { display: flex; gap: figma(8); padding: figma(8); }
+  .page-shell .family-tiles .family-tile { display: flex; flex: 0 0 figma(112); flex-direction: column; align-items: center; justify-content: flex-start; gap: figma(4); min-height: figma(106); margin: 0; padding: figma(8); border: figma(1) solid #eeeae0; border-radius: figma(14); background: #fff0eb; font-size: figma(12); line-height: figma(18); }
+  .page-shell .family-tiles .family-tile--active { background: #efffd1; border-color: #a9ef23; }
+  .page-shell .family-tile__art { width: figma(80); height: figma(52); }
+  .page-shell .family-tile__current { display: block; padding: 0 figma(6); background: #9ce522; color: #304514; font-size: figma(10); border-radius: figma(99); }
+  .page-shell .family-tiles .family-tile--new { flex-basis: figma(104); justify-content: center; gap: figma(6); border: figma(1.5) dashed #ffb3a3; background: #fffaf8; }
+  .page-shell .family-tile__plus { display: flex; align-items: center; justify-content: center; width: figma(34); height: figma(34); border-radius: 50%; background: linear-gradient(145deg,#ff8a6b,#ff634a); box-shadow: 0 figma(3) figma(8) rgba(255,99,74,.28); }
+  .page-shell .family-tile__new-label { font-size: figma(13); line-height: figma(18); font-weight: 800; color: #11110f; }
+  .page-shell .family-tile__new-hint { font-size: figma(10); line-height: figma(14); color: #a0715f; text-align: center; }
+  .page-shell .family-manage-page .family-overview { position: relative; overflow: hidden; min-height: figma(190); padding: figma(16); background: linear-gradient(100deg,#d5ff78,#f0ffd2 50%,#d5ff78); border: figma(1.5) solid white; }
+  .page-shell .family-garden { position: absolute; width: figma(166); height: figma(146); bottom: figma(14); right: figma(8); }
+  .page-shell .family-overview__body { position: relative; max-width: 55%; }
+  .page-shell .family-overview__name { font-size: figma(30); font-weight: 900; }
+  .page-shell .family-overview > .icon-bubble { display: none; }
+  .page-shell .family-member-list { display: flex; flex-wrap: wrap; padding: figma(12); gap: figma(10); }
+  .page-shell .family-member-list .family-member-row { position: relative; display: flex; flex-direction: column; flex: 1 1 28%; min-width: figma(94); gap: figma(4); padding: figma(8) 0; border: 0; text-align: center; }
+  .page-shell .family-member-row__avatar { width: figma(58); min-width: figma(58); height: figma(58); border-radius: 50%; font-size: figma(24); }
+  .page-shell .family-member-row__body { width: 100%; }
+  .page-shell .family-member-row__name-line { justify-content: center; flex-wrap: wrap; }
+  .page-shell .family-member-row__current { display: none; }
+  .page-shell .family-role-label { display: block; min-height: figma(20); font-size: figma(11); }
+  .page-shell .family-role-button { display: flex; justify-content: center; align-items: center; width: 100% !important; min-height: 44PX; border-radius: figma(16); background: #efffd1; color: #429a00; font-size: figma(11); }
+  .page-shell .family-member-row .family-member-row__remove { width: 100% !important; min-height: 44PX; border-radius: figma(16); background: #fff0eb; font-size: figma(11); color: #ff634a; }
+  .page-shell .family-manage-page .family-permission-note { border: 0; border-radius: figma(20); background: #fff5d9; }
+  .page-shell .ledger-page .ledger-overview { position: relative; overflow: hidden; padding: figma(12); border: figma(1.5) solid white; background: linear-gradient(100deg,#d5ff78,#f0ffd2 50%,#d5ff78); }
+  .page-shell .ledger-finance-art { position: absolute; right: figma(10); top: figma(24); width: figma(120); height: figma(90); }
+  .page-shell .ledger-overview__balance { position: relative; font-size: figma(40); font-weight: 900; color: #11110f; line-height: figma(52); max-width: 100%; overflow-wrap: anywhere; }
+  .page-shell .ledger-overview__head { position: relative; }
+  .page-shell .ledger-page .ledger-overview__metrics { padding: figma(8); margin-top: figma(8); background: white; border-radius: figma(18); }
+  .page-shell .ledger-member-stats { padding: figma(8); margin-top: figma(8); border: 0; border-radius: figma(18); background: white; }
+  .page-shell .ledger-member-stats__rows { display: flex; flex-wrap: wrap; gap: figma(6); }
+  .page-shell .ledger-member-stat { flex: 1 1 25%; padding: figma(6); border-radius: figma(12); background: #eaf5ff; flex-direction: column; align-items: flex-start; gap: figma(2); }
+  .page-shell .ledger-page .ledger-records { background: white; border-radius: figma(22); padding: figma(12); }
+  .page-shell .ledger-records__head { display: flex; flex-wrap: wrap; gap: figma(8); }
+  .page-shell .ledger-add-record { margin-left: auto; width: auto !important; flex: 0 0 auto; order: 2; }
+  .page-shell .ledger-day__head { background: #efffd1; border-radius: figma(99); padding: 0 figma(12); }
+  .page-shell .ledger-day__head .section__title { font-size: figma(12); font-weight: 500; }
+  .page-shell .ledger-day .ledger-list { box-shadow: none; }
+  .page-shell .ledger-page .ledger-row { width: 100% !important; min-height: figma(54); padding: figma(8) 0; }
+  .page-shell .ledger-row__title { font-size: figma(14); }
+  .page-shell .ledger-row__amount { font-size: figma(14); }
+  .page-shell .ledger-entry-page .ledger-entry-card { background: transparent; box-shadow: none; padding: 0; }
+  .page-shell .ledger-entry-page .ledger-entry-field { margin-top: figma(10); border: 0; padding: figma(14); background: white; border-radius: figma(22); }
+  .page-shell .ledger-entry-page .ledger-entry-field--amount { margin-top: 0; background: linear-gradient(100deg,#d5ff78,#f0ffd2 50%,#d5ff78); }
+  .page-shell .ledger-entry-page .ledger-entry-type-switch { width: 100%; margin: 0; }
+  .page-shell .ledger-entry-page .ledger-entry-amount { border: 0; background: transparent; margin-top: figma(12); padding: 0; }
+  .page-shell .ledger-entry-page .ledger-entry-amount__input, .ledger-entry-page .ledger-entry-amount__symbol { color: #11110f; font-size: figma(44); font-weight: 900; }
+  .page-shell .ledger-entry-page .ledger-entry-type-switch .segmented-control__item--active { background: #ff634a; color: white; }
+  .page-shell .ledger-import-page .import-summary { background: linear-gradient(100deg,#d5ff78,#f0ffd2 50%,#d5ff78); padding: figma(16); }
+  .page-shell .ledger-import-page .import-row { width: 100% !important; min-height: figma(60); }
+  .page-shell .import-row--duplicate { opacity: .4; }
+  .page-shell .import-actionbar { width: 100%; max-width: 540PX; left: 0; right: 0; margin: 0 auto; z-index: 30; background: #fffdf3; }
+  .page-shell .meals-page-title { position: relative; z-index: 1; }
+  .page-shell .meals-page-title .meals-dish-section__actions { flex-shrink: 0; gap: figma(6); }
+  .page-shell .meals-page .meal-focus-card--pending { width: 100% !important; border: figma(1.5) solid white; background: #ff634a; padding: figma(14); color: white; }
+  .page-shell .meals-page .meal-focus-card__title { font-size: figma(24); font-weight: 900; color: inherit; }
+  .page-shell .meal-focus-card--pending .meal-focus-card__meta, .meal-focus-card--pending .meal-focus-card__eyebrow { color: white; }
+  .page-shell .meals-page .meal-focus-card__link { background: white; border: 0; color: #ff634a; border-radius: figma(99); padding: figma(8); }
+  .page-shell .meals-page .meal-preview-grid { gap: figma(10); }
+  .page-shell .meals-page .meal-preview-card { padding: 0 0 figma(10); border: 0; border-radius: figma(20); background: white; overflow: hidden; }
+  .page-shell .meals-page .meal-preview-card__photo { width: 100%; height: figma(104); border-radius: 0; }
+  .page-shell .meals-page .meal-preview-card__name, .meals-page .meal-preview-card__meta { margin: figma(4) figma(8) 0; }
+  .page-shell .meal-create-page .meal-create-summary { padding: figma(10); border: 0; border-radius: figma(20); background: #efffd1; }
+  .page-shell .meal-create-page .meal-select-list { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: figma(10); background: transparent; box-shadow: none; overflow: visible; }
+  .page-shell .meal-create-page .meal-select-row { display: flex; flex-wrap: wrap; align-items: flex-start; padding: 0 0 figma(6); gap: figma(6); border: figma(1) solid transparent; border-radius: figma(22); background: white; overflow: hidden; }
+  .page-shell .meal-create-page .meal-select-row--selected { border-color: #a9ef23; }
+  .page-shell .meal-create-page .meal-select-row__photo { width: 100%; min-width: 0; height: figma(112); border-radius: 0; }
+  .page-shell .meal-create-page .meal-select-row__body { flex: 1 1 100%; padding: 0 figma(8); }
+  .page-shell .meal-create-page .quantity-stepper { width: 100%; justify-content: space-around; }
+  .page-shell .meal-create-page .quantity-stepper__button { border: 0; border-radius: 50%; background: transparent; }
+  .page-shell .meal-create-page .quantity-stepper__button--add { background: #ff634a; }
+  .page-shell .meal-orders-page .current-order-card { background: #fff0eb; border: figma(1.5) solid white; }
+  .page-shell .meal-orders-page .history-order-card { background: linear-gradient(100deg,#d5ff78,#f0ffd2 50%,#d5ff78); border: figma(1.5) solid white; }
+  .page-shell .meal-orders-page .current-order-card__title { font-size: figma(24); color: #e4422c; }
+  .page-shell .meal-orders-page .order-dish-list { border-radius: figma(18); background: white; }
+  .page-shell .dish-manage-page .dish-manage-card { border: 0; border-radius: figma(22); background: white; }
+  .page-shell .dish-form-page .dish-form-photo { margin-bottom: figma(10); }
+  .page-shell .inventory-map { margin: figma(10) 0; padding: figma(10); overflow: hidden; border: figma(1.5) solid white; border-radius: figma(22); background: linear-gradient(120deg,#d5ff78,#f0ffd2 55%,#e4ffa6); }
+  .page-shell .inventory-map__stage { position: relative; height: figma(150); }
+  .page-shell .inventory-map__house { position: absolute; left: 0; top: 0; width: figma(230); height: figma(150); }
+  .page-shell .inventory-map__mascot { position: absolute; right: figma(4); bottom: 0; width: figma(96); height: figma(122); }
+  .page-shell .inventory-map__locations { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: figma(8); margin-top: figma(8); }
+  .page-shell .inventory-map__location { display: flex; justify-content: space-between; align-items: center; gap: figma(6); min-height: max(44PX, #{figma(40)}); margin: 0; padding: 0 figma(8) 0 figma(14); border: figma(1) solid rgba(255,255,255,.9); border-radius: figma(99); background: rgba(255,255,255,.92); color: #242424; font-size: figma(13); line-height: figma(18); box-shadow: 0 figma(2) figma(8) rgba(107,142,35,.12); }
+  .page-shell .inventory-map__location::after { border: 0; }
+  .page-shell .inventory-map__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; font-weight: 700; }
+  .page-shell .inventory-map__count { display: flex; align-items: center; justify-content: center; flex-shrink: 0; min-width: figma(24); height: figma(24); padding: 0 figma(7); border-radius: figma(99); background: #eaf8cf; color: #4f7a1d; font-size: figma(12); font-weight: 800; }
+  .page-shell .inventory-map__location--active { background: #11110f; color: white; }
+  .page-shell .inventory-map__location--active .inventory-map__count { background: #d5ff78; color: #11110f; }
+  .page-shell .inventory-page .inventory-title { flex-wrap: wrap; gap: figma(6); }
+  .page-shell .inventory-title > view:first-child { flex: 1; }
+  .page-shell .inventory-title .inventory-add-entry { width: auto !important; padding: 0 figma(12); }
+  .page-shell .inventory-page .inventory-list { display: flex; flex-direction: column; gap: figma(8); background: transparent; box-shadow: none; overflow: visible; }
+  .page-shell .inventory-page .inventory-row { width: 100% !important; border: 0; border-radius: figma(22); background: white; min-height: figma(76); padding: figma(8) figma(12); }
+  .page-shell .inventory-page .inventory-row__photo { width: figma(62); height: figma(62); min-width: figma(62); border-radius: figma(12); }
+  .page-shell .inventory-page .inventory-row__name { font-size: figma(18); font-weight: 700; }
+  .page-shell .inventory-page .inventory-filter { min-height: 44PX; border: 0; border-radius: figma(99); background: white; padding: 0 figma(10); }
+  .page-shell .inventory-detail-page .inventory-detail-hero { gap: figma(10); padding: figma(12); }
+  .page-shell .inventory-detail-page .inventory-detail-hero__photo { width: 51%; min-width: 0; height: figma(190); border-radius: figma(16); }
+  .page-shell .inventory-detail-page .inventory-detail-hero__name { font-size: figma(28); font-weight: 900; }
+  .page-shell .inventory-status-banner { display: flex; justify-content: space-between; align-items: center; margin-top: figma(10); padding: figma(10) figma(14); min-height: figma(108); border-radius: figma(22); background: linear-gradient(100deg,#d5ff78,#f0ffd2 50%,#d5ff78); }
+  .page-shell .inventory-status-banner > view { display: flex; flex: 1; flex-direction: column; gap: figma(8); }
+  .page-shell .inventory-status-banner > view > text:first-child { font-size: figma(20); font-weight: 900; }
+  .page-shell .inventory-status-banner > view > text:last-child { font-size: figma(12); color: #777b83; }
+  .page-shell .inventory-status-banner > image { width: figma(120); height: figma(90); }
+  .page-shell .inventory-detail-page .inventory-detail-delete { width: 100% !important; min-height: 44PX; border-radius: figma(99); background: #fff0eb; }
+  .page-shell .inventory-manage-page .im-split { display: flex; flex-direction: column; height: auto; overflow: visible; background: transparent; box-shadow: none; gap: figma(10); }
+  .page-shell .inventory-manage-page .im-sidebar { width: 100%; min-width: 0; height: auto; max-height: figma(100); border: 0; background: transparent; }
+  .page-shell .inventory-manage-page .im-sidebar > div { display: flex; flex-wrap: wrap; gap: figma(6); }
+  .page-shell .inventory-manage-page .im-sidebar__item { width: auto !important; display: inline-flex; padding: 0 figma(20); min-height: 44PX; border-radius: figma(99); background: #fff5dc; }
+  .page-shell .inventory-manage-page .im-sidebar__item--active { background: #a9ef23; color: #11110f; }
+  .page-shell .inventory-manage-page .im-list { height: auto; background: transparent; }
+  .page-shell .inventory-manage-page .im-row { display: flex; flex-wrap: wrap; padding: figma(14); margin-bottom: figma(10); border: 0; border-radius: figma(22); background: white; }
+  .page-shell .inventory-manage-page .im-row__photo { width: figma(60); height: figma(76); min-width: figma(60); }
+  .page-shell .inventory-manage-page .im-row__body { flex: 1; }
+  .page-shell .inventory-manage-page .im-row__actions { display: flex; flex-direction: row; padding-left: figma(74); flex-basis: 100%; }
+  .page-shell .inventory-manage-page .im-row__actions .icon-action { width: auto !important; padding: 0 figma(14); border-radius: figma(99); background: #fff5dc; }
+  .page-shell .inventory-manage-page .im-tab { border: 0; border-radius: figma(99); background: #f5f4f0; }
+  .page-shell .inventory-manage-page .im-tab--active { background: #d5ff78; color: #11110f; }
+}
+
+.ledger-month-header { position: relative; display: flex; align-items: center; height: figma(54); margin: 0 0 figma(12); }
+.page-shell .ledger-month-button { display: flex; gap: figma(10); align-items: center; justify-content: center; width: 55%; margin: 0; padding: figma(10); min-height: 44PX; border-radius: figma(99); background: white; font-size: figma(13); }
+.ledger-header-art { position: absolute; right: figma(8); bottom: 0; width: 40%; height: figma(100); pointer-events: none; }
+.page-shell .ledger-overview--large .ledger-finance-art, .home-ledger-card--large .home-balance-art { display: none; }
+.page-shell .ledger-overview--large .ledger-overview__balance, .home-ledger-card--large .home-balance { font-size: figma(30); line-height: figma(44); }
+.page-shell .ledger-overview__metric-value { font-size: figma(22); line-height: figma(30); overflow-wrap: anywhere; }
+.page-shell .ledger-overview__label { font-size: figma(15); font-weight: 700; color: #11110f; }
+
+.page-shell .ledger-overview__metric-value { white-space: normal; overflow: visible; text-overflow: clip; }
+.page-shell .ledger-overview--large .ledger-overview__metric-value { font-size: figma(16); }
+.home-ledger-card--large .home-balance-actions { flex-wrap: wrap; }
+.home-page .home-ledger-card--large .home-metric { flex: 1 1 40%; }
+.home-page .home-ledger-card--large .home-record { flex: 1 1 100%; min-height: 44PX; }

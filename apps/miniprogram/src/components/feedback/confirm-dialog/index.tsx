@@ -1,23 +1,24 @@
 import { Button, Input, Text, View } from '@tarojs/components'
 import { AlertTriangle, HelpCircle, Pencil, Trash2 } from 'lucide'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
 import { AppIcon } from '../../app-icon'
 import { palette } from '../../../theme/palette'
 
-import './index.scss'
 
 export interface ConfirmOptions {
   title: string
   content?: string
   confirmText?: string
   cancelText?: string
+  showCancel?: boolean
   /** Destructive actions render the confirm button in the destructive color. */
   danger?: boolean
   /** When true, an input field is shown and its trimmed value is returned. */
   editable?: boolean
   placeholder?: string
   defaultValue?: string
+  maxLength?: number
   /** Overrides the auto-picked header icon. */
   icon?: 'danger' | 'warning' | 'question' | 'edit'
 }
@@ -43,6 +44,7 @@ export interface ConfirmData extends ConfirmOptions {
 }
 
 export function ConfirmDialog({ data }: { data: ConfirmData }) {
+  const closing = useRef(false)
   const [entered, setEntered] = useState(false)
   const [value, setValue] = useState(data.defaultValue ?? '')
 
@@ -51,6 +53,8 @@ export function ConfirmDialog({ data }: { data: ConfirmData }) {
   }, [])
 
   const close = (confirmed: boolean) => {
+    if (closing.current) return
+    closing.current = true
     setEntered(false)
     const payload = confirmed && data.editable ? { confirmed, value: value.trim() } : { confirmed }
     setTimeout(() => data.resolve(payload), 200)
@@ -72,6 +76,7 @@ export function ConfirmDialog({ data }: { data: ConfirmData }) {
             <Input
               className='cdialog__input'
               value={value}
+              maxlength={data.maxLength ?? 80}
               placeholder={data.placeholder}
               placeholderClass='cdialog__input-ph'
               onInput={(e) => setValue(e.detail.value)}
@@ -80,9 +85,9 @@ export function ConfirmDialog({ data }: { data: ConfirmData }) {
           )}
         </View>
         <View className='cdialog__actions'>
-          <Button className='cdialog__btn cdialog__btn--cancel tap' hoverClass='tap--pressed' onClick={() => close(false)}>
+          {data.showCancel !== false && <Button className='cdialog__btn cdialog__btn--cancel tap' hoverClass='tap--pressed' onClick={() => close(false)}>
             {data.cancelText ?? '取消'}
-          </Button>
+          </Button>}
           <Button
             className={`cdialog__btn ${data.danger ? 'cdialog__btn--danger' : 'cdialog__btn--confirm'} tap`}
             hoverClass='tap--pressed'

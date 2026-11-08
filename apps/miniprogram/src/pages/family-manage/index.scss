@@ -288,3 +288,54 @@
   border: var(--hairline) solid var(--color-border);
   background: var(--color-surface-sunken);
 }
+
+/* Keep decorative images in explicit slots; intrinsic image size must not
+   consume the location label or hide the invitation action on narrow screens. */
+.page-shell.family-manage-page .family-overview {
+  position: relative;
+  overflow: hidden;
+  min-height: 220rpx;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 16rpx;
+}
+.page-shell.family-manage-page .family-overview__body {
+  flex: none;
+  max-width: 65%;
+}
+.page-shell.family-manage-page .family-garden {
+  width: 170rpx;
+  height: 160rpx;
+  right: 16rpx;
+  bottom: 16rpx;
+  pointer-events: none;
+}
+.page-shell.family-manage-page .family-invite-pill {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  max-width: 65%;
+  min-height: 44PX;
+  margin: 0;
+  padding: 12rpx 24rpx;
+  border-radius: var(--radius-full);
+  background: var(--color-primary-surface);
+  color: var(--color-on-primary, #fff);
+  font-size: var(--text-sm);
+  line-height: 1.4;
+}
+.page-shell.family-manage-page .family-location-art {
+  display: block;
+  flex: 0 0 88rpx;
+  width: 88rpx;
+  height: 88rpx;
+}
+.page-shell.family-manage-page .family-location-row__name {
+  display: block;
+}
+.page-shell.family-manage-page .family-location-row > .icon-action {
+  flex-shrink: 0;
+}

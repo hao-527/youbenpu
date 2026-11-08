@@ -1,35 +1,39 @@
+import { FamilySetupSheet } from '../../components/family-setup'
+import { setCurrentInviteCode } from '../../utils/invite-state'
+import { useOperation } from '../../hooks/use-operation'
+import { useConfirm } from '../../components/feedback'
+import { SafeImage as Image } from '../../components/safe-image'
+import { family_garden, fridge, spices, sofa } from '../../assets/images/final'
 import { Button, Input, Text, View } from '@tarojs/components'
 import Taro, { useRouter } from '@tarojs/taro'
-import { Home, MapPin, Pencil, Plus, ShieldCheck, Trash2, UserPlus } from 'lucide'
+import { Home, MapPin, Plus, ShieldCheck, Trash2, UserPlus } from 'lucide'
 import { useEffect, useMemo, useState } from 'react'
 
-import { createInvitation, joinFamily } from '../../api'
+import { createInvitation } from '../../api'
 import { AppIcon } from '../../components/app-icon'
-import { ChipSelect } from '../../components/chip-select'
 import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { useAppShare } from '../../hooks/use-app-share'
-import { useDispatch, useRefreshStore, useStore } from '../../store'
+import { useDispatch, useStore } from '../../store'
 import { palette } from '../../theme/palette'
 import type { FamilyMember, FamilyRole } from '../../types/domain'
 import { setPendingInvite } from '../../utils/pending-invite'
 
 import './index.scss'
 
-const roleOptions: FamilyRole[] = ['家庭管理员', '家庭成员']
 
 export default function FamilyManagePage() {
   const router = useRouter()
   const { currentMemberId, familyName, inventory, locations, members } = useStore()
   const dispatch = useDispatch()
-  const refresh = useRefreshStore()
+  const confirm = useConfirm()
+  const invitationOperation = useOperation()
   const [showRename, setShowRename] = useState(false)
   const [showJoinWithInvite, setShowJoinWithInvite] = useState(false)
-  const [inviteCodeInput, setInviteCodeInput] = useState('')
   const [familyNameDraft, setFamilyNameDraft] = useState(familyName)
   const [locationDraft, setLocationDraft] = useState('')
 
-  const currentMember = members.find((member) => member.id === currentMemberId) ?? members[0]
+  const currentMember = members.find((member) => member.id === currentMemberId)
   const isAdmin = currentMember?.roleLabel === '家庭管理员'
   const adminCount = members.filter((member) => member.roleLabel === '家庭管理员').length
   const locationUsage = useMemo(() => new Map(locations.map((location) => [
@@ -47,8 +51,7 @@ export default function FamilyManagePage() {
     // in a family) can pre-fill it too — one承接 path for scan and share.
     const inviteCode = router?.params?.invite
     if (inviteCode) {
-      const normalized = decodeURIComponent(inviteCode).toUpperCase()
-      setInviteCodeInput(normalized)
+      const normalized = inviteCode.trim().toUpperCase()
       setShowJoinWithInvite(true)
       setPendingInvite(normalized)
     }
@@ -84,19 +87,23 @@ export default function FamilyManagePage() {
   }
 
   const inviteMember = async () => {
+    await invitationOperation.run(async () => {
     try {
       const invitation = await createInvitation()
-      await Taro.setClipboardData({ data: invitation.code })
-      await Taro.showModal({
-        title: '邀请码已复制',
+      setCurrentInviteCode(invitation.code)
+      const copied = await Taro.setClipboardData({ data: invitation.code }).then(() => true).catch(() => false)
+      await confirm({
+        title: copied ? '邀请码已复制' : '邀请码已生成',
         content: `邀请码 ${invitation.code}，24 小时内有效。请让家庭成员在微信中打开邀请并加入。`,
         showCancel: false,
         confirmText: '知道了',
-        confirmColor: palette.primary
+        danger: false
       })
     } catch (error: any) {
       Taro.showToast({ title: error.message || '生成邀请码失败', icon: 'none' })
+      return false
     }
+    })
   }
 
   const updateMemberRole = (member: FamilyMember, roleLabel: FamilyRole) => {
@@ -105,13 +112,13 @@ export default function FamilyManagePage() {
       Taro.showToast({ title: '家庭至少需要一位管理员', icon: 'none' })
       return
     }
-    Taro.showModal({
+    confirm({
       title: '调整成员角色',
       content: `确认将"${member.displayName}"设为${roleLabel}？`,
       confirmText: '确认调整',
-      confirmColor: palette.primary
+      danger: false
     }).then(async (result) => {
-      if (!result.confirm) return
+      if (!result.confirmed) return
       const succeeded = await dispatch({ type: 'member/updateRole', id: member.id, roleLabel })
       if (succeeded) Taro.showToast({ title: '成员角色已更新', icon: 'success' })
     })
@@ -123,13 +130,13 @@ export default function FamilyManagePage() {
       Taro.showToast({ title: '家庭至少需要一位管理员', icon: 'none' })
       return
     }
-    Taro.showModal({
+    confirm({
       title: `移除"${member.displayName}"？`,
       content: '成员会从当前家庭移除，已有账本和点餐记录仍会保留。',
       confirmText: '移除成员',
-      confirmColor: palette.destructive
+      danger: true
     }).then(async (result) => {
-      if (!result.confirm) return
+      if (!result.confirmed) return
       const succeeded = await dispatch({ type: 'member/remove', id: member.id })
       if (succeeded) Taro.showToast({ title: '成员已移除', icon: 'success' })
     })
@@ -158,57 +165,35 @@ export default function FamilyManagePage() {
   const removeLocation = (location: string) => {
     const usageCount = locationUsage.get(location) ?? 0
     if (usageCount > 0) {
-      Taro.showModal({
+      confirm({
         title: '暂时不能删除',
         content: `还有 ${usageCount} 件物品存放在"${location}"。请先到物品详情中调整存放位置。`,
         showCancel: false,
         confirmText: '我知道了',
-        confirmColor: palette.primary
+        danger: false
       })
       return
     }
-    Taro.showModal({
+    confirm({
       title: `删除"${location}"？`,
       content: '删除后，新增物品时将不能再选择这个位置。',
       confirmText: '删除位置',
-      confirmColor: palette.destructive
+      danger: true
     }).then(async (result) => {
-      if (!result.confirm) return
+      if (!result.confirmed) return
       const succeeded = await dispatch({ type: 'location/delete', name: location })
       if (succeeded) Taro.showToast({ title: '位置已删除', icon: 'success' })
     })
   }
 
-  const joinWithInviteCode = async () => {
-    const code = inviteCodeInput.trim()
-    if (!code) {
-      Taro.showToast({ title: '请输入邀请码', icon: 'none' })
-      return
-    }
-    if (code.length !== 6 && code.length !== 8) {
-      Taro.showToast({ title: '邀请码格式不正确', icon: 'none' })
-      return
-    }
 
-    try {
-      await joinFamily(code, currentMember?.displayName || '用户')
-      // A full refresh replaces local state with the newly joined family. It
-      // must succeed before we tell the user they're in — otherwise the page
-      // would show the previous (or empty) family data.
-      await refresh()
-      setShowJoinWithInvite(false)
-      setInviteCodeInput('')
-      Taro.showToast({ title: '加入家庭成功！', icon: 'success' })
-    } catch (error: any) {
-      Taro.showToast({ title: error.message || '加入失败，请检查邀请码', icon: 'none' })
-    }
-  }
 
   return (
-    <PageShell tabPage={false}>
-      <PageHeader title='家庭管理' subtitle={isAdmin ? '管理成员、角色和常用位置' : '查看家庭信息与维护常用位置'} />
+    <PageShell className='family-manage-page' tabPage={false} allowNoFamily={showJoinWithInvite}>
+      <PageHeader title='家庭管理' subtitle={isAdmin ? '管理成员、角色和常用位置' : '查看家庭信息与维护常用位置'} end={isAdmin ? <Button className='content-action tap' onClick={openRename}>编辑家庭</Button> : undefined} />
 
       <View className='family-overview surface-card'>
+        <Image className='family-garden' src={family_garden} mode='aspectFit' />
         <View className='icon-bubble icon-bubble--md icon-bubble--primary'>
           <AppIcon icon={Home} size={22} color={palette.primary} />
         </View>
@@ -216,11 +201,7 @@ export default function FamilyManagePage() {
           <Text className='family-overview__name'>{familyName}</Text>
           <Text className='family-overview__meta'>{members.length} 位成员 · {locations.length} 个常用位置</Text>
         </View>
-        {isAdmin && (
-          <Button className='icon-action tap' hoverClass='tap--pressed' aria-label='修改家庭名称' onClick={openRename}>
-            <AppIcon icon={Pencil} size={17} color={palette.primary} />
-          </Button>
-        )}
+        {isAdmin && <Button className='family-invite-pill tap' disabled={invitationOperation.busy} onClick={inviteMember}>＋ 生成邀请码</Button>}
       </View>
 
       {!isAdmin && (
@@ -237,7 +218,7 @@ export default function FamilyManagePage() {
             <Text className='family-section-head__meta'>{adminCount} 位管理员</Text>
           </View>
           {isAdmin && (
-            <Button className='content-action tap' hoverClass='tap--pressed' onClick={inviteMember}>
+            <Button className='content-action tap' hoverClass='tap--pressed' disabled={invitationOperation.busy} onClick={inviteMember}>
               <AppIcon icon={UserPlus} size={16} color={palette.primary} />
               <Text>邀请成员</Text>
             </Button>
@@ -253,24 +234,15 @@ export default function FamilyManagePage() {
                   <Text className='family-member-row__name'>{member.displayName}</Text>
                   {member.id === currentMemberId && <Text className='family-member-row__current'>当前用户</Text>}
                 </View>
-                {isAdmin ? (
-                  <View className='family-role-chips'>
-                    <ChipSelect
-                      options={roleOptions}
-                      value={member.roleLabel}
-                      onChange={(v) => updateMemberRole(member, v as FamilyRole)}
-                    />
-                  </View>
-                ) : (
-                  <View className='family-role-label'>
-                    {member.roleLabel === '家庭管理员' && <AppIcon icon={ShieldCheck} size={12} color={palette.primary} />}
-                    <Text>{member.roleLabel}</Text>
-                  </View>
-                )}
+                <Text className='family-role-label'>{member.roleLabel}</Text>
+                {isAdmin && <Button className='family-role-button tap' disabled={member.id === currentMemberId} onClick={() => updateMemberRole(member, member.roleLabel === '家庭管理员' ? '家庭成员' : '家庭管理员')}>
+                  {member.id === currentMemberId ? '当前用户' : member.roleLabel === '家庭管理员' ? '设为成员' : '设为管理员'}
+                </Button>}
+
               </View>
               {isAdmin && member.id !== currentMemberId && (
                 <Button className='icon-action family-member-row__remove tap' hoverClass='tap--pressed' aria-label={`移除成员${member.displayName}`} onClick={() => removeMember(member)}>
-                  <AppIcon icon={Trash2} size={16} color={palette.destructive} />
+                  <Text>移出家庭</Text>
                 </Button>
               )}
             </View>
@@ -321,9 +293,7 @@ export default function FamilyManagePage() {
               const usageCount = locationUsage.get(location) ?? 0
               return (
                 <View key={location} className='family-location-row'>
-                  <View className='icon-bubble icon-bubble--sm icon-bubble--primary'>
-                    <AppIcon icon={MapPin} size={16} color={palette.primary} />
-                  </View>
+                  {/冰箱|冷藏/.test(location) || /厨房|客厅/.test(location) ? <Image className='family-location-art' src={/冰箱|冷藏/.test(location) ? fridge : /厨房/.test(location) ? spices : sofa} mode='aspectFit' /> : <View className='icon-bubble icon-bubble--sm icon-bubble--primary'><AppIcon icon={MapPin} size={16} color={palette.primary} /></View>}
                   <View className='family-location-row__body'>
                     <Text className='family-location-row__name'>{location}</Text>
                     <Text className='family-location-row__meta'>{usageCount > 0 ? `${usageCount} 件物品正在使用` : '暂无物品使用'}</Text>
@@ -344,6 +314,7 @@ export default function FamilyManagePage() {
         )}
       </View>
 
+      <FamilySetupSheet open={showJoinWithInvite} onClose={() => setShowJoinWithInvite(false)} onDone={() => setShowJoinWithInvite(false)} />
       {showRename && (
         <View className='form-overlay' catchMove onClick={() => setShowRename(false)}>
           <View className='form-sheet family-sheet' onClick={(event) => event.stopPropagation()}>

@@ -1,17 +1,17 @@
 import { Button, Input, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Home, UserPlus } from 'lucide'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { createFamily, ensureLoggedIn, joinFamily } from '../../api'
+import { createFamily, ensureLoggedIn, getInvitationInfo, joinFamily, type InvitationInfo } from '../../api'
 import { setUserInfo, getUserInfo } from '../../api/token'
 import { useRefreshStore } from '../../store'
 import { palette } from '../../theme/palette'
 import { consumePendingInvite } from '../../utils/pending-invite'
+import { useConfirm } from '../feedback'
 import { ActionSheet } from '../action-sheet'
 import { AppIcon } from '../app-icon'
 
-import './index.scss'
 
 type Step = 'choose' | 'create' | 'join'
 
@@ -33,11 +33,16 @@ interface FamilySetupSheetProps {
  */
 export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupSheetProps) {
   const refresh = useRefreshStore()
+  const confirmMerge = useConfirm()
+  const submitting = useRef(false)
   const [step, setStep] = useState<Step>('choose')
   const [familyName, setFamilyName] = useState('我们家')
   const [displayName, setDisplayName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+  const [invitation, setInvitation] = useState<InvitationInfo | null>(null)
+  const [previewStatus, setPreviewStatus] = useState('')
   // Opt-in: bring the user's current family's data into the family being
   // joined. Only meaningful when the user already belongs to a family.
   const [mergeData, setMergeData] = useState(false)
@@ -47,6 +52,7 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
   // an invite QR code, jump straight to the join step with the code filled in.
   useEffect(() => {
     if (!open) return
+    setErrorMessage('')
     const pending = consumePendingInvite()
     if (pending) {
       setInviteCode(pending)
@@ -55,6 +61,22 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
       setStep('choose')
     }
   }, [open])
+
+  useEffect(() => {
+    setInvitation(null)
+    setPreviewStatus('')
+    if (!open || step !== 'join' || inviteCode.trim().length !== 6) return
+    let cancelled = false
+    setPreviewStatus('正在核验邀请码…')
+    const timer = setTimeout(() => {
+      void ensureLoggedIn().then(() => getInvitationInfo(inviteCode.trim())).then(info => {
+        if (cancelled) return
+        setInvitation(info)
+        setPreviewStatus(info.valid ? `即将加入「${info.family_name}」` : info.reason || '邀请码无效')
+      }).catch(() => { if (!cancelled) setPreviewStatus('暂未能核验，提交时会再次检查邀请码。') })
+    }, 250)
+    return () => { cancelled = true; clearTimeout(timer) }
+  }, [open, step, inviteCode])
 
   async function finish(familyId: string, role: 'owner' | 'member') {
     const existing = getUserInfo()
@@ -70,10 +92,13 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
   }
 
   async function handleCreateFamily() {
+    if (loading || submitting.current) return
+    setErrorMessage('')
     if (!displayName.trim()) {
       Taro.showToast({ title: '请填写你的名字', icon: 'none' })
       return
     }
+    submitting.current = true
     setLoading(true)
     try {
       await ensureLoggedIn()
@@ -81,13 +106,18 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
       Taro.showToast({ title: '家庭创建成功', icon: 'success' })
       await finish(result.id, 'owner')
     } catch (error: any) {
-      Taro.showToast({ title: error.message || '创建失败', icon: 'none' })
+      const message = error.message || error.errMsg || '创建失败，请重试'
+      setErrorMessage(message)
+      Taro.showToast({ title: message, icon: 'none' })
     } finally {
+      submitting.current = false
       setLoading(false)
     }
   }
 
   async function handleJoinFamily() {
+    if (loading || submitting.current) return
+    setErrorMessage('')
     if (!inviteCode.trim()) {
       Taro.showToast({ title: '请输入邀请码', icon: 'none' })
       return
@@ -101,16 +131,17 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
     // (private ledger notes are never copied) and cannot be undone.
     let mergeFrom: string | undefined
     if (mergeData && currentFamilyId) {
-      const confirm = await Taro.showModal({
+      const confirmation = await confirmMerge({
         title: '确认合并数据',
         content: '将把你当前家庭的账本、物品、菜品等数据复制到新家庭，家庭成员都能看到。私密账本不会被复制。此操作不可撤销。',
         confirmText: '确认合并',
-        confirmColor: palette.primary
+        danger: false
       })
-      if (!confirm.confirm) return
+      if (!confirmation.confirmed) return
       mergeFrom = currentFamilyId
     }
 
+    submitting.current = true
     setLoading(true)
     try {
       await ensureLoggedIn()
@@ -118,8 +149,11 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
       Taro.showToast({ title: mergeFrom ? '加入并合并成功' : '加入成功', icon: 'success' })
       await finish(result.family_id, 'member')
     } catch (error: any) {
-      Taro.showToast({ title: error.message || '加入失败', icon: 'none' })
+      const message = error.message || error.errMsg || '加入失败，请重试'
+      setErrorMessage(message)
+      Taro.showToast({ title: message, icon: 'none' })
     } finally {
+      submitting.current = false
       setLoading(false)
     }
   }
@@ -129,6 +163,7 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
   return (
     <ActionSheet open={open} title={title} onClose={onClose}>
       <View className='family-setup'>
+        {errorMessage && <View className='family-setup__error' role='alert'><Text>{errorMessage}</Text><Text>填写的内容已保留，可以重试。</Text></View>}
         {step === 'choose' && (
           <View className='family-setup__choose'>
             <Text className='family-setup__lede'>
@@ -235,6 +270,7 @@ export function FamilySetupSheet({ open, reason, onClose, onDone }: FamilySetupS
                 onInput={(e) => setInviteCode(e.detail.value.toUpperCase())}
               />
               <Text className='field__hint'>向家庭管理员索取邀请码，或扫描邀请二维码自动填入</Text>
+              {previewStatus && <Text className={`field__hint ${invitation?.valid === false ? 'form-error' : ''}`}>{previewStatus}</Text>}
             </View>
 
             {currentFamilyId && (

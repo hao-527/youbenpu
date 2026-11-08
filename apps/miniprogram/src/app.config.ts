@@ -4,6 +4,8 @@
 // (no Fast Refresh runtime) while still excluding it from real releases.
 const devPages = process.env.PREVIEW === '1' ? ['pages/_preview/index'] : []
 
+// Keep the shared recursive Taro `comp` available for every page. Enabling
+// requiredComponents reproduced wx://not-found and blank pages in our IDE.
 export default defineAppConfig({
   pages: [
     'pages/home/index',
@@ -21,20 +23,24 @@ export default defineAppConfig({
     'pages/inventory-detail/index',
     'pages/inventory-manage/index',
     'pages/family-manage/index',
+    'pages/family-switch/index',
     ...devPages
   ],
   window: {
     navigationStyle: 'custom',
+    navigationBarTextStyle: 'black',
+    navigationBarBackgroundColor: '#FFFDF3',
     // Matches the paper-like application background during navigation.
-    backgroundColor: '#F7F4EE',
+    backgroundColor: '#FFFDF3',
     backgroundTextStyle: 'dark',
     pageOrientation: 'portrait'
   },
   tabBar: {
-    // Mirrors --color-subtle-foreground in the paper palette.
-    color: '#746A5F',
-    selectedColor: '#E8530E',
-    backgroundColor: '#FFFDF9',
+    custom: true,
+    // Custom navigation renders the final Figma green selection on all five tabs.
+    color: '#64748D',
+    selectedColor: '#11110F',
+    backgroundColor: '#FFFFFF',
     borderStyle: 'white',
     list: [
       { pagePath: 'pages/home/index', text: '首页', iconPath: 'assets/tabbar/home.png', selectedIconPath: 'assets/tabbar/home-active.png' },
@@ -43,6 +49,5 @@ export default defineAppConfig({
       { pagePath: 'pages/inventory/index', text: '找物品', iconPath: 'assets/tabbar/inventory.png', selectedIconPath: 'assets/tabbar/inventory-active.png' },
       { pagePath: 'pages/profile/index', text: '我的', iconPath: 'assets/tabbar/profile.png', selectedIconPath: 'assets/tabbar/profile-active.png' }
     ]
-  },
-  lazyCodeLoading: 'requiredComponents'
+  }
 })

@@ -1,3 +1,5 @@
+@use '../../theme/figma' as *;
+
 .meals-page .page-title {
   margin-bottom: var(--space-3);
 }
@@ -190,19 +192,6 @@
   color: var(--color-subtle-foreground);
   font-size: var(--text-xs);
   font-weight: 600;
-}
-
-/* Compact category pills make the filter read as navigation, not another card. */
-.meals-page .tabs {
-  /* Tightened from --space-4: the gap between the tab row and the empty-state
-   * card below (plus the card's own generous min-height/padding) read as an
-   * oversized, disconnected block of whitespace. */
-  margin: 0 calc(-1 * var(--page-gutter)) var(--space-2);
-  border-bottom: 0;
-}
-
-.meals-page .tabs__item.tap--pressed {
-  opacity: 0.75;
 }
 
 .meals-page .empty-state {
@@ -411,39 +400,6 @@
   background: transparent;
 }
 
-.meals-page .tabs {
-  border-bottom: var(--hairline) solid var(--color-border);
-}
-
-.meals-page .tabs__track {
-  /* space-6 (measured ~25px gap, more than half a label's own width) was an
-   * overcorrection from the original cramped 4rpx — it left "全部" and "炒菜"
-   * looking disconnected, like two separate groups instead of one tab row.
-   * space-3 keeps clear separation without that gap. */
-  gap: var(--space-3);
-  padding-top: 0;
-  padding-bottom: 0;
-}
-
-.meals-page .tabs__item {
-  min-height: var(--touch-target);
-  margin-bottom: calc(-1 * var(--hairline));
-  /* Widened from the original cramped 4rpx, but kept modest since
-   * .tabs__track gap (above) already provides the main separation. */
-  padding: 0 var(--space-1);
-  border: 0;
-  border-bottom: 5rpx solid transparent;
-  border-radius: 0;
-  background: transparent;
-  line-height: var(--touch-target);
-}
-
-.meals-page .tabs__item--active {
-  border-bottom-color: var(--color-primary);
-  background: transparent;
-  color: var(--color-primary-text);
-}
-
 .meals-page .empty-state {
   border-radius: var(--radius-card);
 }
@@ -455,4 +411,195 @@
 
 .meal-preview-card__category {
   border-radius: var(--radius-xs);
+}
+
+/* =====================================================================
+ * Hero card: title, actions, copy and mascot share one rounded card.
+ * The kitchen scene is shown at its natural 3:1 ratio (never stretched or
+ * cropped) and fades out on the top and right edges, so nothing reads as a
+ * photo cut in half. #fdfbf2 is the image's own background colour.
+ * ===================================================================== */
+.page-shell.page-shell:not(.home-page) .meals-hero {
+  position: relative;
+  overflow: hidden;
+  margin-bottom: figma(14);
+  padding: figma(14) figma(14) figma(8);
+  border: 1px solid #efe8d2;
+  border-radius: figma(24);
+  background: #fdfbf2;
+  box-shadow: 0 figma(4) figma(14) rgba(81, 62, 20, 0.06);
+}
+
+.meals-hero__backdrop {
+  position: absolute;
+  z-index: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: 0;
+  /* padding-bottom is relative to width: 260 / 780 = 33.333% keeps the ratio. */
+  padding-bottom: 33.3333%;
+  pointer-events: none;
+}
+
+.meals-hero__image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.meals-hero__backdrop::before,
+.meals-hero__backdrop::after {
+  content: '';
+  position: absolute;
+  z-index: 1;
+}
+
+/* Fade the busy right edge (basket, tomatoes) into the card colour. */
+.meals-hero__backdrop::before {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 62%;
+  background: linear-gradient(to right, rgba(253, 251, 242, 0) 0%, rgba(253, 251, 242, 0.92) 78%, #fdfbf2 100%);
+}
+
+/* Fade the top edge so the scene dissolves instead of starting on a line. */
+.meals-hero__backdrop::after {
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 42%;
+  background: linear-gradient(to bottom, #fdfbf2 0%, rgba(253, 251, 242, 0) 100%);
+}
+
+.page-shell.page-shell:not(.home-page) .meals-hero .page-title {
+  position: relative;
+  z-index: 1;
+  align-items: flex-start;
+  min-height: 0;
+  margin-bottom: 0;
+}
+
+.page-shell.page-shell:not(.home-page) .meals-hero .design-intro {
+  z-index: 1;
+  min-height: figma(88);
+  margin-bottom: 0;
+  align-items: flex-end;
+}
+
+.page-shell.page-shell:not(.home-page) .meals-hero .design-intro__copy {
+  align-self: center;
+  margin-left: figma(2);
+  padding-bottom: figma(6);
+}
+
+.page-shell.page-shell:not(.home-page) .meals-hero .design-intro__art {
+  width: figma(132);
+  height: figma(100);
+  margin: 0;
+}
+
+/* ---------- Header actions: compact icon-over-label tiles ---------- */
+.page-shell.page-shell:not(.home-page) .meals-hero .meals-section-action {
+  display: flex;
+  box-sizing: border-box;
+  /* H5 forces `taro-button-core { width: auto !important }`, so min-width is
+   * what actually fixes the tile size there; width covers the mini-program. */
+  width: figma(58);
+  min-width: figma(58);
+  height: figma(58);
+  min-height: figma(58);
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: figma(5);
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: figma(16);
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 figma(3) figma(10) rgba(81, 62, 20, 0.12);
+  color: #11110f;
+  font-size: figma(11);
+  font-weight: 700;
+  line-height: 1.1;
+  white-space: nowrap;
+}
+
+.meals-hero .meals-section-action::after {
+  border: 0;
+}
+
+.page-shell.page-shell:not(.home-page) .meals-hero .meals-section-action.tap--pressed {
+  background: #fff;
+  transform: scale(0.96);
+}
+
+.page-shell.page-shell:not(.home-page) .meals-hero .meals-dish-section__actions {
+  gap: figma(8);
+}
+
+/* ---------- Category chips ---------- */
+.meals-chips {
+  width: auto;
+  margin: 0 calc(-1 * var(--page-gutter)) figma(10);
+  white-space: nowrap;
+}
+
+.meals-chips__track {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: figma(8);
+  padding: 0 var(--page-gutter);
+}
+
+/* The button keeps a 44px tap target; the visible pill is the label inside. */
+.page-shell.page-shell:not(.home-page) .meals-chips .meals-chip {
+  display: inline-flex;
+  min-height: max(44PX, #{figma(44)});
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  line-height: 1;
+}
+
+.meals-chips .meals-chip::after {
+  border: 0;
+}
+
+.meals-chip__label {
+  display: inline-flex;
+  box-sizing: border-box;
+  min-width: figma(60);
+  height: figma(36);
+  align-items: center;
+  justify-content: center;
+  padding: 0 figma(16);
+  border: 1px solid #eeeae0;
+  border-radius: figma(18);
+  background: #fff;
+  color: #4a4d55;
+  font-size: figma(14);
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.meals-chip__label--active {
+  border-color: #c4ec5c;
+  background: #d5ff78;
+  color: #11110f;
+  font-weight: 800;
+  box-shadow: 0 figma(2) figma(8) rgba(130, 170, 20, 0.28);
 }

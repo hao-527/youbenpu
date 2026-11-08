@@ -21,6 +21,7 @@ export interface LedgerEntry {
    * 交易关闭/冻结/中性转账等记录但不计入（false），既保留痕迹又不影响金额。
    */
   countsTowardTotal: boolean
+  canEdit?: boolean
 }
 
 /* ========== 点餐 ========== */

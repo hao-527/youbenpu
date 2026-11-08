@@ -1,0 +1,8 @@
+@use '../../theme/figma' as *;
+.ybp-navigation { position: fixed; z-index: 100; bottom: 0; left: 0; right: 0; width: 100%; max-width: 540PX; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; padding: figma(6) figma(12) calc(#{figma(4)} + env(safe-area-inset-bottom)); min-height: figma(64); background: white; border-radius: figma(28) figma(28) 0 0; box-shadow: 0 figma(-4) figma(8) rgba(51,46,31,.12); }
+.ybp-navigation .ybp-navigation-item { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: figma(2); min-width: 0; min-height: figma(54); padding: 0; margin: 0; border: 0; background: transparent; border-radius: 0; color: #666a73; font-size: figma(12); line-height: figma(18); }
+.ybp-navigation-item::after { border: 0; }
+.ybp-navigation-disc { display: flex; align-items: center; justify-content: center; width: figma(38); height: figma(38); border-radius: 50%; }
+.ybp-navigation-icon { width: figma(22); height: figma(22); }
+.ybp-navigation-item--selected .ybp-navigation-disc { background: #a9ef23; }
+.ybp-navigation .ybp-navigation-item--selected { color: #11110f; }

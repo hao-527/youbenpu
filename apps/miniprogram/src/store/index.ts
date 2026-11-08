@@ -7,4 +7,4 @@
  * 3. On each mutation, call API first — on success, update local state
  * 4. If API fails, show error toast (no optimistic updates for simplicity)
  */
-export { StoreProvider, useStore, useDispatch, useRefreshStore, useMaybeRefreshStore } from './context'
+export { StoreProvider, useStore, useDispatch, useRefreshStore, useMaybeRefreshStore, useRemoteStatus } from './context'

@@ -94,3 +94,10 @@
 .inventory-detail-delete {
   margin-top: var(--space-5);
 }
+
+.page-shell.inventory-detail-page .inventory-detail-hero__placeholder {
+  height: 220rpx;
+  flex-direction: column;
+  gap: 12rpx;
+}
+.inventory-detail-hero__photo-hint { color: var(--color-subtle-foreground); font-size: var(--text-sm); }

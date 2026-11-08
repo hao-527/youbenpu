@@ -1,7 +1,7 @@
 import Taro from '@tarojs/taro'
 
 import { API } from '../api/config'
-import { getToken } from '../api/token'
+import { clearSessionIfCurrent, getToken } from '../api/token'
 
 interface UploadResponse {
   url?: string
@@ -21,7 +21,11 @@ export async function choosePersistentImage(): Promise<string | null> {
   try {
     const result = await Taro.chooseImage({ count: 1, sizeType: ['compressed'], sourceType: ['album', 'camera'] })
     tempFilePath = result.tempFilePaths[0] ?? ''
-  } catch {
+  } catch (error: unknown) {
+    const cause = error as { errMsg?: string; message?: string }
+    if (!/cancel/i.test(String(cause?.errMsg || cause?.message || ''))) {
+      Taro.showToast({ title: '图片选择失败，请重试或在微信客户端中选择', icon: 'none', duration: 2500 })
+    }
     return null
   }
 
@@ -46,12 +50,16 @@ function uploadImage(tempFilePath: string): Promise<string> {
   return new Promise((resolve, reject) => {
     Taro.uploadFile({
       url: API.UPLOAD,
+      // JWT is the credential; H5 must not send cookie credentials to a '*' CORS endpoint.
+      ...(process.env.TARO_ENV === 'h5' ? { withCredentials: false } : {}),
+      timeout: 30000,
       filePath: tempFilePath,
       name: 'file',
       header: {
         Authorization: `Bearer ${token}`,
       },
       success: (result) => {
+        if (result.statusCode === 401) clearSessionIfCurrent(token, '登录已过期，请重试')
         let body: UploadResponse = {}
         try {
           body = JSON.parse(result.data || '{}') as UploadResponse

@@ -1,4 +1,7 @@
-import { Button, Image, Text, View } from '@tarojs/components'
+import { SafeImage as Image } from '../../components/safe-image'
+import { entry_finance, finance } from '../../assets/images/final'
+import { BrandTitle } from '../../components/brand-title'
+import { Button, Text, View } from '@tarojs/components'
 import { useDidShow } from '@tarojs/taro'
 import { ArrowDownLeft, ArrowUpRight, ChevronRight, Download, Plus } from 'lucide'
 import { useMemo, useState } from 'react'
@@ -14,8 +17,9 @@ import type { LedgerEntry } from '../../types/domain'
 import { formatLocalDate, getPreviousDate } from '../../utils/date'
 import { formatYuan } from '../../utils/money'
 
-import illustLedger from '../../assets/images/illustrations/ledger.svg'
 import illustNote from '../../assets/images/illustrations/note.svg'
+
+import { summarizeLedger } from '../../utils/ledger-summary'
 
 import './index.scss'
 
@@ -45,7 +49,7 @@ function groupByDate(entries: LedgerEntry[], today: string, yesterday: string) {
 }
 
 export default function LedgerPage() {
-  const { ledger, members, currentMemberId } = useStore()
+  const { ledger } = useStore()
   useAppShare()
   const maybeRefresh = useMaybeRefreshStore()
   // Pull fresh family data when this tab is shown so one member sees another's
@@ -54,7 +58,6 @@ export default function LedgerPage() {
   const now = new Date()
   const today = formatLocalDate(now)
   const yesterday = getPreviousDate(today)
-  const currentMemberName = members.find((member) => member.id === currentMemberId)?.displayName ?? ''
   const [viewYear, setViewYear] = useState(now.getFullYear())
   const [viewMonth, setViewMonth] = useState(now.getMonth() + 1)
   const [showMonthPicker, setShowMonthPicker] = useState(false)
@@ -64,31 +67,25 @@ export default function LedgerPage() {
     .filter((entry) => entry.date.startsWith(monthPrefix))
     .sort((a, b) => b.date.localeCompare(a.date) || b.timeLabel.localeCompare(a.timeLabel)), [ledger, monthPrefix])
 
-  const summary = useMemo(() => filteredEntries.reduce((result, entry) => {
-    // Neutral entries (imported closed/frozen/transfer rows) are shown in the
-    // list for traceability but must not affect the income/expense totals.
-    if (entry.countsTowardTotal === false) return result
-    if (entry.type === 'income') result.incomeCents += entry.amountCents
-    else result.expenseCents += entry.amountCents
-    result.balanceCents = result.incomeCents - result.expenseCents
-    return result
-  }, { incomeCents: 0, expenseCents: 0, balanceCents: 0 }), [filteredEntries])
+  const summary = useMemo(() => summarizeLedger(filteredEntries), [filteredEntries])
   const grouped = useMemo(() => groupByDate(filteredEntries, today, yesterday), [filteredEntries, today, yesterday])
 
-  const memberStats = useMemo(() => members.map((member) => {
-    const expenseCents = filteredEntries
-      .filter((entry) => entry.memberName === member.displayName && entry.type === 'expense' && entry.countsTowardTotal !== false)
-      .reduce((sum, entry) => sum + entry.amountCents, 0)
-    return { name: member.displayName, expenseCents }
-  }).filter((item) => item.expenseCents > 0), [filteredEntries, members])
+  const memberStats = useMemo(() => {
+    const totals = new Map<string, number>()
+    for (const entry of filteredEntries) {
+      if (entry.type !== 'expense' || entry.countsTowardTotal === false) continue
+      totals.set(entry.memberName, (totals.get(entry.memberName) ?? 0) + entry.amountCents)
+    }
+    return [...totals].map(([name, expenseCents]) => ({ name, expenseCents })).filter(item => item.expenseCents > 0)
+  }, [filteredEntries])
 
   return (
-    <PageShell withFab={grouped.length > 0}>
+    <PageShell className='ledger-page'>
       <View className='page-title'>
         <View>
           <View className='ledger-page-title__row'>
-            <Text className='page-title__text'>账本</Text>
-            <Image className='ledger-page-title__illust' src={illustLedger} mode='aspectFit' />
+            <BrandTitle className='page-title__text'>账本</BrandTitle>
+
           </View>
           <Text className='page-title__subtitle'>家庭收支</Text>
         </View>
@@ -103,12 +100,18 @@ export default function LedgerPage() {
         </Button>
       </View>
 
-      <View className='ledger-overview surface-card'>
+      <View className='ledger-month-header'>
+        <Button className='ledger-month-button tap' onClick={() => setShowMonthPicker(true)}>
+          <Text className='num'>{getMonthLabel(viewYear, viewMonth)}</Text><Text>⌄</Text>
+        </Button>
+        <Image className='ledger-header-art' src={entry_finance} mode='aspectFit' />
+      </View>
+      <View className={`ledger-overview surface-card ${Math.max(formatYuan(summary.balanceCents).length, formatYuan(summary.incomeCents).length, formatYuan(summary.expenseCents).length) > 11 ? 'ledger-overview--large' : ''}`}>
+
+        <Image className='ledger-finance-art' src={finance} mode='aspectFit' />
         <View className='ledger-overview__head'>
-          <Text className='ledger-overview__label'>本月结余</Text>
-          <Button className='month-nav__label ledger-overview__month tap' hoverClass='tap--pressed' onClick={() => setShowMonthPicker(true)}>
-            <Text className='month-nav__text num'>{getMonthLabel(viewYear, viewMonth)}</Text>
-          </Button>
+          <Text className='ledger-overview__label'>{viewYear === now.getFullYear() && viewMonth === now.getMonth() + 1 ? '本月结余' : '该月结余'}</Text>
+
         </View>
         <Text className={`ledger-overview__balance num ${summary.balanceCents < 0 ? 'ledger-overview__balance--negative' : ''} ${summary.balanceCents === 0 ? 'ledger-overview__balance--zero' : ''}`}>{formatYuan(summary.balanceCents)}</Text>
         <View className='ledger-overview__metrics'>
@@ -119,7 +122,7 @@ export default function LedgerPage() {
           <View className='ledger-overview__divider' />
           <View className='ledger-overview__metric'>
             <Text className='ledger-overview__metric-label'>支出</Text>
-            <Text className='ledger-overview__metric-value num'>{formatYuan(summary.expenseCents)}</Text>
+            <Text className='ledger-overview__metric-value num ledger-overview__metric-value--expense'>{formatYuan(summary.expenseCents)}</Text>
           </View>
         </View>
 
@@ -144,6 +147,7 @@ export default function LedgerPage() {
       <View className='ledger-records section'>
         <View className='section__head ledger-records__head'>
           <Text className='section__title'>最近记录</Text>
+          <Button className='ledger-add-record button button--primary tap' onClick={() => navigate('/pages/ledger-entry/index')}><AppIcon icon={Plus} size={18} color='white' /><Text>记一笔</Text></Button>
           <Text className='section__meta'>{filteredEntries.length > 0 ? `${filteredEntries.length} 笔` : '本月'}</Text>
         </View>
 
@@ -171,8 +175,8 @@ export default function LedgerPage() {
                   aria-label={`${entry.purpose}，${entry.type === 'income' ? '收入' : '支出'}${formatYuan(entry.amountCents)}`}
                   onClick={() => navigate(`/pages/ledger-entry/index?id=${entry.id}`)}
                 >
-                  <View className={`icon-bubble ${entry.type === 'income' ? 'icon-bubble--green' : 'icon-bubble--primary'}`}>
-                    <AppIcon icon={entry.type === 'income' ? ArrowDownLeft : ArrowUpRight} size={16} color={entry.type === 'income' ? palette.success : palette.primary} />
+                  <View className={`icon-bubble ${entry.type === 'income' ? 'icon-bubble--primary' : 'icon-bubble--green'}`}>
+                    <AppIcon icon={entry.type === 'income' ? ArrowDownLeft : ArrowUpRight} size={16} color={entry.type === 'income' ? palette.income : palette.expense} />
                   </View>
                   <View className='ledger-row__body'>
                     <View className='ledger-row__title-row'>
@@ -182,7 +186,7 @@ export default function LedgerPage() {
                       )}
                     </View>
                     <Text className='ledger-row__meta'>{entry.memberName} · {entry.timeLabel}</Text>
-                    {entry.note && (entry.noteVisibility === 'shared' || entry.memberName === currentMemberName) && (
+                    {entry.note && (entry.noteVisibility === 'shared' || entry.canEdit !== false) && (
                       <Text className='ledger-row__note'>{entry.note}</Text>
                     )}
                   </View>
@@ -199,17 +203,6 @@ export default function LedgerPage() {
         ))}
       </View>
 
-      {grouped.length > 0 && (
-        <Button
-          className='fab tap'
-          hoverClass='tap--pressed'
-          aria-label='记一笔'
-          onClick={() => navigate('/pages/ledger-entry/index')}
-        >
-          <AppIcon icon={Plus} size={16} color={palette.onPrimary} />
-          <Text>记一笔</Text>
-        </Button>
-      )}
 
       <MonthPicker
         open={showMonthPicker}

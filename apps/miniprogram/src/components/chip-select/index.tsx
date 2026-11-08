@@ -1,6 +1,5 @@
 import { Button, Text, View } from '@tarojs/components'
 
-import './index.scss'
 
 interface ChipSelectProps {
   options: string[]

@@ -1,6 +1,20 @@
+@use './components/chip-select/index' as shared0;
+@use './components/month-picker/index' as shared1;
+@use './components/list-select/index' as shared2;
+@use './components/action-sheet/index' as shared3;
+@use './components/feedback/index' as shared4;
+@use './components/design-intro/index' as shared5;
+@use './components/date-picker/index' as shared6;
+@use './components/onboarding/index' as shared7;
+@use './components/feedback/confirm-dialog/index' as shared8;
+@use './components/feedback/toast/index' as shared9;
+@use './components/bottom-navigation/index' as navigation;
+@use './components/family-setup/index' as familySetup;
+@use './theme/final-pages' as finalPages;
+@use './theme/final-system' as final;
 /*
  * 生活有本谱 design tokens
- * Theme: 红红火火 — warm red-orange #E8530E
+ * Theme: original warm paper, muted coral actions
  *
  * Token layers: primitive -> semantic -> component.
  * Never hardcode a hex value in a page stylesheet; reference a semantic token
@@ -115,6 +129,12 @@ page,
   --color-tint-primary: var(--orange-50);
   --color-tint-warm: var(--orange-25);
   --color-tint-green: var(--mint-tint);
+  --color-home-background: #fff8df;
+  --color-home-accent: var(--yellow-400);
+  --color-home-accent-strong: var(--yellow-500);
+  --color-home-accent-soft: var(--yellow-tint);
+  --color-home-mint: var(--mint-500);
+  --color-home-mint-strong: var(--mint-600);
   --color-tint-red: #fef2f2;
 
   /* Overlays: readable in both themes. */
@@ -134,8 +154,8 @@ page,
 
   /* ---------- Component ---------- */
   --page-gutter: 36rpx;
-  --touch-target: 84rpx;
-  --button-height: 88rpx;
+  --touch-target: max(44PX, 84rpx);
+  --button-height: max(44PX, 88rpx);
   --section-gap: 48rpx;
   --title-size: 44rpx;
   --row-height-sm: 104rpx;
@@ -648,25 +668,25 @@ button::after {
   transition: background-color var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
 }
 
-.button--primary {
+.button.button--primary {
   background: var(--color-primary-surface);
   color: var(--color-on-primary);
 }
 
-.button--outline {
+.button.button--outline {
   border: var(--hairline) solid var(--color-border-strong);
   background: var(--color-surface);
   color: var(--color-foreground);
 }
 
-.button[disabled] {
+.button[disabled]:not([disabled='false']) {
   background: var(--color-muted);
   color: var(--color-disabled-foreground);
   box-shadow: none;
   opacity: 1;
 }
 
-.button--outline[disabled] {
+.button--outline[disabled]:not([disabled='false']) {
   border-color: var(--color-border);
 }
 
@@ -1292,3 +1312,20 @@ taro-button-core + taro-button-core {
 taro-button-core {
   width: auto !important;
 }
+
+/* Taro mounts its H5 component CSS lazily. Its default button outline
+ * otherwise appears after our reset, including on image cards and icons. */
+taro-button-core[class]::after {
+  border: 0;
+}
+
+/* H5 preview uses the same bounded canvas as PageShell. Taro's default
+ * root size grows to 40px on desktop even though the page stops at 540px,
+ * making controls overflow that canvas. 20rem = 375 CSS px at this scale. */
+:root {
+  font-size: clamp(0PX, 5.333333vw, 28.8PX) !important;
+}
+
+@include final.system;
+
+@include finalPages.pages;

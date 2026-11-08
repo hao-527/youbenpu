@@ -23,11 +23,10 @@ interface FamilyGate {
  *
  * Instead of blocking new users behind a full-screen onboarding page, pages
  * render `familyGate` and call `requireFamily()` at the moment a family is
- * actually needed (记账 / 物品 / 点餐 / 邀请成员…). The 我的 page also opens it
- * automatically for users who have not joined a family yet.
+ * actually needed (记账 / 物品 / 点餐 / 邀请成员…). The 我的 page lets new users choose creation, joining, or a read-only tour.
  */
 export function useFamilyGate(): FamilyGate {
-  const [joined, setJoined] = useState(() => hasFamily())
+  const [, setJoined] = useState(() => hasFamily())
   const [open, setOpen] = useState(false)
   const [reason, setReason] = useState<string | undefined>(undefined)
 
@@ -54,5 +53,5 @@ export function useFamilyGate(): FamilyGate {
     />
   )
 
-  return { joined, requireFamily, openFamilySetup, familyGate }
+  return { joined: hasFamily(), requireFamily, openFamilySetup, familyGate }
 }

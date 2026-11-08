@@ -1,434 +1,137 @@
-/* Bento hierarchy: the balance card is the hero, gets a warm brand wash
- * while feature cards use subtle warm backgrounds for a cozy feel. */
+@use '../../theme/figma' as *;
 
-/* ---------- Overview card (with illustration) ---------- */
-
-.home-overview {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  background: var(--color-surface);
+.home-page {
+  @include final-home-tokens;
+  padding-left: figma(16); padding-right: figma(16);
+  padding-bottom: calc(env(safe-area-inset-bottom) + #{figma(80)});
+  background: #fffdf3;
+  color: var(--home-text);
+  font-family: 'YBP Body', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  // Only reset this screen's controls. Shared dialogs live inside PageShell
+  // and must retain their own button colours, padding and geometry.
+  .home-family, .home-bell, .home-retry, .home-balance-link, .home-metric, .home-record, .home-quick, .home-feature-card, .home-reminder-settings, .home-reminder, .home-start-action, .home-empty-action { min-width: 0; margin: 0; padding: 0; color: inherit; text-align: left; background: transparent; border-radius: 0; }
+  image { display: block; flex-shrink: 0; }
+}
+.home-brand-header { display: flex; align-items: flex-start; gap: figma(6); min-height: figma(62); }
+.home-brand-copy { flex: 1; min-width: 0; }
+.home-brand-line { position: relative; display: inline-flex; align-items: center; gap: figma(4); max-width: 100%; }
+.home-brand { font-family: 'YBP Brand', 'PingFang SC', sans-serif; font-weight: 900; font-size: figma(32); letter-spacing: figma(-1); line-height: figma(39); white-space: nowrap; }
+.home-leaves { flex-shrink: 0; width: figma(20); height: figma(24); margin: figma(2) 0 0; align-self: flex-start; }
+.home-tagline { display: block; color: #74777e; font-size: figma(14); line-height: figma(20); }
+.home-page .home-family { display: flex; align-items: center; gap: figma(4); flex: 0 0 figma(118); width: figma(118) !important; max-width: figma(118); min-height: max(44PX, #{figma(44)}); padding: figma(6) figma(8); border-radius: figma(22); background: #fff; font-size: figma(14); line-height: figma(18); }
+.home-family-label { font-size: figma(13); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.home-family-chevron { flex-shrink: 0; font-size: figma(12); }
+.home-family-art { width: figma(32); height: figma(25); }
+.home-page .home-bell { display: flex; justify-content: center; align-items: center; flex: 0 0 max(44PX, #{figma(44)}); width: max(44PX, #{figma(44)}) !important; height: max(44PX, #{figma(44)}); border-radius: 50%; background: #fff; }
+.home-bell-art { width: figma(22); height: figma(22); }
+// One continuous native scene. Clip only the decorative table beneath it.
+.home-hero { height: figma(96); position: relative; }
+.home-hero-stage { position: absolute; top: figma(-17); left: 0; right: 0; height: figma(105); overflow: hidden; pointer-events: none; }
+.home-hero-scene { position: absolute; right: 0; top: 0; width: figma(342); height: figma(125); }
+.home-greeting { position: absolute; top: figma(8); left: figma(7); display: flex; flex-direction: column; transform: rotate(-3deg); font-family: 'YBP Handwriting', 'Kaiti SC', 'STKaiti', serif; font-size: figma(16.5); line-height: figma(23); letter-spacing: figma(-3); max-width: figma(145); }
+.home-greeting-title { font-size: figma(18); font-weight: 600; }
+.home-greeting-line { white-space: nowrap; letter-spacing: figma(-3.7); }
+.home-greeting-last { white-space: nowrap; letter-spacing: figma(-3.2); }
+.home-loop { position: absolute; width: figma(72); height: figma(17); left: figma(47); top: figma(70); }
+.home-heart { position: absolute; width: figma(15); height: figma(14); left: figma(153); top: figma(51); }
+.home-speech { position: absolute; right: figma(18); top: figma(-8); width: figma(59); height: figma(62); transform: rotate(-5deg); }
+.home-speech-bg { width: figma(59); height: figma(62); }
+.home-speech > text, .home-speech > .taro-text { position: absolute; top: figma(5); left: figma(5); width: figma(49); white-space: pre-line; font-family: 'YBP Handwriting', 'Kaiti SC', 'STKaiti', serif; font-size: figma(12); line-height: figma(14.2); text-align: center; }
+.home-speech-heart { position: absolute; width: figma(10); height: figma(9); left: figma(25); top: figma(47); }
+.home-status { display: flex; align-items: center; justify-content: space-between; gap: figma(8); padding: figma(8); margin-bottom: figma(8); border-radius: figma(12); background: #fff0eb; font-size: figma(12); }
+.home-page .home-retry { min-height: max(44PX, #{figma(44)}); padding: 0 figma(10); font-size: figma(13); color: var(--home-coral); }
+.home-ledger-card { position: relative; overflow: hidden; padding: figma(12) figma(12) figma(6); border: figma(2) solid rgba(255,255,255,.95); border-radius: figma(28); background: linear-gradient(100deg,#b2ff1f,#c9ff4a 55%,#e8ff8c); box-shadow: 0 figma(8) figma(18) rgba(107,143,31,.16); }
+.home-balance-art { position: absolute; top: figma(36); right: figma(10); width: figma(150); height: figma(96); pointer-events: none; }
+.home-page .home-balance-link { position: relative; display: flex; flex-direction: column; align-items: flex-start; width: 100%; padding-left: figma(4); min-height: figma(98); }
+.home-balance-label { display: flex; align-items: center; gap: figma(8); font-weight: 700; font-size: figma(16); line-height: figma(24); }
+.home-house { width: figma(20); height: figma(20); }
+.home-balance { display: block; font-size: figma(40); font-weight: 900; line-height: figma(48); letter-spacing: figma(-.8); max-width: 100%; overflow-wrap: anywhere; }
+.home-balance--negative { color: #ae301a; }
+.home-comparison { display: block; max-width: 100%; font-size: figma(12); line-height: figma(18); color: #5fae00; background: hsla(0,0%,100%,.58); padding: figma(2) figma(6); border-radius: figma(13); }
+.home-balance-actions { display: flex; align-items: stretch; gap: figma(8); padding: figma(5) figma(10); background: hsla(0,0%,100%,.96); border: figma(1) solid rgba(255,255,255,.9); border-radius: figma(27); min-height: figma(68); box-shadow: 0 figma(3) figma(10) rgba(87,107,26,.1); }
+.home-page .home-metric { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: center; gap: figma(2); }
+.home-metric--income { border-right: figma(1) solid #e3e3de; padding-right: figma(7) !important; }
+.home-metric-label { display: flex; align-items: center; gap: figma(6); font-size: figma(12); line-height: figma(18); color: var(--home-secondary); }
+.home-metric-icon { position: relative; width: figma(21); height: figma(21); }
+.home-metric-disc { width: figma(21); height: figma(21); }
+.home-metric-arrow { position: absolute; left: figma(2.5); top: figma(2.5); width: figma(16); height: figma(16); }
+.home-metric-value { font-size: figma(15); line-height: figma(24); font-weight: 700; overflow-wrap: anywhere; }
+.home-metric--income .home-metric-value { color: var(--home-income); }
+.home-metric--expense .home-metric-value { color: var(--home-expense); }
+.home-progress { width: 88%; height: figma(5); border-radius: figma(3); background: #ecece7; overflow: hidden; }
+.home-progress > view { height: 100%; background: var(--home-income); border-radius: inherit; }
+.home-metric--expense .home-progress > view { background: var(--home-expense); }
+.home-page .home-record { display: flex; justify-content: center; align-items: center; gap: figma(8); align-self: center; flex: 0 0 36%; min-height: figma(56); padding: figma(10) figma(6); border-radius: figma(999); background: var(--home-coral); color: #fff; font-size: figma(13); line-height: figma(18); }
+.home-plus { width: figma(20); height: figma(20); }
+.home-quick-actions { display: flex; justify-content: space-between; gap: figma(2); padding: figma(3); margin-top: figma(9); border-radius: figma(27); background: hsla(0,0%,100%,.94); box-shadow: 0 figma(5) figma(16) rgba(107,82,26,.08); }
+.home-page .home-quick { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: figma(4); min-height: figma(88); font-size: figma(12); line-height: figma(20); white-space: nowrap; }
+.home-quick-disc { display: flex; align-items: center; justify-content: center; width: figma(60); height: figma(60); border-radius: 50%; background: #fff0eb; }
+.home-quick--import .home-quick-disc { background: #ebf9e5; }
+.home-quick--orders .home-quick-disc { background: #eaf5ff; }
+.home-quick--inventory .home-quick-disc { background: #fff6d8; }
+.home-quick--family .home-quick-disc { background: #f3ecff; }
+.home-quick-art { width: figma(54); height: figma(54); }
+.home-feature-grid { display: flex; gap: figma(10); margin-top: figma(5); }
+.home-page .home-feature-card { flex: 1; position: relative; min-width: 0; height: figma(151); padding: figma(10) figma(12); border-radius: figma(20); overflow: hidden; background: linear-gradient(100deg,#ffede5,#fffaf2); }
+.home-page .home-feature-card--inventory { background: linear-gradient(100deg,#ebffc4,#faffe8); }
+.home-feature-heading { display: flex; justify-content: space-between; align-items: center; font-size: figma(20); line-height: figma(28); font-weight: 700; letter-spacing: figma(-.2); white-space: nowrap; }
+.home-chevron { width: figma(16); height: figma(16); }
+.home-feature-copy { display: block; font-size: figma(12); line-height: figma(18); color: var(--home-secondary); }
+.home-feature-art { position: absolute; top: figma(48); left: figma(4); width: calc(100% - #{figma(8)}); height: figma(103); }
+.home-attention-card { display: flex; flex-direction: column; gap: figma(6); padding: figma(10); margin-top: figma(9); border-radius: figma(26); background: hsla(0,0%,100%,.95); box-shadow: 0 figma(5) figma(16) rgba(107,82,31,.08); }
+.home-attention-head { position: relative; display: flex; align-items: center; gap: figma(9); min-height: figma(25); font-size: figma(17); line-height: figma(28); font-weight: 900; }
+.home-attention-icon { width: figma(19); height: figma(19); }
+.home-page .home-reminder-settings { position: absolute; right: 0; top: figma(-8); display: flex; align-items: center; font-size: figma(11); font-weight: 400; color: var(--home-secondary); height: figma(44); }
+.home-page .home-reminder { display: flex; align-items: center; gap: figma(10); min-height: figma(47); padding: figma(6) figma(8); border: figma(1) solid #f2eee7; border-radius: figma(14); background: hsla(0,0%,100%,.98); box-shadow: 0 figma(2) figma(8) rgba(92,71,33,.06); }
+.home-reminder-icon { display: flex; align-items: center; justify-content: center; width: figma(30); height: figma(30); border-radius: figma(10); flex-shrink: 0; }
+.home-reminder-icon--meal { background: #fff0eb; }
+.home-reminder-icon--inventory { background: #eaf5ff; }
+.home-reminder-art { width: figma(18); height: figma(18); }
+.home-reminder-copy { display: flex; flex-direction: column; flex: 1; min-width: 0; }
+.home-reminder-copy > text:first-child { font-weight: 700; font-size: figma(13); line-height: figma(19); overflow-wrap: anywhere; }
+.home-reminder-copy > text:last-child { color: var(--home-secondary); font-size: figma(11); line-height: figma(15); overflow-wrap: anywhere; }
+.home-highlight { color: #ff4f37; }
+.home-reminder-action { flex-shrink: 0; display: block; padding: figma(4) figma(8); border-radius: figma(13); font-size: figma(10); line-height: figma(18); }
+.home-reminder-action--meal { background: #fff0eb; color: var(--home-coral); }
+.home-reminder-action--inventory { background: #eaf5ff; color: var(--home-info); }
+.home-reminder-empty { padding: figma(15) figma(8); min-height: figma(70); color: var(--home-secondary); font-size: figma(13); line-height: figma(20); }
+.home-art-failed { background: hsla(46,25%,87%,.25); border-radius: figma(8); }
+.home-page .home-balance-link,
+.home-page .home-reminder { width: 100% !important; }
+@media (max-width: 360px) {
+  .home-brand { font-size: figma(30); }
+  .home-family-art { width: figma(30); }
+  .home-quick-disc { width: figma(53); height: figma(53); }
+  .home-feature-heading { font-size: figma(18); }
 }
 
-.home-overview__info {
-  min-width: 0;
-  flex: 1;
-}
+// First use, unavailable data and an empty family are independent states.
+.home-start-card { position: relative; overflow: hidden; padding: figma(20); border: figma(2) solid white; border-radius: figma(26); background: linear-gradient(110deg,#e6ffc0,#f5ffde); box-shadow: 0 figma(5) figma(16) rgba(83,105,30,.08); }
+.home-start-copy { position: relative; z-index: 1; max-width: 67%; min-height: figma(110); }
+.home-start-kicker { display: block; color: #658137; font-size: figma(11); line-height: figma(18); }
+.home-start-title { display: block; margin-top: figma(6); font-size: figma(23); line-height: figma(32); font-weight: 900; }
+.home-start-description { display: block; margin-top: figma(7); color: #656d55; font-size: figma(13); line-height: figma(21); overflow-wrap: anywhere; }
+.home-start-art { position: absolute; top: figma(12); right: figma(-12); width: figma(140); height: figma(120); opacity: .9; }
+.home-start-benefits { display: flex; gap: figma(7); margin: figma(12) 0; }
+.home-start-benefits > text { padding: figma(4) figma(9); background: hsla(0,0%,100%,.75); border-radius: figma(99); font-size: figma(11); color: #557235; }
+.home-page .home-start-action { display: flex; align-items: center; justify-content: space-between; width: 100% !important; min-height: max(44PX, #{figma(46)}); padding: figma(10) figma(16); margin-top: figma(10); border-radius: figma(99); background: #ff634a; color: #fff; font-size: figma(14); font-weight: 700; }
+.home-start-footnote { display: block; margin-top: figma(10); text-align: center; font-size: figma(11); color: #777e6e; }
+.home-start-card--unavailable { background: #fff; border-color: #f2eadc; }
+.home-start-card--unavailable .home-start-art { opacity: .4; }
+.home-start-card--unavailable .home-start-kicker { color: #ba5a3d; }
+.home-start-skeleton { display: flex; gap: figma(12); padding-top: figma(16); }
+.home-start-skeleton > view { height: figma(12); width: 40%; background: #f1f0e9; border-radius: figma(8); }
+.home-reminder-empty { display: flex; align-items: center; gap: figma(12); padding: figma(16) figma(4); min-height: 0; }
+.home-empty-check { display: flex; align-items: center; justify-content: center; flex-shrink: 0; width: figma(34); height: figma(34); border-radius: 50%; background: #eff9e3; color: #6f9f31; font-size: figma(20); font-weight: 700; }
+.home-reminder-empty > view:nth-child(2) { flex: 1; min-width: 0; }
+.home-empty-title { display: block; font-size: figma(14); line-height: figma(22); color: #2c3325; font-weight: 700; }
+.home-empty-description { display: block; margin-top: figma(4); color: #83877c; font-size: figma(12); line-height: figma(19); }
+.home-page .home-empty-action { display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-left: auto; text-align: center; padding: 0 figma(12); min-height: max(44PX, #{figma(44)}); border-radius: figma(99); color: #cf4b34; background: #fff2ec; font-size: figma(12); }
+.home-start-action::after, .home-empty-action::after { border: 0; }
+
+.home-page .home-bell { position: relative; }
+.home-notification-dot { position: absolute; top: figma(9); right: figma(9); width: figma(6); height: figma(6); border-radius: 50%; background: #ff634a; border: figma(1) solid white; }
+
+.home-sync-note { display: flex; align-items: center; justify-content: space-between; gap: figma(10); margin-bottom: figma(10); padding: figma(10) figma(12); background: #fff0eb; border-radius: figma(16); color: #9b3c2e; font-size: figma(12); line-height: 1.5; }
+.home-page .home-sync-note .home-retry { flex-shrink: 0; display: flex; align-items: center; justify-content: center; min-width: 44PX; min-height: 44PX; color: #df422b; }
 
-.home-overview__illust {
-  width: 140rpx;
-  min-width: 140rpx;
-  height: 140rpx;
-}
-
-.home-overview__label {
-  display: block;
-  color: var(--color-subtle-foreground);
-  font-size: var(--text-xs);
-  font-weight: 600;
-}
-
-.home-overview__balance {
-  display: block;
-  max-width: 100%;
-  margin-top: var(--space-1);
-  overflow: hidden;
-  color: var(--color-primary);
-  font-size: var(--text-display);
-  font-weight: 700;
-  letter-spacing: -0.035em;
-  line-height: 1.15;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-overview__balance--negative {
-  color: var(--color-destructive);
-}
-
-.home-overview__metrics {
-  display: flex;
-  gap: var(--space-3);
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: var(--hairline) solid var(--color-border);
-}
-
-.home-overview__metric {
-  min-width: 0;
-}
-
-.home-overview__metric + .home-overview__metric {
-  padding-left: var(--space-3);
-  border-left: var(--hairline) solid var(--color-border);
-}
-
-.home-overview__metric-label,
-.home-overview__metric-value {
-  display: block;
-}
-
-.home-overview__metric-label {
-  color: var(--color-subtle-foreground);
-  font-size: var(--text-xs);
-}
-
-.home-overview__metric-value {
-  margin-top: 2rpx;
-  overflow: hidden;
-  color: var(--color-foreground);
-  font-size: var(--text-md);
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-overview__metric-value--income {
-  color: var(--color-success);
-}
-
-.home-overview ~ .section {
-  margin-top: var(--space-5);
-}
-
-.home-overview ~ .section .section__head {
-  margin-bottom: var(--space-2);
-}
-
-/* ---------- Feature cards (illustrated) ---------- */
-
-.home-feature-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: var(--space-2);
-}
-
-.home-feature-card {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-3) var(--space-2);
-  text-align: center;
-  /* Warm tint background instead of pure white */
-  background: var(--color-surface);
-}
-
-.home-feature-card__illust {
-  width: 120rpx;
-  height: 120rpx;
-  margin-bottom: var(--space-1);
-}
-
-.home-feature-card__title {
-  display: block;
-  max-width: 100%;
-  overflow: hidden;
-  color: var(--color-foreground);
-  font-size: var(--text-md);
-  font-weight: 700;
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-feature-card__copy {
-  display: block;
-  max-width: 100%;
-  margin-top: 4rpx;
-  overflow: hidden;
-  color: var(--color-subtle-foreground);
-  font-size: var(--text-2xs);
-  line-height: 1.3;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* ---------- Today's tasks ---------- */
-
-.home-task-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.home-task-card {
-  display: block;
-  width: 100%;
-  padding: var(--space-3);
-  text-align: left;
-}
-
-.home-task-card__head {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.home-task-card__body,
-.home-item-row__body,
-.home-all-clear__body {
-  min-width: 0;
-  flex: 1;
-}
-
-.home-task-card__title-line,
-.home-item-row__title-line {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 12rpx;
-}
-
-.home-task-card__title-line .state,
-.home-item-row__title-line .state {
-  flex: 0 0 auto;
-}
-
-.home-task-card__title,
-.home-item-row__title,
-.home-all-clear__title {
-  display: block;
-  min-width: 0;
-  overflow: hidden;
-  color: var(--color-foreground);
-  font-size: var(--text-md);
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-task-card__title,
-.home-item-row__title {
-  flex: 1;
-}
-
-.home-task-card__meta,
-.home-item-row__meta,
-.home-all-clear__copy {
-  display: block;
-  margin-top: 2rpx;
-  overflow: hidden;
-  color: var(--color-subtle-foreground);
-  font-size: var(--text-xs);
-  line-height: 1.4;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.home-row-chevron {
-  display: flex;
-  width: 32rpx;
-  min-width: 32rpx;
-  align-items: center;
-  justify-content: flex-end;
-}
-
-.home-task-card__photos {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 12rpx;
-  margin-top: var(--space-2);
-}
-
-.home-task-card__photo {
-  width: 100%;
-  height: 88rpx;
-  border-radius: var(--radius-md);
-  background: var(--color-muted);
-}
-
-.home-task-card__photo--placeholder,
-.home-item-row__placeholder {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.home-item-row {
-  display: flex;
-  width: 100%;
-  min-height: var(--row-height-sm);
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  text-align: left;
-}
-
-.home-item-row__photo {
-  width: 80rpx;
-  min-width: 80rpx;
-  height: 80rpx;
-  border-radius: var(--radius-md);
-  background: var(--color-muted);
-}
-
-.home-more-link {
-  display: flex;
-  min-height: var(--touch-target);
-  align-items: center;
-  justify-content: center;
-  gap: 4rpx;
-  color: var(--color-primary-text);
-  font-size: var(--text-xs);
-  font-weight: 700;
-}
-
-/* ---------- All clear (illustrated) ---------- */
-
-.home-all-clear {
-  display: flex;
-  min-height: var(--row-height-md);
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3);
-}
-
-.home-all-clear__illust {
-  width: 88rpx;
-  min-width: 88rpx;
-  height: 88rpx;
-}
-
-/* ---------- Responsive ---------- */
-
-@media screen and (max-width: 350px) {
-  .home-overview {
-    padding: var(--space-3);
-  }
-
-  .home-overview__illust {
-    width: 110rpx;
-    min-width: 110rpx;
-    height: 110rpx;
-  }
-
-  .home-overview__balance {
-    font-size: var(--text-2xl);
-  }
-
-  .home-overview__metrics {
-    gap: var(--space-2);
-  }
-
-  .home-overview__metric + .home-overview__metric {
-    padding-left: var(--space-2);
-  }
-
-  .home-feature-card {
-    padding: var(--space-2) var(--space-1);
-  }
-
-  .home-feature-card__illust {
-    width: 96rpx;
-    height: 96rpx;
-  }
-
-  .home-feature-card__title {
-    font-size: var(--text-sm);
-  }
-
-  .home-feature-card__copy {
-    display: none;
-  }
-
-  .home-task-card {
-    padding: 20rpx;
-  }
-
-  .home-task-card__title-line,
-  .home-item-row__title-line {
-    gap: var(--space-1);
-  }
-
-  .home-task-card__photo {
-    height: 80rpx;
-  }
-
-  .home-item-row {
-    gap: 12rpx;
-    padding: var(--space-2);
-  }
-
-  .home-item-row__photo {
-    width: 72rpx;
-    min-width: 72rpx;
-    height: 72rpx;
-  }
-
-  .home-row-chevron {
-    display: none;
-  }
-}
-
-/* Quiet household-ledger treatment: hierarchy comes from rules and type. */
-.home-overview {
-  border-left: 6rpx solid var(--color-primary);
-  background: var(--color-surface);
-}
-
-.home-feature-grid {
-  gap: 0;
-  overflow: hidden;
-  border: var(--hairline) solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-}
-
-.home-feature-card {
-  border: 0;
-  border-radius: 0;
-  background: var(--color-surface);
-  box-shadow: none;
-}
-
-.home-feature-card + .home-feature-card {
-  border-left: var(--hairline) solid var(--color-border);
-}
-
-.home-task-list {
-  gap: 0;
-  overflow: hidden;
-  border: var(--hairline) solid var(--color-border);
-  border-radius: var(--radius-card);
-  background: var(--color-surface);
-}
-
-.home-task-card {
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-}
-
-.home-task-card + .home-task-card {
-  border-top: var(--hairline) solid var(--color-border);
-}
-
-
-/* Equal-height feature cards: on H5 the grid rows were sized by content so
- * the card with the longest copy grew taller. Force the row to stretch and
- * let each card fill it, so all three bottoms align. (feature-card equal-height) */
-.home-feature-grid {
-  align-items: stretch;
-}
-.home-feature-card {
-  height: 100%;
-  min-height: 148PX;
-  justify-content: center;
-}
-.home-feature-card__copy {
-  white-space: normal;
-}
-
-/* H5: Taro <Image> renders as taro-image-core (display:block) and does not
- * honor the parent flex cross-axis centering, so the illustration hugs the
- * top-left. Pin it block-centered and give it a fixed box so all three cards
- * align both vertically and horizontally. (illust h5 center) */
-.home-feature-card__illust {
-  display: block;
-  margin: 0 auto 8PX;
-  width: 40PX;
-  height: 40PX;
-}

@@ -1,4 +1,8 @@
-import { Button, Image, Text, View } from '@tarojs/components'
+import { useConfirm } from '../../components/feedback'
+import { goBack } from '../../utils/navigation'
+import { SafeImage as Image } from '../../components/safe-image'
+import { chef_status } from '../../assets/images/final'
+import { Button, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { CalendarClock, MapPin, Package, Pencil, RotateCcw, Tags, Trash2 } from 'lucide'
 
@@ -7,7 +11,7 @@ import { PageHeader } from '../../components/page-header'
 import { PageShell } from '../../components/page-shell'
 import { StateText, type StateTone } from '../../components/state-text'
 import { useAppShare } from '../../hooks/use-app-share'
-import { useDispatch, useStore } from '../../store'
+import { useDispatch, useStore, useRemoteStatus } from '../../store'
 import { palette } from '../../theme/palette'
 import type { InventoryStatus } from '../../types/domain'
 import { getInventoryExpiry } from '../../utils/date'
@@ -21,6 +25,8 @@ const statusTone: Record<InventoryStatus, StateTone> = {
 export default function InventoryDetailPage() {
   const { inventory } = useStore()
   const dispatch = useDispatch()
+  const confirm = useConfirm()
+  const remote = useRemoteStatus()
   // Registered before the early return so the hook order stays stable.
   useAppShare()
   const itemId = Taro.getCurrentInstance().router?.params?.id
@@ -28,14 +34,14 @@ export default function InventoryDetailPage() {
 
   if (!storedItem) {
     return (
-      <PageShell tabPage={false}>
+      <PageShell className='inventory-detail-page' tabPage={false}>
         <PageHeader title='物品详情' />
         <View className='empty-state surface-card'>
           <View className='empty-state__icon'>
             <AppIcon icon={Package} size={32} color={palette.subtleForeground} />
           </View>
-          <Text className='empty-state__title'>物品不存在</Text>
-          <Text className='empty-state__copy'>这个物品可能已经被删除。</Text>
+          <Text className='empty-state__title'>{remote.loading ? '正在加载' : !remote.ready ? '请重试加载' : '物品不存在'}</Text>
+          <Text className='empty-state__copy'>{remote.ready ? '这个物品可能已经被删除。' : '加载完成后即可查看物品详情。'}</Text>
         </View>
       </PageShell>
     )
@@ -48,17 +54,17 @@ export default function InventoryDetailPage() {
 
   const markStatus = (status: Extract<InventoryStatus, 'finished' | 'discarded'>) => {
     const label = status === 'finished' ? '用完' : '丢弃'
-    Taro.showModal({
+    confirm({
       title: `确认标记为${label}？`,
-      content: '物品会移入归档区，之后仍可恢复。',
+      content: '物品会从找物品中移除，可在物品管理中恢复。',
       confirmText: label,
-      confirmColor: status === 'discarded' ? palette.destructive : palette.primary
+      danger: status === 'discarded'
     }).then(async (result) => {
-      if (!result.confirm) return
+      if (!result.confirmed) return
       const succeeded = await dispatch({ type: 'inventory/markStatus', id: item.id, status })
       if (!succeeded) return
       Taro.showToast({ title: `已标记为${label}`, icon: 'success' })
-      setTimeout(() => Taro.navigateBack(), 350)
+      setTimeout(() => goBack('/pages/inventory/index'), 350)
     })
   }
 
@@ -66,34 +72,36 @@ export default function InventoryDetailPage() {
     const succeeded = await dispatch({ type: 'inventory/markStatus', id: item.id, status: expiry.status })
     if (!succeeded) return
     Taro.showToast({ title: '物品已恢复', icon: 'success' })
-    setTimeout(() => Taro.navigateBack(), 350)
+    setTimeout(() => goBack('/pages/inventory/index'), 350)
   }
 
   const deleteItem = () => {
-    Taro.showModal({
+    if (!terminal) return
+    confirm({
       title: `永久删除“${item.name}”？`,
       content: '删除后无法恢复。若只是暂时不用，建议标记为用完或丢弃。',
       confirmText: '永久删除',
-      confirmColor: palette.destructive
+      danger: true
     }).then(async (result) => {
-      if (!result.confirm) return
+      if (!result.confirmed) return
       const succeeded = await dispatch({ type: 'inventory/permanentDelete', id: item.id })
       if (!succeeded) return
       Taro.showToast({ title: '物品已删除', icon: 'success' })
-      setTimeout(() => Taro.navigateBack(), 350)
+      setTimeout(() => goBack('/pages/inventory/index'), 350)
     })
   }
 
   return (
-    <PageShell tabPage={false}>
+    <PageShell className='inventory-detail-page' tabPage={false}>
       <PageHeader title='物品详情' subtitle={item.name} />
 
       <View className='inventory-detail-hero surface-card'>
         {item.photo ? (
-          <Image className='inventory-detail-hero__photo' src={item.photo} mode='aspectFill' />
+          <Image className='inventory-detail-hero__photo' src={item.photo} mode='aspectFit' />
         ) : (
           <View className='inventory-detail-hero__photo inventory-detail-hero__placeholder'>
-            <AppIcon icon={Package} size={42} color={palette.subtleForeground} />
+            <AppIcon icon={Package} size={32} color={palette.subtleForeground} />
+            <Text className='inventory-detail-hero__photo-hint'>未添加照片</Text>
           </View>
         )}
         <View className='inventory-detail-hero__copy'>
@@ -133,6 +141,7 @@ export default function InventoryDetailPage() {
         </View>
       </View>
 
+      <View className='inventory-status-banner'><View><Text>{terminal ? statusLabel : '正在使用'}</Text><Text>{terminal ? '可在物品管理中恢复。' : item.expiryDate ? '记得尽快用，避免过期浪费。' : '妥善存放，按需使用。'}</Text></View><Image src={chef_status} mode='aspectFit' /></View>
       <View className='inventory-detail-actions'>
         {terminal ? (
           <Button className='button button--primary tap' hoverClass='tap--pressed' onClick={restore}>
@@ -153,10 +162,11 @@ export default function InventoryDetailPage() {
         )}
       </View>
 
-      <Button className='danger-action inventory-detail-delete tap' hoverClass='tap--pressed' onClick={deleteItem}>
+      {terminal ? (      <Button className='danger-action inventory-detail-delete tap' hoverClass='tap--pressed' onClick={deleteItem}>
         <AppIcon icon={Trash2} size={17} color={palette.destructive} />
         <Text>永久删除物品</Text>
-      </Button>
+      </Button>) : <Button className='danger-action inventory-detail-delete tap' onClick={() => { confirm({ title: '移入垃圾桶？', content: '可在物品管理中恢复，或永久删除。', danger: true }).then(async result => { if (result.confirmed && await dispatch({ type: 'inventory/delete', id: item.id })) goBack('/pages/inventory/index') }) }}>移入垃圾桶</Button>}
+      <Text className='field__hint'>移入垃圾桶可恢复；永久删除仅适用于已结束的物品。</Text>
     </PageShell>
   )
 }

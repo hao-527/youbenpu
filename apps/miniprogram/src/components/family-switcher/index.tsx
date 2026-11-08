@@ -1,12 +1,12 @@
-import { Button, Text, View } from '@tarojs/components'
+import { family as familyArtwork } from '../../assets/images/final'
+import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
 import Taro, { useDidShow } from '@tarojs/taro'
-import { Check, ChevronRight, Home, Plus } from 'lucide'
-import { useCallback, useState } from 'react'
+import { Plus } from 'lucide'
+import { useCallback, useEffect, useState } from 'react'
 
 import { listMyFamilies, switchActiveFamily, type MyFamily } from '../../api'
 import { hasFamily } from '../../api/token'
 import { useRefreshStore } from '../../store'
-import { palette } from '../../theme/palette'
 import { AppIcon } from '../app-icon'
 
 interface FamilySwitcherProps {
@@ -23,20 +23,28 @@ export function FamilySwitcher({ onCreateNew }: FamilySwitcherProps) {
   const refresh = useRefreshStore()
   const [families, setFamilies] = useState<MyFamily[]>([])
   const [switching, setSwitching] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [loadError, setLoadError] = useState('')
 
   const load = useCallback(async () => {
     if (!hasFamily()) {
       setFamilies([])
       return
     }
+    setLoading(true)
+    setLoadError('')
     try {
       setFamilies(await listMyFamilies())
-    } catch {
-      // Keep whatever was shown; the next open retries.
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : '家庭列表加载失败')
+    } finally {
+      setLoading(false)
     }
   }, [])
 
   useDidShow(() => { void load() })
+  // The home switcher mounts inside a sheet after the page's didShow event.
+  useEffect(() => { void load() }, [load])
 
   const handleSwitch = async (family: MyFamily) => {
     if (family.is_active || switching) return
@@ -53,7 +61,7 @@ export function FamilySwitcher({ onCreateNew }: FamilySwitcherProps) {
     }
   }
 
-  if (families.length === 0) return null
+  if (!hasFamily()) return null
 
   return (
     <View className='section'>
@@ -61,36 +69,34 @@ export function FamilySwitcher({ onCreateNew }: FamilySwitcherProps) {
         <Text className='section__title'>我的家庭</Text>
         <Text className='section__meta'>{families.length} 个</Text>
       </View>
-      <View className='profile-menu surface-card'>
+      {(loading || loadError) && <View className='page-remote-status'><Text>{loading ? '正在加载家庭列表…' : loadError}</Text>{!loading && <Button className='page-remote-retry tap' onClick={() => { void load() }}>重试</Button>}</View>}
+      <ScrollView className='profile-menu family-tiles surface-card' scrollX enableFlex><View className='family-tiles__track'>
         {families.map((family) => (
           <Button
             key={family.id}
-            className='profile-menu__item tap tap-row'
+            className={`family-tile tap ${family.is_active ? 'family-tile--active' : ''}`}
             hoverClass='tap--pressed'
             disabled={switching}
             onClick={() => handleSwitch(family)}
           >
-            <View className='icon-bubble icon-bubble--xs icon-bubble--primary'>
-              <AppIcon icon={Home} size={15} color={palette.primary} />
-            </View>
+            <Image className='family-tile__art' src={familyArtwork} mode='aspectFit' />
             <Text className='profile-menu__label'>{family.name}</Text>
             {family.is_active
-              ? <AppIcon icon={Check} size={16} color={palette.primary} />
+              ? <Text className='family-tile__current'>当前家庭 ✓</Text>
               : <Text className='profile-menu__value'>切换</Text>}
           </Button>
         ))}
         <Button
-          className='profile-menu__item tap tap-row'
+          className='family-tile family-tile--new tap'
           hoverClass='tap--pressed'
           onClick={onCreateNew}
         >
-          <View className='icon-bubble icon-bubble--xs icon-bubble--primary'>
-            <AppIcon icon={Plus} size={15} color={palette.primary} />
+          <View className='family-tile__plus'>
+            <AppIcon icon={Plus} size={18} color='#ffffff' />
           </View>
-          <Text className='profile-menu__label'>创建新家庭</Text>
-          <AppIcon icon={ChevronRight} size={16} color={palette.disabledForeground} />
+          <Text className='family-tile__new-label'>添加家庭</Text>
         </Button>
-      </View>
+      </View></ScrollView>
     </View>
   )
 }

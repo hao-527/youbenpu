@@ -1,5 +1,5 @@
 .family-setup {
-  padding: 0 var(--page-gutter) var(--space-4);
+  padding: 0 0 var(--space-2);
 }
 
 /* ---------- Choose step ---------- */
@@ -73,3 +73,27 @@
   letter-spacing: 0.15em;
   text-transform: uppercase;
 }
+
+.family-setup .family-setup__choice {
+  width: 100% !important;
+  margin: 0;
+  border: 2rpx solid #ebe8dc;
+  border-radius: 24rpx;
+  background: #fffdf5;
+  box-shadow: none;
+  white-space: normal;
+  line-height: 1.5;
+}
+.family-setup__choice::after, .family-setup__back::after { border: 0; }
+.family-setup__choice-title { font-weight: 700; }
+.family-setup__choice-copy { margin-top: 8rpx; }
+.family-setup .family-setup__back {
+  width: 100% !important;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.family-setup__error { display: flex; flex-direction: column; gap: 8rpx; padding: 20rpx; margin-bottom: 20rpx; border-radius: 20rpx; background: #fff0eb; color: #bd3e28; font-size: var(--text-sm); line-height: 1.5; }
+.family-setup__error > text:last-child { color: var(--color-subtle-foreground); font-size: var(--text-xs); }

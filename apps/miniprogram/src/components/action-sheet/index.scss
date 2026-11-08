@@ -4,7 +4,7 @@
   right: 0;
   bottom: 0;
   left: 0;
-  z-index: 100;
+  z-index: 300;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -65,6 +65,11 @@
 .asheet__body {
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.asheet__content {
   padding: 0 var(--space-4) calc(env(safe-area-inset-bottom) + var(--space-4));
 }
 
@@ -81,3 +86,19 @@
   border-bottom: 0;
   box-shadow: none;
 }
+
+.asheet .asheet__close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  min-width: 88rpx;
+  min-height: max(44PX, 88rpx);
+  padding: 0 16rpx;
+  margin: 0;
+  border: 0;
+  border-radius: 16rpx;
+  background: transparent;
+  line-height: 1.4;
+}
+.asheet__close::after { border: 0; }

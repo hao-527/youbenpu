@@ -5,6 +5,7 @@ import type { ReactNode } from 'react'
 import { palette } from '../../theme/palette'
 import { goBack as safeGoBack } from '../../utils/navigation'
 import { AppIcon } from '../app-icon'
+import { BrandTitle } from '../brand-title'
 
 interface PageHeaderProps {
   title: string
@@ -22,7 +23,7 @@ export function PageHeader({ title, subtitle, end, onBack }: PageHeaderProps) {
         <AppIcon icon={ChevronLeft} size={22} color={palette.foreground} />
       </Button>
       <View className='subpage-header__body'>
-        <Text className='subpage-header__title'>{title}</Text>
+        <BrandTitle className='subpage-header__title'>{title}</BrandTitle>
         {subtitle && <Text className='subpage-header__subtitle'>{subtitle}</Text>}
       </View>
       <View className='subpage-header__end'>{end}</View>

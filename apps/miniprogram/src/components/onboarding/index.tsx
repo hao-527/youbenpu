@@ -1,3 +1,4 @@
+import { useNativeOverlay } from '../../hooks/use-native-overlay'
 import { Button, Text, View } from '@tarojs/components'
 import { Package, ReceiptText, Utensils } from 'lucide'
 import { useState } from 'react'
@@ -7,7 +8,6 @@ import { useDispatch } from '../../store'
 import { palette } from '../../theme/palette'
 import { AppIcon } from '../app-icon'
 
-import './index.scss'
 
 interface OnboardingStep {
   icon: IconNode
@@ -38,6 +38,7 @@ const steps: OnboardingStep[] = [
 ]
 
 export function Onboarding() {
+  useNativeOverlay(true)
   const dispatch = useDispatch()
   const [current, setCurrent] = useState(0)
   const step = steps[current]

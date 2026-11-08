@@ -1,4 +1,6 @@
-import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
+import { useConfirm } from '../../components/feedback'
+import { SafeImage as Image } from '../../components/safe-image'
+import { Button, ScrollView, Text, View } from '@tarojs/components'
 import Taro from '@tarojs/taro'
 import { Trash2, Utensils } from 'lucide'
 import { useMemo, useState } from 'react'
@@ -19,6 +21,7 @@ import './index.scss'
 export default function DishManagePage() {
   const { dishes, orders, customDishCategories } = useStore()
   const dispatch = useDispatch()
+  const confirm = useConfirm()
   useAppShare({ title: '看看我们家的菜单 | 生活有本谱', path: '/pages/meals/index' })
   const categories: Array<'全部' | DishCategory> = ['全部', ...dishCategories, ...customDishCategories]
   const [activeCategory, setActiveCategory] = useState<(typeof categories)[number]>('全部')
@@ -39,13 +42,13 @@ export default function DishManagePage() {
       Taro.showToast({ title: '还有菜品在使用这个分类', icon: 'none' })
       return
     }
-    Taro.showModal({
+    confirm({
       title: `删除自定义分类"${category}"？`,
       content: '删除后，新增或编辑菜品时不再出现这个分类。',
       confirmText: '删除',
-      confirmColor: palette.destructive
+      danger: true
     }).then(async (result) => {
-      if (!result.confirm) return
+      if (!result.confirmed) return
       const succeeded = await dispatch({ type: 'category/removeDish', name: category })
       if (!succeeded) return
       if (activeCategory === category) setActiveCategory('全部')
@@ -58,18 +61,18 @@ export default function DishManagePage() {
       Taro.showToast({ title: '当前点餐单正在使用这道菜', icon: 'none' })
       return
     }
-    Taro.showModal({
+    confirm({
       title: `删除“${name}”？`,
       content: '历史点餐记录仍会保留菜名和图片快照。',
       confirmText: '删除',
-      confirmColor: palette.destructive
+      danger: true
     }).then((result) => {
-      if (result.confirm) dispatch({ type: 'dish/delete', id })
+      if (result.confirmed) dispatch({ type: 'dish/delete', id })
     })
   }
 
   return (
-    <PageShell tabPage={false}>
+    <PageShell className='dish-manage-page'  tabPage={false}>
       <PageHeader title='菜品管理' subtitle={`${dishes.filter((dish) => dish.available).length} 道可点`} />
 
       <View className='dish-manage-summary'>

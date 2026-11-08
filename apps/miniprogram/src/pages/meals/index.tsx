@@ -1,4 +1,8 @@
-import { Button, Image, ScrollView, Text, View } from '@tarojs/components'
+import { formatSubmittedAt } from '../../utils/date'
+import { SafeImage as Image } from '../../components/safe-image'
+import { DesignIntro } from '../../components/design-intro'
+import { BrandTitle } from '../../components/brand-title'
+import { Button, Image as BackdropImage, ScrollView, Text, View } from '@tarojs/components'
 import { useDidShow } from '@tarojs/taro'
 import { ChevronRight, History, Settings2, Utensils } from 'lucide'
 import { useMemo, useState } from 'react'
@@ -9,6 +13,7 @@ import { useAppShare } from '../../hooks/use-app-share'
 import { navigate } from '../../utils/navigation'
 import { getPortableImageUrl } from '../../utils/image-source'
 import illustMeal from '../../assets/images/illustrations/meal.svg'
+import { kitchen } from '../../assets/images/final'
 import { StateText } from '../../components/state-text'
 import { useMaybeRefreshStore, useStore } from '../../store'
 import { palette } from '../../theme/palette'
@@ -42,20 +47,37 @@ export default function MealsPage() {
 
   return (
     <PageShell className='meals-page'>
-      <View className='page-title meals-page-title'>
-        <View>
-          <Text className='page-title__text'>吃饭</Text>
-          <Text className='page-title__subtitle'>选好今天吃什么，家里人都能看到</Text>
+      {/* The kitchen scene lives inside one rounded card so its edges never
+          read as a cropped photo; the right and top edges fade into the card. */}
+      <View className='meals-hero'>
+        <View className='meals-hero__backdrop'>
+          <BackdropImage className='meals-hero__image' src={kitchen} mode='scaleToFill' />
         </View>
+        <View className='page-title meals-page-title'>
+          <View>
+            <BrandTitle className='page-title__text'>吃饭</BrandTitle>
+            <Text className='page-title__subtitle'>选好今天吃什么，家里人都能看到</Text>
+          </View>
+          <View className='meals-dish-section__actions'>
+            <Button className='content-action meals-section-action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/meal-orders/index')}>
+              <AppIcon icon={History} size={18} color={palette.foreground} />
+              <Text>点餐记录</Text>
+            </Button>
+            <Button className='content-action meals-section-action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/dish-manage/index')}>
+              <AppIcon icon={Settings2} size={18} color={palette.foreground} />
+              <Text>菜品管理</Text>
+            </Button>
+          </View>
+        </View>
+        <DesignIntro kind='kitchen'>{'好好吃饭～\n就是幸福的日常！'}</DesignIntro>
       </View>
-
       {pendingOrder ? (
         <Button className='meal-focus-card meal-focus-card--pending surface-card tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/meal-orders/index')}>
           <View className='meal-focus-card__head'>
             <View className='meal-focus-card__copy'>
               <Text className='meal-focus-card__eyebrow'>当前点餐单</Text>
               <Text className='meal-focus-card__title'>{pendingOrder.items.length} 道菜，共 {pendingOrder.items.reduce((sum, item) => sum + item.quantity, 0)} 份</Text>
-              <Text className='meal-focus-card__meta'>{pendingOrder.requesterName} · {pendingOrder.submittedAt}</Text>
+              <Text className='meal-focus-card__meta'>{pendingOrder.requesterName} · {formatSubmittedAt(pendingOrder.submittedAt)}</Text>
             </View>
             <StateText label='待完成' tone='warn' />
           </View>
@@ -95,28 +117,19 @@ export default function MealsPage() {
             <Text className='section__title'>可点菜品</Text>
             <Text className='section__meta'>{availableDishes.length} 道</Text>
           </View>
-          <View className='meals-dish-section__actions'>
-            <Button className='content-action meals-section-action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/meal-orders/index')}>
-              <AppIcon icon={History} size={15} color={palette.foreground} />
-              <Text>点餐记录</Text>
-            </Button>
-            <Button className='content-action meals-section-action tap' hoverClass='tap--pressed' onClick={() => navigate('/pages/dish-manage/index')}>
-              <AppIcon icon={Settings2} size={15} color={palette.foreground} />
-              <Text>菜品管理</Text>
-            </Button>
-          </View>
+
         </View>
 
-        <ScrollView className='tabs tabs--category meals-category-tabs' scrollX enableFlex>
-          <View className='tabs__track'>
+        <ScrollView className='meals-chips' scrollX enableFlex>
+          <View className='meals-chips__track'>
             {categories.map((category) => (
               <Button
                 key={category}
-                className={`tabs__item tap ${activeCategory === category ? 'tabs__item--active' : ''}`}
+                className='meals-chip tap'
                 hoverClass='tap--pressed'
                 onClick={() => setActiveCategory(category)}
               >
-                {category}
+                <Text className={`meals-chip__label ${activeCategory === category ? 'meals-chip__label--active' : ''}`}>{category}</Text>
               </Button>
             ))}
           </View>

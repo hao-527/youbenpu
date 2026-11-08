@@ -18,11 +18,11 @@
 }
 
 .ledger-entry-type--expense {
-  color: var(--color-primary);
+  color: var(--color-expense);
 }
 
 .ledger-entry-type--income {
-  color: var(--color-success);
+  color: var(--color-income);
 }
 
 .ledger-entry-field {
@@ -65,21 +65,21 @@
 }
 
 .ledger-entry-amount__symbol {
-  color: var(--color-primary-text);
+  color: var(--color-expense);
   font-size: var(--text-xl);
   font-weight: 700;
   line-height: 1.1;
 }
 
 .ledger-entry-amount--income .ledger-entry-amount__symbol {
-  color: var(--color-success);
+  color: var(--color-income);
 }
 
 .ledger-entry-amount__input {
   min-width: 0;
   height: 82rpx;
   flex: 1;
-  color: var(--color-primary-text);
+  color: var(--color-expense);
   font-size: var(--text-display);
   font-weight: 700;
   letter-spacing: -0.03em;
@@ -87,7 +87,7 @@
 }
 
 .ledger-entry-amount--income .ledger-entry-amount__input {
-  color: var(--color-success);
+  color: var(--color-income);
 }
 
 .ledger-entry-purpose {
@@ -220,13 +220,13 @@
 
 .ledger-entry-amount {
   border: var(--hairline) solid var(--color-border);
-  border-left: 6rpx solid var(--color-primary);
+  border-left: 6rpx solid var(--color-expense);
   border-radius: var(--radius-md);
   background: var(--color-surface);
 }
 
 .ledger-entry-amount--income {
-  border-left-color: var(--color-success);
+  border-left-color: var(--color-income);
   background: var(--color-surface);
 }
 
@@ -252,3 +252,14 @@
 .ledger-entry-purpose__suggestions {
   box-shadow: none;
 }
+
+/* Accounting direction is independent of primary action and success colors. */
+.page-shell.ledger-entry-page .ledger-entry-type-switch .ledger-entry-type--expense { background: var(--color-expense); color: white; }
+.page-shell.ledger-entry-page .ledger-entry-type-switch .ledger-entry-type--income { background: var(--color-income); color: white; }
+.page-shell.ledger-entry-page .ledger-entry-amount__input,
+.page-shell.ledger-entry-page .ledger-entry-amount__symbol { color: var(--color-expense); }
+.page-shell.ledger-entry-page .ledger-entry-amount--income .ledger-entry-amount__input,
+.page-shell.ledger-entry-page .ledger-entry-amount--income .ledger-entry-amount__symbol { color: var(--color-income); }
+
+.ledger-entry-readonly-amount { color: var(--color-expense); }
+.ledger-entry-readonly-amount--income { color: var(--color-income); }
