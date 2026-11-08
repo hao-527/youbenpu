@@ -54,3 +54,6 @@ bills/
 
 # Local immutable release artifacts (never source or private config)
 /releases/
+
+# Design review artifacts (screenshots, baselines, reports); large, kept locally only
+design/
