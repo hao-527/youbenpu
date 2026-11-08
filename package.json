@@ -8,6 +8,8 @@
   ],
   "scripts": {
     "dev:weapp": "npm run dev:weapp --workspace @youbenpu/miniprogram",
+    "dev:phone": "node scripts/dev-phone.cjs",
+    "build:phone": "node scripts/dev-phone.cjs --build",
     "build:weapp": "npm run build:weapp --workspace @youbenpu/miniprogram",
     "typecheck": "npm run typecheck --workspace @youbenpu/miniprogram"
   },
